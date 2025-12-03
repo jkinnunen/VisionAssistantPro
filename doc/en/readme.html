@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vision Assistant Pro Documentation</title>
 <style>
-    body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #fcfcfc; }
+    body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 850px; margin: 0 auto; padding: 20px; background-color: #ffffff; }
     h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }
     h2 { color: #34495e; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-    dt { font-weight: bold; color: #2980b9; margin-top: 10px; font-size: 1.1em; }
+    h3 { color: #555; margin-top: 20px; }
+    dt { font-weight: bold; color: #005a9e; margin-top: 15px; font-size: 1.1em; }
     dd { margin-left: 20px; margin-bottom: 10px; }
-    code { background-color: #eee; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; color: #c0392b; font-weight: bold; }
+    code { background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; color: #c7254e; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
     th { background-color: #f8f9fa; color: #333; }
@@ -23,75 +24,73 @@
 <p>
     <strong>Vision Assistant Pro</strong> is an advanced, multi-modal AI assistant for NVDA. It leverages Google's Gemini models to provide intelligent screen reading, translation, voice dictation, and document analysis capabilities.
 </p>
+<p><em>This add-on was released to the community in honor of the International Day of Persons with Disabilities.</em></p>
 
-<h2>Global Shortcuts</h2>
-<p>To prevent conflicts with NVDA's laptop layout, all shortcuts use <strong>Control + Shift</strong> as modifiers.</p>
+<h2>1. Setup & Configuration</h2>
+<p>Go to <strong>NVDA Menu > Preferences > Settings > Vision Assistant Pro</strong>.</p>
+<ul>
+    <li><strong>API Key:</strong> Required. Get a free key from <a href="https://aistudio.google.com/">Google AI Studio</a>.</li>
+    <li><strong>Model:</strong> Choose <code>gemini-2.5-flash-lite</code> (Fastest) or standard Flash models.</li>
+    <li><strong>Languages:</strong> Set Source, Target, and AI Response languages.</li>
+    <li><strong>Smart Swap:</strong> Automatically swaps languages if the source text matches the target language.</li>
+</ul>
+
+<h2>2. Global Shortcuts</h2>
+<p>To ensure maximum compatibility with laptop layouts, all shortcuts use <strong>NVDA + Control + Shift</strong>.</p>
 
 <dl>
     <dt>NVDA + Ctrl + Shift + T : Smart Translator</dt>
-    <dd>Translates the selected text or the object under the cursor. It includes "Smart Swap" to automatically switch languages if needed.</dd>
+    <dd>Translates the text under the navigator cursor. If text is selected, it prioritizes the selection.</dd>
 
     <dt>NVDA + Ctrl + Shift + Y : Clipboard Translator</dt>
-    <dd>Translates the content currently stored in the clipboard. <strong>Recommended for Web Browsers</strong> where selection detection might be tricky.</dd>
-
-    <dt>NVDA + Ctrl + Shift + L : Read Last Translation</dt>
-    <dd>Re-reads the last translated text without making a new API call.</dd>
+    <dd>Translates the content currently in the clipboard. <strong>Recommended for Web Browsers</strong> where NVDA selection might be inconsistent.</dd>
 
     <dt>NVDA + Ctrl + Shift + S : Smart Dictation</dt>
     <dd>
-        Converts your speech to text using AI.
+        Converts your speech to text.
         <ul>
             <li><strong>Press Once:</strong> Start recording (High Beep). Speak naturally.</li>
-            <li><strong>Press Again:</strong> Stop recording (Low Beep). The AI transcribes your speech, fixes grammar, and <strong>automatically types</strong> it into the active text field.</li>
+            <li><strong>Press Again:</strong> Stop recording (Low Beep). The AI transcribes, fixes grammar, and <strong>types</strong> the text for you.</li>
         </ul>
     </dd>
 
-    <dt>NVDA + Ctrl + Shift + R : Text Refiner & Custom Commands</dt>
-    <dd>Opens a menu to perform actions like Summarizing, Fixing Grammar, or executing your own <strong>Custom Prompts</strong> (see below).</dd>
+    <dt>NVDA + Ctrl + Shift + R : Text Refiner</dt>
+    <dd>Opens a menu to Summarize, Fix Grammar, Explain, or run <strong>Custom Prompts</strong> on the selected text.</dd>
 
     <dt>NVDA + Ctrl + Shift + C : CAPTCHA Solver</dt>
-    <dd>Captures the CAPTCHA image from the screen or navigator object, solves it, and <strong>automatically types</strong> the code.</dd>
+    <dd>Captures the CAPTCHA image under the navigator object, solves it, and <strong>automatically types</strong> the code.</dd>
 
     <dt>NVDA + Ctrl + Shift + V : Object Vision</dt>
     <dd>Takes a screenshot of the navigator object and describes it. Opens a chat window for follow-up questions.</dd>
 
     <dt>NVDA + Ctrl + Shift + O : Full Screen Vision</dt>
-    <dd>Scans the entire screen. You can ask the AI to describe the overall layout, read visible text, or explain what is currently displayed on your monitor.</dd>
+    <dd>Scans the entire screen. You can ask the AI to describe the overall layout, read visible text, or analyze the UI.</dd>
 
-    <dt>NVDA + Ctrl + Shift + D : Document QA</dt>
+    <dt>NVDA + Ctrl + Shift + D : Document Analysis</dt>
     <dd>Select a file (PDF, TIFF, TXT, MD, PY) to chat with. You can ask questions about its content.</dd>
 
     <dt>NVDA + Ctrl + Shift + A : Audio Transcription</dt>
     <dd>Select an audio file (MP3, WAV, OGG) to transcribe it to text.</dd>
 
-    <dt>NVDA + Ctrl + Shift + U : Check for Updates</dt>
+    <dt>NVDA + Ctrl + Shift + L : Last Translation</dt>
+    <dd>Re-reads the last translated text without using the API.</dd>
+
+    <dt>NVDA + Ctrl + Shift + U : Update Check</dt>
     <dd>Manually checks GitHub for the latest version of the add-on.</dd>
 </dl>
 
-<h2>Configuration</h2>
-<p>Go to <strong>NVDA Menu > Preferences > Settings > Vision Assistant Pro</strong>.</p>
-<ul>
-    <li><strong>API Key:</strong> Required. Get your key from Google AI Studio.</li>
-    <li><strong>Model:</strong> Choose <code>gemini-2.5-flash-lite</code> (Fastest) or others.</li>
-    <li><strong>Languages:</strong> Set Source, Target, and AI Response languages.</li>
-    <li><strong>Captcha Mode:</strong> Choose between Navigator Object (Default) or Full Screen capture.</li>
-    <li><strong>Custom Prompts:</strong> Define your own commands here.</li>
-</ul>
-
-<h2>Custom Prompts & Variables</h2>
+<h2>3. Custom Prompts & Variables</h2>
 <p>
     You can create custom commands in the Settings dialog using the format: <code>Name:Prompt Text</code>.<br>
     Separate multiple commands with a pipe symbol <code>|</code> or new lines.
 </p>
-<p>
-    Use these variables to create powerful workflows:
-</p>
 
+<h3>Available Variables</h3>
 <table>
     <tr>
         <th>Variable</th>
         <th>Description</th>
-        <th>Supported Formats</th>
+        <th>Input Type</th>
     </tr>
     <tr>
         <td><code>[selection]</code></td>
@@ -106,36 +105,36 @@
     <tr>
         <td><code>[screen_obj]</code></td>
         <td>Attaches a screenshot of the <strong>Navigator Object</strong>.</td>
-        <td>Image (PNG)</td>
+        <td>Image</td>
     </tr>
     <tr>
         <td><code>[screen_full]</code></td>
         <td>Attaches a screenshot of the <strong>Full Screen</strong>.</td>
-        <td>Image (PNG)</td>
+        <td>Image</td>
     </tr>
     <tr>
         <td><code>[file_ocr]</code></td>
-        <td>Opens a dialog to select a file. The AI will extract text or analyze the visual content. <br><em>If no prompt is given, it defaults to "Extract text".</em></td>
-        <td>Images (PNG, JPG, WEBP), PDF, TIFF (Multi-page supported)</td>
+        <td>Opens a dialog to select a file. The AI will extract text or analyze visual content. <br><em>Defaults to "Extract text" if no prompt is given.</em></td>
+        <td>Image, PDF, TIFF</td>
     </tr>
     <tr>
         <td><code>[file_read]</code></td>
-        <td>Opens a dialog to select a text document. The content is read and sent to AI.</td>
-        <td>TXT, PY, MD, HTML, PDF, TIFF</td>
+        <td>Opens a dialog to select a text document.</td>
+        <td>TXT, Code, PDF</td>
     </tr>
     <tr>
         <td><code>[file_audio]</code></td>
-        <td>Opens a dialog to select an audio file. <br><em>If no prompt is given, it defaults to "Transcribe this".</em></td>
+        <td>Opens a dialog to select an audio file.</td>
         <td>MP3, WAV, OGG</td>
     </tr>
 </table>
 
-<h3>Example Custom Prompts:</h3>
+<h3>Example Custom Prompts</h3>
 <ul>
     <li>
         <strong>Quick OCR:</strong><br>
         <code>My OCR:[file_ocr]</code><br>
-        <em>(Opens a file picker, sends the image/PDF/TIFF, and asks AI to extract text.)</em>
+        <em>(Opens a file picker, sends the image/PDF, and asks AI to extract text.)</em>
     </li>
     <li>
         <strong>Translate Image:</strong><br>
@@ -145,10 +144,14 @@
         <strong>Analyze Audio:</strong><br>
         <code>Summarize Audio:Listen to this recording and summarize the main points. [file_audio]</code>
     </li>
+    <li>
+        <strong>Code Debugger:</strong><br>
+        <code>Debug:Find bugs in this code and explain them: [selection]</code>
+    </li>
 </ul>
 
 <div class="note">
-    <strong>Note:</strong> File uploads are limited to 15MB. Internet connection is required. Multi-page TIFFs are automatically converted to a series of images for processing.
+    <strong>Note:</strong> File uploads are limited to 15MB. An active internet connection is required for all AI features. Multi-page TIFFs are automatically processed.
 </div>
 
 </body>

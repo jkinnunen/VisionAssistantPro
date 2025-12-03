@@ -166,7 +166,7 @@ class UpdateManager:
             return 0 if v1 == v2 else 1
 
     def _prompt_update(self, version, url, changes):
-        msg = f"A new version ({version}) of Vision Assistant is available.\n\nChanges:\n{changes}\n\nDownload and Install?"
+        msg = f"A new version ({version}) is available.\n\nChanges:\n{changes}\n\nDownload and Install?"
         dlg = wx.MessageDialog(gui.mainFrame, msg, "Update Available", wx.YES_NO | wx.ICON_INFORMATION)
         if dlg.ShowModal() == wx.ID_YES:
             threading.Thread(target=self._download_install_worker, args=(url,), daemon=True).start()
@@ -194,17 +194,17 @@ class VisionQADialog(wx.Dialog):
         self.chat_history = [] 
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        lbl = wx.StaticText(self, label="AI Response:")
+        lbl = wx.StaticText(self, label="Response:")
         mainSizer.Add(lbl, 0, wx.ALL, 5)
         self.outputArea = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
         mainSizer.Add(self.outputArea, 1, wx.EXPAND | wx.ALL, 5)
         
         clean_init = clean_markdown(initial_text)
-        self.outputArea.AppendText(f"AI: {clean_init}\n")
+        self.outputArea.AppendText(f"{clean_init}\n")
         
         self.chat_history.append({"role": "model", "parts": [{"text": initial_text}]})
 
-        inputLbl = wx.StaticText(self, label="Ask:")
+        inputLbl = wx.StaticText(self, label="Prompt:")
         mainSizer.Add(inputLbl, 0, wx.ALL, 5)
         self.inputArea = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         mainSizer.Add(self.inputArea, 0, wx.EXPAND | wx.ALL, 5)
@@ -242,7 +242,7 @@ class VisionQADialog(wx.Dialog):
         wx.CallAfter(self.update_response, clean_resp)
 
     def update_response(self, text):
-        self.outputArea.AppendText(f"AI: {text}\n")
+        self.outputArea.AppendText(f"{text}\n")
         self.outputArea.ShowPosition(self.outputArea.GetLastPosition())
         ui.message(text)
 
@@ -261,21 +261,21 @@ class ResultDialog(wx.Dialog):
         self.Centre()
 
 class SettingsPanel(gui.settingsDialogs.SettingsPanel):
-    title = "Vision Assistant Pro"
+    title = "Vision Assistant"
     def makeSettings(self, settingsSizer):
         sHelper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
         
-        self.apiKey = sHelper.addLabeledControl("Gemini API Key:", wx.TextCtrl)
+        self.apiKey = sHelper.addLabeledControl("API Key:", wx.TextCtrl)
         self.apiKey.Value = config.conf["VisionAssistant"]["api_key"]
         
-        self.model = sHelper.addLabeledControl("AI Model:", wx.Choice, choices=MODELS)
+        self.model = sHelper.addLabeledControl("Model:", wx.Choice, choices=MODELS)
         try: self.model.SetSelection(MODELS.index(config.conf["VisionAssistant"]["model_name"]))
         except: self.model.SetSelection(0)
 
-        self.proxyUrl = sHelper.addLabeledControl("Proxy URL:", wx.TextCtrl)
+        self.proxyUrl = sHelper.addLabeledControl("Proxy URL (Optional):", wx.TextCtrl)
         self.proxyUrl.Value = config.conf["VisionAssistant"]["proxy_url"]
         
-        sHelper.addItem(wx.StaticText(self, label="--- Languages ---"))
+        sHelper.addItem(wx.StaticText(self, label="Languages"))
         self.sourceLang = sHelper.addLabeledControl("Source:", wx.Choice, choices=SOURCE_NAMES)
         try: self.sourceLang.SetSelection(SOURCE_NAMES.index(config.conf["VisionAssistant"]["source_language"]))
         except: self.sourceLang.SetSelection(0)
@@ -284,19 +284,19 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         try: self.targetLang.SetSelection(TARGET_NAMES.index(config.conf["VisionAssistant"]["target_language"]))
         except: self.targetLang.SetSelection(0)
         
-        self.aiResponseLang = sHelper.addLabeledControl("AI Response:", wx.Choice, choices=TARGET_NAMES)
+        self.aiResponseLang = sHelper.addLabeledControl("Response Language:", wx.Choice, choices=TARGET_NAMES)
         try: self.aiResponseLang.SetSelection(TARGET_NAMES.index(config.conf["VisionAssistant"]["ai_response_language"]))
         except: self.aiResponseLang.SetSelection(0)
 
-        self.smartSwap = sHelper.addItem(wx.CheckBox(self, label="Smart Swap"))
+        self.smartSwap = sHelper.addItem(wx.CheckBox(self, label="Smart Language Swap"))
         self.smartSwap.Value = config.conf["VisionAssistant"]["smart_swap"]
 
-        sHelper.addItem(wx.StaticText(self, label="--- CAPTCHA Mode ---"))
-        self.captchaMode = wx.RadioBox(self, label="Capture Method:", choices=["Navigator Object", "Full Screen"], style=wx.RA_SPECIFY_COLS)
+        sHelper.addItem(wx.StaticText(self, label="CAPTCHA"))
+        self.captchaMode = wx.RadioBox(self, label="Method:", choices=["Navigator Object", "Full Screen"], style=wx.RA_SPECIFY_COLS)
         self.captchaMode.SetSelection(0 if config.conf["VisionAssistant"]["captcha_mode"] == 'navigator' else 1)
         sHelper.addItem(self.captchaMode)
 
-        sHelper.addItem(wx.StaticText(self, label="--- Custom Prompts (Name:Content) ---"))
+        sHelper.addItem(wx.StaticText(self, label="Custom Commands (Name:Prompt)"))
         self.customPrompts = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 100))
         self.customPrompts.Value = config.conf["VisionAssistant"]["custom_prompts"]
         sHelper.addItem(self.customPrompts)
@@ -437,7 +437,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 if res: wx.CallAfter(self._paste_text, res)
                 else: wx.CallAfter(ui.message, "No speech recognized.")
             except error.HTTPError as e:
-                 wx.CallAfter(ui.message, f"Server Error: {e.code} {e.reason}")
+                 wx.CallAfter(ui.message, f"Server Error: {e.code}")
             except Exception as e:
                  wx.CallAfter(ui.message, "Connection Error")
             
@@ -569,7 +569,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 wc = "Audio|*.mp3;*.wav;*.ogg"
             
             if needs_file:
-                title = "Select File for Command"
+                title = "Select File"
                 if "[file_ocr]" in custom_content: title = "Select Image/PDF/TIFF for OCR"
                 fd = wx.FileDialog(gui.mainFrame, title, wildcard=wc, style=wx.FD_OPEN)
                 if fd.ShowModal() == wx.ID_OK: file_path = fd.GetPath()
