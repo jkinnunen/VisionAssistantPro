@@ -11,7 +11,7 @@ Navigating the digital world presents unique challenges. Vision Assistant Pro ac
 
 ## ✨ Key Features
 
-*   **🧠 Smart Translator (Auto-Swap):** Instantly translates text. If the source language matches your target, it intelligently swaps to English (or your configured secondary language).
+*   **🧠 Smart Translator (Auto-Swap):** Instantly translates text. If the source language matches your target, it intelligently swaps to English (or your configured secondary language). Includes a dedicated clipboard translator for web browsers.
 *   **🎙️ Smart Dictation:** A powerful voice typing tool. It listens to your voice, fixes grammar, removes stutters, adds punctuation, and types the clean text directly into your active window.
 *   **👁️ Object Vision:** Describes the specific control or element under your navigator cursor (e.g., describing an icon, a button, or an image).
 *   **🔍 Full Screen Vision:** Scans the entire screen. You can ask the AI to describe the overall layout, read visible text, or explain what is currently displayed on your monitor.
@@ -19,6 +19,7 @@ Navigating the digital world presents unique challenges. Vision Assistant Pro ac
 *   **📄 Document QA:** Chat with your documents! Supports PDF, TIFF, and Text files. You can ask the AI to summarize, explain, or extract data from them.
 *   **📝 Text Refiner:** A utility menu to Summarize, Fix Grammar, or Explain selected text using AI.
 *   **🎧 Audio Transcriber:** Converts audio files (MP3, WAV, OGG) into text.
+*   **🔄 Auto-Update:** Automatically checks for new versions on startup and installs them with a single click.
 
 ## 📥 Installation
 
@@ -32,14 +33,17 @@ Navigating the digital world presents unique challenges. Vision Assistant Pro ac
 
 | Shortcut | Function |
 | :--- | :--- |
-| `NVDA + Shift + T` | **Smart Translator** (Selection or Object) |
-| `NVDA + Shift + S` | **Smart Dictation** (Voice Typing) |
-| `NVDA + Shift + R` | **Text Refiner** (Menu for Summary, Grammar, etc.) |
-| `NVDA + Shift + 6` | **CAPTCHA Solver** (Auto-Type) |
-| `NVDA + Shift + V` | **Object Vision** (Describe focused object) |
-| `NVDA + Shift + O` | **Full Screen Vision** |
-| `NVDA + Shift + D` | **Document QA** (Chat with Files) |
-| `NVDA + Shift + A` | **Transcribe Audio File** |
+| `NVDA + Ctrl + Shift + T` | **Smart Translator** (Navigator Object) |
+| `NVDA + Ctrl + Shift + Y` | **Clipboard Translator** (Best for Browsers) |
+| `NVDA + Ctrl + Shift + L` | **Read Last Translation** |
+| `NVDA + Ctrl + Shift + S` | **Smart Dictation** (Voice Typing) |
+| `NVDA + Ctrl + Shift + R` | **Text Refiner** (Menu for Summary, Grammar, etc.) |
+| `NVDA + Ctrl + Shift + C` | **CAPTCHA Solver** (Auto-Type) |
+| `NVDA + Ctrl + Shift + V` | **Object Vision** (Describe focused object) |
+| `NVDA + Ctrl + Shift + O` | **Full Screen Vision** |
+| `NVDA + Ctrl + Shift + D` | **Document QA** (Chat with Files) |
+| `NVDA + Ctrl + Shift + A` | **Transcribe Audio File** |
+| `NVDA + Ctrl + Shift + U` | **Check for Updates** |
 
 ## ⚙️ Configuration
 

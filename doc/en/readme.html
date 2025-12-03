@@ -25,11 +25,19 @@
 </p>
 
 <h2>Global Shortcuts</h2>
+<p>To prevent conflicts with NVDA's laptop layout, all shortcuts use <strong>Control + Shift</strong> as modifiers.</p>
+
 <dl>
-    <dt>NVDA + Shift + T : Smart Translator</dt>
+    <dt>NVDA + Ctrl + Shift + T : Smart Translator</dt>
     <dd>Translates the selected text or the object under the cursor. It includes "Smart Swap" to automatically switch languages if needed.</dd>
 
-    <dt>NVDA + Shift + S : Smart Dictation</dt>
+    <dt>NVDA + Ctrl + Shift + Y : Clipboard Translator</dt>
+    <dd>Translates the content currently stored in the clipboard. <strong>Recommended for Web Browsers</strong> where selection detection might be tricky.</dd>
+
+    <dt>NVDA + Ctrl + Shift + L : Read Last Translation</dt>
+    <dd>Re-reads the last translated text without making a new API call.</dd>
+
+    <dt>NVDA + Ctrl + Shift + S : Smart Dictation</dt>
     <dd>
         Converts your speech to text using AI.
         <ul>
@@ -38,23 +46,26 @@
         </ul>
     </dd>
 
-    <dt>NVDA + Shift + R : Text Refiner & Custom Commands</dt>
+    <dt>NVDA + Ctrl + Shift + R : Text Refiner & Custom Commands</dt>
     <dd>Opens a menu to perform actions like Summarizing, Fixing Grammar, or executing your own <strong>Custom Prompts</strong> (see below).</dd>
 
-    <dt>NVDA + Shift + 6 : CAPTCHA Solver</dt>
-    <dd>Captures the CAPTCHA image, solves it, and <strong>automatically types</strong> the code. It supports various number formats.</dd>
+    <dt>NVDA + Ctrl + Shift + C : CAPTCHA Solver</dt>
+    <dd>Captures the CAPTCHA image from the screen or navigator object, solves it, and <strong>automatically types</strong> the code.</dd>
 
-    <dt>NVDA + Shift + V : Object Vision</dt>
+    <dt>NVDA + Ctrl + Shift + V : Object Vision</dt>
     <dd>Takes a screenshot of the navigator object and describes it. Opens a chat window for follow-up questions.</dd>
 
-    <dt>NVDA + Shift + O : Full Screen Vision</dt>
+    <dt>NVDA + Ctrl + Shift + O : Full Screen Vision</dt>
     <dd>Scans the entire screen. You can ask the AI to describe the overall layout, read visible text, or explain what is currently displayed on your monitor.</dd>
 
-    <dt>NVDA + Shift + D : Document QA</dt>
+    <dt>NVDA + Ctrl + Shift + D : Document QA</dt>
     <dd>Select a file (PDF, TIFF, TXT, MD, PY) to chat with. You can ask questions about its content.</dd>
 
-    <dt>NVDA + Shift + A : Audio Transcription</dt>
+    <dt>NVDA + Ctrl + Shift + A : Audio Transcription</dt>
     <dd>Select an audio file (MP3, WAV, OGG) to transcribe it to text.</dd>
+
+    <dt>NVDA + Ctrl + Shift + U : Check for Updates</dt>
+    <dd>Manually checks GitHub for the latest version of the add-on.</dd>
 </dl>
 
 <h2>Configuration</h2>

@@ -330,8 +330,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(SettingsPanel)
         
         self.updater = UpdateManager(GITHUB_REPO)
-        # Check for updates 5 seconds after startup
-        self.update_timer = wx.CallLater(5000, self.updater.check_for_updates, True)
+        self.update_timer = wx.CallLater(10000, self.updater.check_for_updates, True)
 
     def terminate(self):
         try: gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(SettingsPanel)
@@ -342,14 +341,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         
         if self.is_recording:
             try:
-                ctypes.windll.winmm.mciSendStringW('close myaudio', None, 0, 0)
+                ctypes.windll.winmm.mciSendStringW('close all', None, 0, 0)
             except: pass
         
         self.translation_cache = {}
         self._last_source_text = None
         gc.collect()
 
-    def _call_gemini(self, prompt_or_contents, attachments=[], json_mode=False):
+    def _call_gemini(self, prompt_or_contents, attachments=[], json_mode=False, raise_errors=False):
         api_key = config.conf["VisionAssistant"]["api_key"].strip()
         proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
         model = config.conf["VisionAssistant"]["model_name"]
@@ -394,14 +393,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     time.sleep(1)
                     continue
                 log.error(f"Gemini HTTP Error: {e.code} - {e.reason}")
+                if raise_errors: raise e
                 return None
             except Exception as e:
                 log.error(f"Gemini General Error: {e}")
+                if raise_errors: raise e
                 return None
         return None
 
     def script_smartDictation(self, gesture):
-        """Toggles voice dictation."""
+        """Records voice, transcribes it using AI, and types the result."""
         if not self.is_recording:
             self.is_recording = True
             play_sound(800, 100)
@@ -430,13 +431,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 audio_data = base64.b64encode(f.read()).decode('utf-8')
             
             p = "Transcribe speech. Use native script. No Fingilish. Fix stutters."
-            res = self._call_gemini(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}])
             
-            if res: wx.CallAfter(self._paste_text, res)
-            else: wx.CallAfter(ui.message, "No speech recognized.")
+            try:
+                res = self._call_gemini(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}], raise_errors=True)
+                if res: wx.CallAfter(self._paste_text, res)
+                else: wx.CallAfter(ui.message, "No speech recognized.")
+            except error.HTTPError as e:
+                 wx.CallAfter(ui.message, f"Server Error: {e.code} {e.reason}")
+            except Exception as e:
+                 wx.CallAfter(ui.message, "Connection Error")
+            
             try: os.remove(self.temp_audio_file)
             except: pass
-        except: wx.CallAfter(ui.message, "Dictation Error.")
+        except: 
+            wx.CallAfter(ui.message, "Dictation Error.")
 
     def _paste_text(self, text):
         api.copyToClip(text)
@@ -720,8 +728,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         dlg.Show()
 
     def script_ocrFullScreen(self, gesture):
+        """Performs OCR and description on the entire screen."""
         self._start_vision(True)
     def script_describeObject(self, gesture):
+        """Describes the current object (Navigator Object)."""
         self._start_vision(False)
     def _start_vision(self, full):
         if full: d, w, h = self._capture_fullscreen()
@@ -759,6 +769,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         dlg.Show()
 
     def script_transcribeAudio(self, gesture):
+        """Transcribes a selected audio file."""
         wx.CallAfter(self._open_audio)
     def _open_audio(self):
         dlg = wx.FileDialog(gui.mainFrame, "Select Audio File to Transcribe", wildcard="Audio|*.mp3;*.wav;*.ogg", style=wx.FD_OPEN)
@@ -779,6 +790,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except: wx.CallAfter(ui.message, "Error.")
 
     def script_solveCaptcha(self, gesture):
+        """Attempts to solve a CAPTCHA on the screen or navigator object."""
         mode = config.conf["VisionAssistant"]["captcha_mode"]
         if mode == 'fullscreen': d, w, h = self._capture_fullscreen()
         else: d, w, h = self._capture_navigator()
@@ -809,6 +821,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         wx.CallLater(800, send_ctrl_v)
 
     def script_checkUpdate(self, gesture):
+        """Checks for updates manually."""
         ui.message("Checking for updates...")
         self.updater.check_for_updates(silent=False)
 
@@ -835,10 +848,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except: return None,0,0
 
     def script_readLastTranslation(self, gesture):
+        """Announces the last received translation."""
         if self.last_translation: ui.message(f"Last: {self.last_translation}")
         else: ui.message("No history.")
     
     def script_translateClipboard(self, gesture):
+        """Translates the text currently in the clipboard."""
         t = api.getClipData()
         if t: 
             ui.message("Translating Clipboard...")
@@ -847,15 +862,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message("Clipboard empty.")
 
     __gestures = {
-        "kb:NVDA+shift+t": "translateSmart",
-        "kb:NVDA+shift+r": "refineText",
-        "kb:NVDA+shift+o": "ocrFullScreen",
-        "kb:NVDA+shift+v": "describeObject",
-        "kb:NVDA+shift+d": "analyzeDocument",
-        "kb:NVDA+shift+a": "transcribeAudio",
-        "kb:NVDA+shift+6": "solveCaptcha",
-        "kb:NVDA+shift+l": "readLastTranslation",
-        "kb:NVDA+shift+y": "translateClipboard",
-        "kb:NVDA+shift+s": "smartDictation",
-        "kb:NVDA+shift+u": "checkUpdate",
+        "kb:NVDA+control+shift+t": "translateSmart",
+        "kb:NVDA+control+shift+r": "refineText",
+        "kb:NVDA+control+shift+o": "ocrFullScreen",
+        "kb:NVDA+control+shift+v": "describeObject",
+        "kb:NVDA+control+shift+d": "analyzeDocument",
+        "kb:NVDA+control+shift+a": "transcribeAudio",
+        "kb:NVDA+control+shift+c": "solveCaptcha",
+        "kb:NVDA+control+shift+l": "readLastTranslation",
+        "kb:NVDA+control+shift+y": "translateClipboard",
+        "kb:NVDA+control+shift+s": "smartDictation",
+        "kb:NVDA+control+shift+u": "checkUpdate",
     }
