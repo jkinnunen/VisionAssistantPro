@@ -40,6 +40,7 @@ To prevent conflicts with system or laptop layouts, all shortcuts use **NVDA+Con
 *   `NVDA+Ctrl+Shift+C`: Solve CAPTCHA
 *   `NVDA+Ctrl+Shift+R`: Text Refiner Menu
 *   `NVDA+Ctrl+Shift+D`: Document Analysis
+*   `NVDA+Ctrl+Shift+F`: File OCR
 *   `NVDA+Ctrl+Shift+A`: Transcribe Audio File
 *   `NVDA+Ctrl+Shift+L`: Read Last Translation
 *   `NVDA+Ctrl+Shift+U`: Check for Updates
