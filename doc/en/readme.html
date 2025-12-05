@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vision Assistant Pro Documentation</title>
 <style>
-    body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 850px; margin: 0 auto; padding: 20px; background-color: #ffffff; }
+    body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; background-color: #ffffff; }
     h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }
     h2 { color: #34495e; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
     h3 { color: #555; margin-top: 20px; }
-    dt { font-weight: bold; color: #005a9e; margin-top: 15px; font-size: 1.1em; }
-    dd { margin-left: 20px; margin-bottom: 10px; }
     code { background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; color: #c7254e; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    th { background-color: #f8f9fa; color: #333; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: top; }
+    th { background-color: #f8f9fa; color: #333; font-weight: bold; }
+    tr:nth-child(even) { background-color: #fcfcfc; }
     .note { background-color: #e8f6f3; border-left: 5px solid #1abc9c; padding: 10px; margin: 15px 0; }
+    ul { margin: 0; padding-left: 20px; }
 </style>
 </head>
 <body>
@@ -38,46 +38,83 @@
 <h2>2. Global Shortcuts</h2>
 <p>To ensure maximum compatibility with laptop layouts, all shortcuts use <strong>NVDA + Control + Shift</strong>.</p>
 
-<dl>
-    <dt>NVDA + Ctrl + Shift + T : Smart Translator</dt>
-    <dd>Translates the text under the navigator cursor. If text is selected, it prioritizes the selection.</dd>
-
-    <dt>NVDA + Ctrl + Shift + Y : Clipboard Translator</dt>
-    <dd>Translates the content currently in the clipboard. <strong>Recommended for Web Browsers</strong> where NVDA selection might be inconsistent.</dd>
-
-    <dt>NVDA + Ctrl + Shift + S : Smart Dictation</dt>
-    <dd>
-        Converts your speech to text.
-        <ul>
-            <li><strong>Press Once:</strong> Start recording (High Beep). Speak naturally.</li>
-            <li><strong>Press Again:</strong> Stop recording (Low Beep). The AI transcribes, fixes grammar, and <strong>types</strong> the text for you.</li>
-        </ul>
-    </dd>
-
-    <dt>NVDA + Ctrl + Shift + R : Text Refiner</dt>
-    <dd>Opens a menu to Summarize, Fix Grammar, Explain, or run <strong>Custom Prompts</strong> on the selected text.</dd>
-
-    <dt>NVDA + Ctrl + Shift + C : CAPTCHA Solver</dt>
-    <dd>Captures the CAPTCHA image under the navigator object, solves it, and <strong>automatically types</strong> the code.</dd>
-
-    <dt>NVDA + Ctrl + Shift + V : Object Vision</dt>
-    <dd>Takes a screenshot of the navigator object and describes it. Opens a chat window for follow-up questions.</dd>
-
-    <dt>NVDA + Ctrl + Shift + O : Full Screen Vision</dt>
-    <dd>Scans the entire screen. You can ask the AI to describe the overall layout, read visible text, or analyze the UI.</dd>
-
-    <dt>NVDA + Ctrl + Shift + D : Document Analysis</dt>
-    <dd>Select a file (PDF, TIFF, TXT, MD, PY) to chat with. You can ask questions about its content.</dd>
-
-    <dt>NVDA + Ctrl + Shift + A : Audio Transcription</dt>
-    <dd>Select an audio file (MP3, WAV, OGG) to transcribe it to text.</dd>
-
-    <dt>NVDA + Ctrl + Shift + L : Last Translation</dt>
-    <dd>Re-reads the last translated text without using the API.</dd>
-
-    <dt>NVDA + Ctrl + Shift + U : Update Check</dt>
-    <dd>Manually checks GitHub for the latest version of the add-on.</dd>
-</dl>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Shortcut</th>
+            <th style="width: 20%;">Function</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>NVDA + Ctrl + Shift + T</td>
+            <td>Smart Translator</td>
+            <td>Translates the text under the navigator cursor. If text is selected, it prioritizes the selection.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + Y</td>
+            <td>Clipboard Translator</td>
+            <td>Translates the content currently in the clipboard. <strong>Recommended for Web Browsers</strong> where NVDA selection might be inconsistent.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + S</td>
+            <td>Smart Dictation</td>
+            <td>
+                Converts your speech to text.
+                <ul>
+                    <li><strong>Press Once:</strong> Start recording (High Beep). Speak naturally.</li>
+                    <li><strong>Press Again:</strong> Stop recording (Low Beep). The AI transcribes, fixes grammar, and <strong>types</strong> the text for you.</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + R</td>
+            <td>Text Refiner</td>
+            <td>Opens a menu to Summarize, Fix Grammar, Explain, or run <strong>Custom Prompts</strong> on the selected text.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + C</td>
+            <td>CAPTCHA Solver</td>
+            <td>Captures the CAPTCHA image under the navigator object, solves it, and <strong>automatically types</strong> the code.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + V</td>
+            <td>Object Vision</td>
+            <td>Takes a screenshot of the navigator object and describes it. Opens a chat window for follow-up questions.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + O</td>
+            <td>Full Screen Vision</td>
+            <td>Scans the entire screen. You can ask the AI to describe the overall layout, read visible text, or analyze the UI.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + D</td>
+            <td>Document Analysis</td>
+            <td>Select a file (PDF, TIFF, TXT, MD, PY) to chat with. You can ask questions about its content.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + F</td>
+            <td>File OCR</td>
+            <td>Directly selects an image (JPG, PNG) or PDF file to recognize and extract text, bypassing the menu.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + A</td>
+            <td>Audio Transcription</td>
+            <td>Select an audio file (MP3, WAV, OGG) to transcribe it to text.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + L</td>
+            <td>Last Translation</td>
+            <td>Re-reads the last translated text without using the API.</td>
+        </tr>
+        <tr>
+            <td>NVDA + Ctrl + Shift + U</td>
+            <td>Update Check</td>
+            <td>Manually checks GitHub for the latest version of the add-on.</td>
+        </tr>
+    </tbody>
+</table>
 
 <h2>3. Custom Prompts & Variables</h2>
 <p>

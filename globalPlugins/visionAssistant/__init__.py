@@ -9,7 +9,6 @@ import json
 import threading
 import ui
 import api
-import speech
 import logging
 import textInfos
 import os
@@ -19,13 +18,15 @@ import ctypes
 import re
 import tempfile
 import time
-import datetime
-import hashlib
 import gc
+import tones
+import scriptHandler
 from urllib import request, error
 
 log = logging.getLogger(__name__)
 addonHandler.initTranslation()
+
+# --- Configuration ---
 
 MODELS = [
     "gemini-2.5-flash-lite",
@@ -62,6 +63,8 @@ confspec = {
 
 GITHUB_REPO = "mahmoodhozhabri/VisionAssistantPro"
 
+# --- Helpers ---
+
 def clean_markdown(text):
     if not text: return ""
     text = re.sub(r'\*\*|__|[*_]', '', text)
@@ -78,13 +81,15 @@ def get_mime_type(path):
     if ext == '.png': return 'image/png'
     if ext == '.webp': return 'image/webp'
     if ext in ['.tif', '.tiff']: return 'image/jpeg'
-    return 'image/jpeg' 
+    if ext == '.mp3': return 'audio/mpeg'
+    if ext == '.wav': return 'audio/wav'
+    if ext == '.ogg': return 'audio/ogg'
+    return 'application/octet-stream'
 
-def play_sound(freq, dur):
-    try:
-        import winsound
-        winsound.Beep(freq, dur)
-    except: pass
+def show_error_dialog(message):
+    # Translators: Title of the error dialog box
+    title = _("Vision Assistant Error")
+    wx.CallAfter(gui.messageBox, message, title, wx.OK | wx.ICON_ERROR)
 
 def send_ctrl_v():
     try:
@@ -131,6 +136,8 @@ Text:
 
 PROMPT_UI_LOCATOR = "Analyze UI (Size: {width}x{height}). Request: '{query}'. Output JSON: {{\"x\": int, \"y\": int, \"found\": bool}}."
 
+# --- Update Manager ---
+
 class UpdateManager:
     def __init__(self, repo_name):
         self.repo_name = repo_name
@@ -159,12 +166,18 @@ class UpdateManager:
                         if download_url:
                             wx.CallAfter(self._prompt_update, latest_tag, download_url, data.get("body", ""))
                         elif not silent:
-                            wx.CallAfter(ui.message, "Update found but no .nvda-addon file in release.")
+                            # Translators: Error message when update is detected but file is missing
+                            msg = _("Update found but no .nvda-addon file in release.")
+                            show_error_dialog(msg)
                     elif not silent:
-                        wx.CallAfter(ui.message, "You have the latest version.")
+                        # Translators: Message when no update is found
+                        msg = _("You have the latest version.")
+                        wx.CallAfter(ui.message, msg)
         except Exception as e:
             if not silent:
-                wx.CallAfter(ui.message, f"Update check failed: {e}")
+                # Translators: Error message for update check failure
+                msg = _("Update check failed: {error}").format(error=e)
+                show_error_dialog(msg)
 
     def _compare_versions(self, v1, v2):
         try:
@@ -175,15 +188,20 @@ class UpdateManager:
             return 0 if v1 == v2 else 1
 
     def _prompt_update(self, version, url, changes):
-        msg = f"A new version ({version}) of Vision Assistant is available.\n\nChanges:\n{changes}\n\nDownload and Install?"
-        dlg = wx.MessageDialog(gui.mainFrame, msg, "Update Available", wx.YES_NO | wx.ICON_INFORMATION)
+        # Translators: Message asking user to update. {version} is version number.
+        msg = _("A new version ({version}) of Vision Assistant is available.\n\nChanges:\n{changes}\n\nDownload and Install?").format(version=version, changes=changes)
+        # Translators: Title of update confirmation dialog
+        title = _("Update Available")
+        dlg = wx.MessageDialog(gui.mainFrame, msg, title, wx.YES_NO | wx.ICON_INFORMATION)
         if dlg.ShowModal() == wx.ID_YES:
             threading.Thread(target=self._download_install_worker, args=(url,), daemon=True).start()
         dlg.Destroy()
 
     def _download_install_worker(self, url):
         try:
-            wx.CallAfter(ui.message, "Downloading update...")
+            # Translators: Message shown while downloading update
+            msg = _("Downloading update...")
+            wx.CallAfter(ui.message, msg)
             temp_dir = tempfile.gettempdir()
             file_path = os.path.join(temp_dir, "VisionAssistant_Update.nvda-addon")
             
@@ -192,7 +210,11 @@ class UpdateManager:
             
             wx.CallAfter(os.startfile, file_path)
         except Exception as e:
-            wx.CallAfter(ui.message, f"Download failed: {e}")
+            # Translators: Error message for download failure
+            msg = _("Download failed: {error}").format(error=e)
+            show_error_dialog(msg)
+
+# --- UI Classes ---
 
 class VisionQADialog(wx.Dialog):
     def __init__(self, parent, title, initial_text, context_data, callback_fn, extra_info=None):
@@ -203,31 +225,44 @@ class VisionQADialog(wx.Dialog):
         self.chat_history = [] 
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        lbl = wx.StaticText(self, label="AI Response:")
+        # Translators: Label for the AI response text area
+        lbl_text = _("AI Response:")
+        lbl = wx.StaticText(self, label=lbl_text)
         mainSizer.Add(lbl, 0, wx.ALL, 5)
         self.outputArea = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
         mainSizer.Add(self.outputArea, 1, wx.EXPAND | wx.ALL, 5)
         
         clean_init = clean_markdown(initial_text)
-        self.outputArea.AppendText(f"AI: {clean_init}\n")
+        # Translators: Format for displaying AI message
+        init_msg = _("AI: {text}\n").format(text=clean_init)
+        self.outputArea.AppendText(init_msg)
         
-        self.chat_history.append({"role": "model", "parts": [{"text": initial_text}]})
+        if not (extra_info and extra_info.get('skip_init_history')):
+             self.chat_history.append({"role": "model", "parts": [{"text": initial_text}]})
 
-        inputLbl = wx.StaticText(self, label="Ask:")
+        # Translators: Label for user input field
+        ask_text = _("Ask:")
+        inputLbl = wx.StaticText(self, label=ask_text)
         mainSizer.Add(inputLbl, 0, wx.ALL, 5)
         self.inputArea = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         mainSizer.Add(self.inputArea, 0, wx.EXPAND | wx.ALL, 5)
         
         btnSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.askBtn = wx.Button(self, label="Send")
-        self.closeBtn = wx.Button(self, wx.ID_CANCEL, label="Close")
+        # Translators: Button to send message
+        self.askBtn = wx.Button(self, label=_("Send"))
+        # Translators: Button to save chat
+        self.saveBtn = wx.Button(self, label=_("Save Chat"))
+        # Translators: Button to close dialog
+        self.closeBtn = wx.Button(self, wx.ID_CANCEL, label=_("Close"))
         btnSizer.Add(self.askBtn, 0, wx.ALL, 5)
+        btnSizer.Add(self.saveBtn, 0, wx.ALL, 5)
         btnSizer.Add(self.closeBtn, 0, wx.ALL, 5)
         mainSizer.Add(btnSizer, 0, wx.ALIGN_RIGHT)
         
         self.SetSizer(mainSizer)
         self.inputArea.SetFocus()
         self.askBtn.Bind(wx.EVT_BUTTON, self.onAsk)
+        self.saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
         self.inputArea.Bind(wx.EVT_TEXT_ENTER, self.onAsk)
         
         wx.CallLater(300, ui.message, clean_init)
@@ -235,9 +270,13 @@ class VisionQADialog(wx.Dialog):
     def onAsk(self, event):
         question = self.inputArea.Value
         if not question.strip(): return
-        self.outputArea.AppendText(f"\nYou: {question}\n")
+        # Translators: Format for displaying User message
+        user_msg = _("\nYou: {text}\n").format(text=question)
+        self.outputArea.AppendText(user_msg)
         self.inputArea.Clear()
-        ui.message("Thinking...")
+        # Translators: Message shown while processing
+        msg = _("Thinking...")
+        ui.message(msg)
         threading.Thread(target=self.process_question, args=(question,), daemon=True).start()
 
     def process_question(self, question):
@@ -245,15 +284,33 @@ class VisionQADialog(wx.Dialog):
         clean_resp = clean_markdown(response_text)
         
         if response_text:
-            self.chat_history.append({"role": "user", "parts": [{"text": question}]})
-            self.chat_history.append({"role": "model", "parts": [{"text": response_text}]})
+            if not (self.extra_info and self.extra_info.get('file_context')):
+                 self.chat_history.append({"role": "user", "parts": [{"text": question}]})
+                 self.chat_history.append({"role": "model", "parts": [{"text": response_text}]})
             
         wx.CallAfter(self.update_response, clean_resp)
 
     def update_response(self, text):
-        self.outputArea.AppendText(f"AI: {text}\n")
+        # Translators: Format for displaying AI message
+        ai_msg = _("AI: {text}\n").format(text=text)
+        self.outputArea.AppendText(ai_msg)
         self.outputArea.ShowPosition(self.outputArea.GetLastPosition())
         ui.message(text)
+
+    def onSave(self, event):
+        # Translators: Save dialog title
+        fd = wx.FileDialog(self, _("Save Chat Log"), wildcard="Text files (*.txt)|*.txt", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if fd.ShowModal() == wx.ID_OK:
+            path = fd.GetPath()
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(self.outputArea.GetValue())
+                # Translators: Message on successful save
+                ui.message(_("Saved."))
+            except Exception as e:
+                msg = _("Save failed: {error}").format(error=e)
+                show_error_dialog(msg)
+        fd.Destroy()
 
 class ResultDialog(wx.Dialog):
     def __init__(self, parent, title, content):
@@ -262,50 +319,83 @@ class ResultDialog(wx.Dialog):
         clean_content = clean_markdown(content)
         self.text_ctrl = wx.TextCtrl(self, value=clean_content, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH)
         sizer.Add(self.text_ctrl, 1, wx.EXPAND | wx.ALL, 10)
+        
         btn_sizer = wx.StdDialogButtonSizer()
-        btn_sizer.AddButton(wx.Button(self, wx.ID_OK, label="Close"))
+        # Translators: Button to save content
+        self.saveBtn = wx.Button(self, label=_("Save to File"))
+        self.saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
+        
+        # Translators: Close button label
+        closeBtn = wx.Button(self, wx.ID_OK, label=_("Close"))
+        
+        btn_sizer.AddButton(self.saveBtn)
+        btn_sizer.AddButton(closeBtn)
         btn_sizer.Realize()
         sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         self.SetSizer(sizer)
         self.Centre()
 
+    def onSave(self, event):
+        # Translators: Save dialog title
+        fd = wx.FileDialog(self, _("Save Result"), wildcard="Text files (*.txt)|*.txt", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if fd.ShowModal() == wx.ID_OK:
+            path = fd.GetPath()
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(self.text_ctrl.GetValue())
+                # Translators: Message on successful save
+                ui.message(_("Saved."))
+            except Exception as e:
+                msg = _("Save failed: {error}").format(error=e)
+                show_error_dialog(msg)
+        fd.Destroy()
+
 class SettingsPanel(gui.settingsDialogs.SettingsPanel):
-    title = "Vision Assistant Pro"
+    # Translators: Settings panel title
+    title = _("Vision Assistant Pro")
     def makeSettings(self, settingsSizer):
         sHelper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
         
-        self.apiKey = sHelper.addLabeledControl("Gemini API Key:", wx.TextCtrl)
+        # Translators: Label for API Key input
+        self.apiKey = sHelper.addLabeledControl(_("Gemini API Key:"), wx.TextCtrl)
         self.apiKey.Value = config.conf["VisionAssistant"]["api_key"]
         
-        self.model = sHelper.addLabeledControl("AI Model:", wx.Choice, choices=MODELS)
+        # Translators: Label for Model selection
+        self.model = sHelper.addLabeledControl(_("AI Model:"), wx.Choice, choices=MODELS)
         try: self.model.SetSelection(MODELS.index(config.conf["VisionAssistant"]["model_name"]))
         except: self.model.SetSelection(0)
 
-        self.proxyUrl = sHelper.addLabeledControl("Proxy URL:", wx.TextCtrl)
+        # Translators: Label for Proxy URL input
+        self.proxyUrl = sHelper.addLabeledControl(_("Proxy URL:"), wx.TextCtrl)
         self.proxyUrl.Value = config.conf["VisionAssistant"]["proxy_url"]
         
-        sHelper.addItem(wx.StaticText(self, label="--- Languages ---"))
-        self.sourceLang = sHelper.addLabeledControl("Source:", wx.Choice, choices=SOURCE_NAMES)
+        sHelper.addItem(wx.StaticText(self, label=_("--- Languages ---")))
+        # Translators: Label for Source Language selection
+        self.sourceLang = sHelper.addLabeledControl(_("Source:"), wx.Choice, choices=SOURCE_NAMES)
         try: self.sourceLang.SetSelection(SOURCE_NAMES.index(config.conf["VisionAssistant"]["source_language"]))
         except: self.sourceLang.SetSelection(0)
         
-        self.targetLang = sHelper.addLabeledControl("Target:", wx.Choice, choices=TARGET_NAMES)
+        # Translators: Label for Target Language selection
+        self.targetLang = sHelper.addLabeledControl(_("Target:"), wx.Choice, choices=TARGET_NAMES)
         try: self.targetLang.SetSelection(TARGET_NAMES.index(config.conf["VisionAssistant"]["target_language"]))
         except: self.targetLang.SetSelection(0)
         
-        self.aiResponseLang = sHelper.addLabeledControl("AI Response:", wx.Choice, choices=TARGET_NAMES)
+        # Translators: Label for AI Response Language selection
+        self.aiResponseLang = sHelper.addLabeledControl(_("AI Response:"), wx.Choice, choices=TARGET_NAMES)
         try: self.aiResponseLang.SetSelection(TARGET_NAMES.index(config.conf["VisionAssistant"]["ai_response_language"]))
         except: self.aiResponseLang.SetSelection(0)
 
-        self.smartSwap = sHelper.addItem(wx.CheckBox(self, label="Smart Swap"))
+        # Translators: Checkbox for Smart Swap feature
+        self.smartSwap = sHelper.addItem(wx.CheckBox(self, label=_("Smart Swap")))
         self.smartSwap.Value = config.conf["VisionAssistant"]["smart_swap"]
 
-        sHelper.addItem(wx.StaticText(self, label="--- CAPTCHA Mode ---"))
-        self.captchaMode = wx.RadioBox(self, label="Capture Method:", choices=["Navigator Object", "Full Screen"], style=wx.RA_SPECIFY_COLS)
+        sHelper.addItem(wx.StaticText(self, label=_("--- CAPTCHA Mode ---")))
+        # Translators: Radio box for CAPTCHA capture method
+        self.captchaMode = wx.RadioBox(self, label=_("Capture Method:"), choices=[_("Navigator Object"), _("Full Screen")], style=wx.RA_SPECIFY_COLS)
         self.captchaMode.SetSelection(0 if config.conf["VisionAssistant"]["captcha_mode"] == 'navigator' else 1)
         sHelper.addItem(self.captchaMode)
 
-        sHelper.addItem(wx.StaticText(self, label="--- Custom Prompts (Name:Content) ---"))
+        sHelper.addItem(wx.StaticText(self, label=_("--- Custom Prompts (Name:Content) ---")))
         self.customPrompts = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 100))
         self.customPrompts.Value = config.conf["VisionAssistant"]["custom_prompts"]
         sHelper.addItem(self.customPrompts)
@@ -321,8 +411,11 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         config.conf["VisionAssistant"]["captcha_mode"] = 'navigator' if self.captchaMode.GetSelection() == 0 else 'fullscreen'
         config.conf["VisionAssistant"]["custom_prompts"] = self.customPrompts.Value.strip()
 
+# --- Global Plugin ---
+
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-    scriptCategory = "Vision Assistant"
+    # Translators: Name of the add-on category in Input Gestures
+    scriptCategory = _("Vision Assistant")
     
     last_translation = "" 
     is_recording = False
@@ -357,18 +450,55 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self._last_source_text = None
         gc.collect()
 
+    def _upload_file_to_gemini(self, file_path, mime_type):
+        api_key = config.conf["VisionAssistant"]["api_key"].strip()
+        proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
+        base_url = proxy_url.rstrip('/') if proxy_url else "https://generativelanguage.googleapis.com"
+        
+        upload_url = f"{base_url}/upload/v1beta/files?key={api_key}"
+        
+        try:
+            file_size = os.path.getsize(file_path)
+            headers = {
+                "X-Goog-Upload-Protocol": "raw",
+                "X-Goog-Upload-Command": "start, upload, finalize",
+                "X-Goog-Upload-Header-Content-Length": str(file_size),
+                "X-Goog-Upload-File-Name": os.path.basename(file_path),
+                "Content-Type": mime_type
+            }
+            
+            with open(file_path, "rb") as f:
+                file_data = f.read()
+                
+            req = request.Request(upload_url, data=file_data, headers=headers, method="POST")
+            with request.urlopen(req, timeout=120) as response:
+                if response.status == 200:
+                    res_json = json.loads(response.read().decode('utf-8'))
+                    return res_json.get('file', {}).get('uri')
+        except Exception as e:
+            # Translators: Error during file upload
+            msg = _("File Upload Error: {error}").format(error=e)
+            show_error_dialog(msg)
+            return None
+        return None
+
     def _call_gemini(self, prompt_or_contents, attachments=[], json_mode=False, raise_errors=False):
         api_key = config.conf["VisionAssistant"]["api_key"].strip()
         proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
         model = config.conf["VisionAssistant"]["model_name"]
         
         if not api_key:
-            wx.CallAfter(ui.message, "API Key missing.")
+            # Translators: Message when API Key is missing
+            msg = _("API Key missing.")
+            wx.CallAfter(ui.message, msg)
             return None
 
         base_url = proxy_url.rstrip('/') if proxy_url else "https://generativelanguage.googleapis.com"
         url = f"{base_url}/v1beta/models/{model}:generateContent?key={api_key}"
-        headers = {"Content-Type": "application/json; charset=UTF-8"}
+        headers = {
+            "Content-Type": "application/json; charset=UTF-8",
+            "x-api-key": api_key
+        }
         
         contents = []
         if isinstance(prompt_or_contents, list):
@@ -376,7 +506,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         else:
             parts = [{"text": prompt_or_contents}]
             for att in attachments:
-                parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
+                if 'file_uri' in att:
+                    parts.append({"file_data": {"mime_type": att['mime_type'], "file_uri": att['file_uri']}})
+                else:
+                    parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
             contents = [{"parts": parts}]
             
         data = {
@@ -392,7 +525,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         for attempt in range(max_retries + 1):
             try:
                 req = request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
-                with request.urlopen(req, timeout=60) as response:
+                with request.urlopen(req, timeout=120) as response:
                     if response.status == 200:
                         res = json.loads(response.read().decode('utf-8'))
                         text = res['candidates'][0]['content']['parts'][0]['text'].strip()
@@ -410,28 +543,37 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 return None
         return None
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Records voice, transcribes it using AI, and types the result."))
     def script_smartDictation(self, gesture):
-        """Records voice, transcribes it using AI, and types the result."""
         if not self.is_recording:
             self.is_recording = True
-            play_sound(800, 100)
+            tones.beep(800, 100)
             try:
                 ctypes.windll.winmm.mciSendStringW('open new type waveaudio alias myaudio', None, 0, 0)
                 ctypes.windll.winmm.mciSendStringW('record myaudio', None, 0, 0)
-                ui.message("Listening...")
+                # Translators: Message when dictation starts
+                msg = _("Listening...")
+                ui.message(msg)
             except Exception as e:
-                ui.message("Audio error")
+                # Translators: Audio error message
+                msg = _("Audio Hardware Error: {error}").format(error=e)
+                show_error_dialog(msg)
                 self.is_recording = False
         else:
             self.is_recording = False
-            play_sound(500, 100)
+            tones.beep(500, 100)
             try:
                 ctypes.windll.winmm.mciSendStringW(f'save myaudio "{self.temp_audio_file}"', None, 0, 0)
                 ctypes.windll.winmm.mciSendStringW('close myaudio', None, 0, 0)
-                ui.message("Typing...")
+                # Translators: Message when processing dictation
+                msg = _("Typing...")
+                ui.message(msg)
                 threading.Thread(target=self._thread_dictation, daemon=True).start()
             except Exception as e:
-                ui.message("Save error")
+                # Translators: Error saving dictation
+                msg = _("Save Recording Error: {error}").format(error=e)
+                show_error_dialog(msg)
 
     def _thread_dictation(self):
         try:
@@ -444,32 +586,52 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             try:
                 res = self._call_gemini(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}], raise_errors=True)
                 if res: wx.CallAfter(self._paste_text, res)
-                else: wx.CallAfter(ui.message, "No speech recognized.")
+                # Translators: Message when no speech is recognized
+                else: 
+                    msg = _("No speech recognized.")
+                    wx.CallAfter(ui.message, msg)
             except error.HTTPError as e:
-                 wx.CallAfter(ui.message, f"Server Error: {e.code} {e.reason}")
+                 # Translators: Server error details
+                 msg = _("Server Error: {code} {reason}").format(code=e.code, reason=e.reason)
+                 show_error_dialog(msg)
             except Exception as e:
-                 wx.CallAfter(ui.message, "Connection Error")
+                 # Translators: Generic connection error
+                 msg = _("Connection Error: {error}").format(error=e)
+                 show_error_dialog(msg)
             
             try: os.remove(self.temp_audio_file)
             except: pass
         except: 
-            wx.CallAfter(ui.message, "Dictation Error.")
+            # Translators: Dictation failure
+            msg = _("Critical Dictation Failure.")
+            show_error_dialog(msg)
 
     def _paste_text(self, text):
         api.copyToClip(text)
-        preview = text[:100]
-        ui.message(f"Typed: {preview}")
-        wx.CallLater(800, send_ctrl_v)
+        send_ctrl_v()
+        # Announce after a short delay to avoid interruption
+        wx.CallLater(300, self._announce_paste, text)
 
+    def _announce_paste(self, text):
+        preview = text[:100]
+        # Translators: Message showing typed text preview
+        msg = _("Typed: {text}").format(text=preview)
+        ui.message(msg)
+
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Translates the selected text or navigator object."))
     def script_translateSmart(self, gesture):
-        """Translates the selected text or navigator object."""
         text = self._get_text_smart()
         
         if not text:
-            ui.message("No text found.")
+            # Translators: Message when no text is found
+            msg = _("No text found.")
+            ui.message(msg)
             return
             
-        ui.message("Translating...") 
+        # Translators: Message when translation starts
+        msg = _("Translating...")
+        ui.message(msg)
         threading.Thread(target=self._thread_translate, args=(text,), daemon=True).start()
 
     def _thread_translate(self, text):
@@ -496,11 +658,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._last_params = current_params
             self.last_translation = res
             wx.CallAfter(self._announce_translation, res)
-        else: wx.CallAfter(ui.message, "Translation failed.")
+        # Translators: Error message for failed translation
+        else: 
+            msg = _("Translation failed. Check your API Key or Internet.")
+            show_error_dialog(msg)
 
     def _announce_translation(self, text):
         api.copyToClip(text)
-        ui.message(f"Translated: {text}")
+        # Translators: Message announcing translated text
+        msg = _("Translated: {text}").format(text=text)
+        ui.message(msg)
 
     def _get_text_smart(self):
         try:
@@ -530,14 +697,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except Exception: 
             return None
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Opens a menu to Explain, Summarize, or Fix the selected text."))
     def script_refineText(self, gesture):
-        """Opens a menu to Explain, Summarize, or Fix the selected text."""
         text = self._get_text_smart()
         if not text: text = "" 
-        wx.CallAfter(self._open_refine_dialog, text)
+        
+        # Translators: Message while preparing to open menu
+        msg = _("Opening menu...")
+        ui.message(msg)
+        wx.CallLater(200, self._open_refine_dialog, text)
 
     def _open_refine_dialog(self, text):
-        choices = ["Summarize", "Fix Grammar", "Fix Grammar & Translate", "Explain"]
+        # Translators: Menu options for text refinement
+        choices = [_("Summarize"), _("Fix Grammar"), _("Fix Grammar & Translate"), _("Explain")]
         custom_raw = config.conf["VisionAssistant"]["custom_prompts"]
         custom_dict = {}
         if custom_raw:
@@ -550,7 +723,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                         choices.append(f"Custom: {name}")
                         custom_dict[f"Custom: {name}"] = content
         
-        dlg = wx.SingleChoiceDialog(gui.mainFrame, "Choose action:", "Refine", choices)
+        # Translators: Title of the Refine dialog
+        dlg = wx.SingleChoiceDialog(gui.mainFrame, _("Choose action:"), _("Refine"), choices)
         if dlg.ShowModal() == wx.ID_OK:
             sel_str = dlg.GetStringSelection()
             custom_content = ""
@@ -558,10 +732,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if sel_str in custom_dict:
                 custom_content = custom_dict[sel_str]
             else:
-                if sel_str == "Summarize": custom_content = "[summarize]"
-                elif sel_str == "Fix Grammar": custom_content = "[fix_grammar]"
-                elif sel_str == "Fix Grammar & Translate": custom_content = "[fix_translate]"
-                elif sel_str == "Explain": custom_content = "[explain]"
+                if sel_str == _("Summarize"): custom_content = "[summarize]"
+                elif sel_str == _("Fix Grammar"): custom_content = "[fix_grammar]"
+                elif sel_str == _("Fix Grammar & Translate"): custom_content = "[fix_translate]"
+                elif sel_str == _("Explain"): custom_content = "[explain]"
 
             file_path = None
             needs_file = False
@@ -578,15 +752,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 wc = "Audio|*.mp3;*.wav;*.ogg"
             
             if needs_file:
-                title = "Select File"
-                if "[file_ocr]" in custom_content: title = "Select Image/PDF/TIFF for OCR"
+                # Translators: File dialog title
+                title = _("Select File")
+                if "[file_ocr]" in custom_content: title = _("Select Image/PDF/TIFF for OCR")
                 fd = wx.FileDialog(gui.mainFrame, title, wildcard=wc, style=wx.FD_OPEN)
-                if fd.ShowModal() == wx.ID_OK: file_path = fd.GetPath()
+                if fd.ShowModal() == wx.ID_OK:
+                    file_path = fd.GetPath()
+                    # Delay starting the thread to allow focus speech to finish
+                    wx.CallLater(500, lambda: threading.Thread(target=self._thread_refine, args=(text, custom_content, file_path), daemon=True).start())
                 fd.Destroy()
-                if not file_path: return 
-
-            ui.message("Processing...")
-            threading.Thread(target=self._thread_refine, args=(text, custom_content, file_path), daemon=True).start()
+            else:
+                # Translators: Message while processing request
+                msg = _("Processing...")
+                ui.message(msg)
+                threading.Thread(target=self._thread_refine, args=(text, custom_content, file_path), daemon=True).start()
         dlg.Destroy()
 
     def _thread_refine(self, text, custom_content, file_path=None):
@@ -628,23 +807,42 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             
         if file_path:
             try:
+                # Translators: Message while uploading file
+                msg = _("Uploading file...")
+                wx.CallAfter(ui.message, msg)
                 mime_type = get_mime_type(file_path)
                 if "[file_ocr]" in prompt_text:
-                     with open(file_path, "rb") as f: raw = f.read()
-                     attachments.append({'mime_type': mime_type, 'data': base64.b64encode(raw).decode('utf-8')})
-                     prompt_text = prompt_text.replace("[file_ocr]", "")
-                     if not prompt_text.strip(): prompt_text = "Extract text."
+                    file_uri = self._upload_file_to_gemini(file_path, mime_type)
+                    if file_uri:
+                         attachments.append({'mime_type': mime_type, 'file_uri': file_uri})
+                         # Keep prompt if user added specific instructions, else default
+                         prompt_text = prompt_text.replace("[file_ocr]", "")
+                         if not prompt_text.strip():
+                             prompt_text = "Extract all text from this file as plain text. Do not use JSON or bounding boxes."
+                
                 elif "[file_read]" in prompt_text:
-                    with open(file_path, "rb") as f: raw = f.read()
-                    try:
-                        txt = raw.decode('utf-8')
-                        prompt_text = prompt_text.replace("[file_read]", f"\nFile Content:\n{txt}\n")
-                    except: pass
+                    file_uri = self._upload_file_to_gemini(file_path, mime_type)
+                    if file_uri:
+                        attachments.append({'mime_type': mime_type, 'file_uri': file_uri})
+                        prompt_text = prompt_text.replace("[file_read]", "")
+                    else:
+                         with open(file_path, "rb") as f: raw = f.read()
+                         txt = raw.decode('utf-8')
+                         prompt_text = prompt_text.replace("[file_read]", f"\nFile Content:\n{txt}\n")
+                         
+                elif "[file_audio]" in prompt_text:
+                    file_uri = self._upload_file_to_gemini(file_path, mime_type)
+                    if file_uri:
+                        attachments.append({'mime_type': mime_type, 'file_uri': file_uri})
+                        prompt_text = prompt_text.replace("[file_audio]", "")
             except: pass
             
         if text and not used_selection and not file_path:
             prompt_text += f"\n\n---\nInput Text:\n{text}\n---\n"
             
+        # Translators: Message while processing request
+        msg = _("Analyzing...")
+        wx.CallAfter(ui.message, msg)
         res = self._call_gemini(prompt_text, attachments=attachments)
         
         if res:
@@ -653,16 +851,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _open_refine_result_dialog(self, result_text, attachments, original_text):
         def refine_callback(ctx, q, history, dum2):
             atts, orig = ctx
-            current_user_msg = {"role": "user", "parts": [{"text": q}]}
+            parts = [{"text": q}]
+            current_user_msg = {"role": "user", "parts": parts}
             
             messages = []
+            
+            # Check for file context
+            has_file = any('file_uri' in a for a in atts)
+            
             if not history:
-                context_msg = f"Context Text: {orig}\n\nTask: Answer questions."
-                parts = [{"text": context_msg}]
-                for att in atts:
-                    parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
+                if has_file:
+                     # Re-send file context for the first turn of chat
+                     sys_parts = [{"text": f"Context: File attached. Task: Answer questions."}]
+                     for att in atts:
+                        if 'file_uri' in att:
+                             sys_parts.append({"file_data": {"mime_type": att['mime_type'], "file_uri": att['file_uri']}})
+                else:
+                     # For text/image data
+                     context_msg = f"Context Text: {orig}\n\nTask: Answer questions."
+                     sys_parts = [{"text": context_msg}]
+                     for att in atts:
+                        if 'data' in att:
+                             sys_parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
                 
-                messages.append({"role": "user", "parts": parts})
+                messages.append({"role": "user", "parts": sys_parts})
                 messages.append({"role": "model", "parts": [{"text": result_text}]})
             else:
                 messages.extend(history)
@@ -671,43 +883,90 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return self._call_gemini(messages), None
 
         context = (attachments, original_text)
-        dlg = VisionQADialog(gui.mainFrame, "Vision Assistant - Refine Result", result_text, context, refine_callback)
+        has_file_context = any('file_uri' in a for a in attachments)
+        # Translators: Title of Refine Result dialog
+        dlg = VisionQADialog(gui.mainFrame, _("Vision Assistant - Refine Result"), result_text, context, refine_callback, extra_info={'file_context': has_file_context, 'skip_init_history': False})
         dlg.Show()
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Recognizes text from a selected image or PDF file."))
+    def script_fileOCR(self, gesture):
+        # Translators: Message while preparing to open dialog
+        msg = _("Select a file for OCR...")
+        ui.message(msg)
+        wx.CallLater(200, self._open_file_ocr_dialog)
+
+    def _open_file_ocr_dialog(self):
+        # Translators: File dialog title for File OCR
+        dlg = wx.FileDialog(gui.mainFrame, _("Select Image or PDF"), wildcard="Files|*.pdf;*.jpg;*.jpeg;*.png;*.webp;*.tif;*.tiff", style=wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            threading.Thread(target=self._process_file_ocr, args=(path,), daemon=True).start()
+        dlg.Destroy()
+
+    def _process_file_ocr(self, path):
+        try:
+            # Translators: Message while uploading file
+            msg = _("Uploading & Extracting...")
+            wx.CallAfter(ui.message, msg)
+            mime_type = get_mime_type(path)
+            
+            file_uri = self._upload_file_to_gemini(path, mime_type)
+            
+            if file_uri:
+                att = [{'mime_type': mime_type, 'file_uri': file_uri}]
+                
+                # Default command for fileOCR is extraction
+                res = self._call_gemini("Extract all text from this file as plain text. Do not use JSON or bounding boxes.", attachments=att)
+                if res:
+                    # Reuse Document Chat dialog for consistency
+                    wx.CallAfter(self._open_doc_chat_dialog, res, att, "")
+            else:
+                # Translators: Error if file upload fails
+                show_error_dialog(_("File upload failed."))
+                
+        except: 
+            # Translators: Generic document error
+            show_error_dialog(_("Error processing file."))
+
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Allows asking questions about a selected document (PDF/Text/Image)."))
     def script_analyzeDocument(self, gesture):
-        """Allows asking questions about a selected document (PDF/Text/Image)."""
-        wx.CallAfter(self._open_doc_dialog)
+        # Translators: Message while preparing to open dialog
+        msg = _("Select a document...")
+        ui.message(msg)
+        wx.CallLater(200, self._open_doc_dialog)
+
     def _open_doc_dialog(self):
-        dlg = wx.FileDialog(gui.mainFrame, "Select Document to Analyze", wildcard="Doc|*.pdf;*.tif;*.tiff;*.txt;*.py;*.md", style=wx.FD_OPEN)
+        # Translators: File dialog title for Document Analysis
+        dlg = wx.FileDialog(gui.mainFrame, _("Select Document to Analyze"), wildcard="Doc|*.pdf;*.tif;*.tiff;*.txt;*.py;*.md", style=wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
             threading.Thread(target=self._process_doc_file, args=(path,), daemon=True).start()
         dlg.Destroy()
+
     def _process_doc_file(self, path):
         try:
-            wx.CallAfter(ui.message, "Loading...")
-            if os.path.getsize(path) > 15 * 1024 * 1024: return
-            ext = os.path.splitext(path)[1].lower()
-            att = []
-            init_msg = "Ask about document."
-            doc_text = None
+            # Translators: Message while uploading file
+            msg = _("Uploading & Analyzing...")
+            wx.CallAfter(ui.message, msg)
+            mime_type = get_mime_type(path)
             
-            if ext in ['.tif', '.tiff']:
-                pages = process_tiff_pages(path)
-                for p_data in pages:
-                    att.append({'mime_type': 'image/jpeg', 'data': p_data})
-                init_msg = f"TIFF loaded ({len(pages)} pages)."
-            elif ext == '.pdf':
-                with open(path, "rb") as f: raw = f.read()
-                att.append({'mime_type': 'application/pdf', 'data': base64.b64encode(raw).decode('utf-8')})
-                init_msg = "PDF loaded."
+            file_uri = self._upload_file_to_gemini(path, mime_type)
+            
+            if file_uri:
+                att = [{'mime_type': mime_type, 'file_uri': file_uri}]
+                # Translators: Initial message in document chat
+                init_msg = _("Document ready. Ask your question.")
+                
+                wx.CallAfter(self._open_doc_chat_dialog, init_msg, att, "")
             else:
-                with open(path, "rb") as f: raw = f.read()
-                try: doc_text = raw.decode('utf-8')
-                except: doc_text = "Binary"
-            
-            wx.CallAfter(self._open_doc_chat_dialog, init_msg, att, doc_text)
-        except: wx.CallAfter(ui.message, "Error loading doc.")
+                # Translators: Error if file upload fails
+                show_error_dialog(_("File upload failed."))
+                
+        except: 
+            # Translators: Generic document error
+            show_error_dialog(_("Error processing document."))
         
     def _open_doc_chat_dialog(self, init_msg, initial_attachments, doc_text):
         def doc_callback(ctx_atts, q, history, dum2):
@@ -718,43 +977,55 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             
             messages = []
             if not history:
-                parts = []
-                if doc_text: parts.append({"text": f"Document Content:\n{doc_text}\n\nTask: Analyze. Language: {lang}."})
-                else: parts.append({"text": f"Analyze this file. Respond in {lang}."})
-                
+                # First user turn with file
+                parts = [{"text": f"Analyze this file. {q} (Respond in {lang})"}]
                 for att in atts:
-                    parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
+                    if 'file_uri' in att:
+                        parts.append({"file_data": {"mime_type": att['mime_type'], "file_uri": att['file_uri']}})
                 
-                messages.append({"role": "user", "parts": parts})
-                messages.append({"role": "model", "parts": [{"text": init_msg}]})
+                return self._call_gemini([{"parts": parts}]), None
             else:
                 messages.extend(history)
-                
-            messages.append(current_user_msg)
-            return self._call_gemini(messages), None
+                messages.append(current_user_msg)
+                return self._call_gemini(messages), None
             
-        dlg = VisionQADialog(gui.mainFrame, "Vision Assistant - Document Chat", init_msg, initial_attachments, doc_callback)
+        # Translators: Dialog title for Chat
+        dlg = VisionQADialog(gui.mainFrame, _("Vision Assistant - Chat"), init_msg, initial_attachments, doc_callback, extra_info={'skip_init_history': True})
         dlg.Show()
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Performs OCR and description on the entire screen."))
     def script_ocrFullScreen(self, gesture):
-        """Performs OCR and description on the entire screen."""
         self._start_vision(True)
+
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Describes the current object (Navigator Object)."))
     def script_describeObject(self, gesture):
-        """Describes the current object (Navigator Object)."""
         self._start_vision(False)
+
     def _start_vision(self, full):
         if full: d, w, h = self._capture_fullscreen()
         else: d, w, h = self._capture_navigator()
         if d:
-            ui.message("Scanning...")
-            threading.Thread(target=self._thread_vision, args=(d, w, h), daemon=True).start()
-        else: ui.message("Capture failed.")
+            # Translators: Message while scanning screen
+            msg = _("Scanning...")
+            ui.message(msg)
+            # Wait a bit for message to be spoken before heavy task
+            wx.CallLater(100, lambda: threading.Thread(target=self._thread_vision, args=(d, w, h), daemon=True).start())
+        else: 
+            # Translators: Message when capture fails
+            ui.message(_("Capture failed."))
+
     def _thread_vision(self, img, w, h):
         lang = config.conf["VisionAssistant"]["ai_response_language"]
         p = f"Analyze this image and describe it. Language: {lang}. Ensure the response is strictly in {lang}."
         att = [{'mime_type': 'image/png', 'data': img}]
-        desc = self._call_gemini(p, attachments=att)
-        wx.CallAfter(self._open_vision_dialog, desc, att, None)
+        res = self._call_gemini(p, attachments=att)
+        if res:
+            wx.CallAfter(self._open_vision_dialog, res, att, None)
+        else:
+            # Translators: Vision analysis failed
+            show_error_dialog(_("Vision analysis failed."))
         
     def _open_vision_dialog(self, text, atts, size):
         def cb(atts, q, history, sz):
@@ -774,32 +1045,57 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             messages.append(current_user_msg)
             return self._call_gemini(messages), None
             
-        dlg = VisionQADialog(gui.mainFrame, "Vision Assistant - Image Analysis", text, atts, cb, None)
+        # Translators: Dialog title for Image Analysis
+        dlg = VisionQADialog(gui.mainFrame, _("Vision Assistant - Image Analysis"), text, atts, cb, None)
         dlg.Show()
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Transcribes a selected audio file."))
     def script_transcribeAudio(self, gesture):
-        """Transcribes a selected audio file."""
-        wx.CallAfter(self._open_audio)
+        # Translators: Message while preparing to open audio dialog
+        msg = _("Select an audio file...")
+        ui.message(msg)
+        wx.CallLater(200, self._open_audio)
+
     def _open_audio(self):
-        dlg = wx.FileDialog(gui.mainFrame, "Select Audio File to Transcribe", wildcard="Audio|*.mp3;*.wav;*.ogg", style=wx.FD_OPEN)
+        # Translators: File dialog title for Audio Transcription
+        dlg = wx.FileDialog(gui.mainFrame, _("Select Audio File to Transcribe"), wildcard="Audio|*.mp3;*.wav;*.ogg", style=wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             threading.Thread(target=self._thread_audio, args=(dlg.GetPath(),), daemon=True).start()
         dlg.Destroy()
+
     def _thread_audio(self, path):
         try:
-            wx.CallAfter(ui.message, "Uploading...")
-            if os.path.getsize(path)>15*1024*1024: return
-            with open(path,"rb") as f: d = base64.b64encode(f.read()).decode('utf-8')
-            wx.CallAfter(ui.message, "Analyzing...")
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
-            p = f"Transcribe in {lang}."
-            mt = "audio/mpeg" if path.endswith(".mp3") else "audio/wav"
-            res = self._call_gemini(p, attachments=[{'mime_type': mt, 'data': d}])
-            wx.CallAfter(lambda: ResultDialog(gui.mainFrame, "Vision Assistant - Audio Transcript", res).ShowModal())
-        except: wx.CallAfter(ui.message, "Error.")
+            # Translators: Message while uploading audio
+            msg = _("Uploading...")
+            wx.CallAfter(ui.message, msg)
+            mime_type = get_mime_type(path)
+            
+            file_uri = self._upload_file_to_gemini(path, mime_type)
+            if not file_uri: return
 
+            # Translators: Message while analyzing audio
+            msg = _("Analyzing...")
+            wx.CallAfter(ui.message, msg)
+            lang = config.conf["VisionAssistant"]["ai_response_language"]
+            p = f"Transcribe this audio in {lang}."
+            
+            att = [{'mime_type': mime_type, 'file_uri': file_uri}]
+            res = self._call_gemini(p, attachments=att)
+            
+            if res:
+                # Use open_doc_chat_dialog to enable follow-up questions on audio
+                # Translators: Initial message for Audio Chat
+                init_msg = res 
+                wx.CallAfter(self._open_doc_chat_dialog, init_msg, att, "")
+            else:
+                # Translators: Transcription failed message
+                show_error_dialog(_("Transcription failed."))
+        except: show_error_dialog(_("Audio processing error."))
+
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Attempts to solve a CAPTCHA on the screen or navigator object."))
     def script_solveCaptcha(self, gesture):
-        """Attempts to solve a CAPTCHA on the screen or navigator object."""
         mode = config.conf["VisionAssistant"]["captcha_mode"]
         if mode == 'fullscreen': d, w, h = self._capture_fullscreen()
         else: d, w, h = self._capture_navigator()
@@ -811,9 +1107,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except: pass
 
         if d:
-            ui.message("Solving...")
+            # Translators: Message while solving CAPTCHA
+            msg = _("Solving...")
+            ui.message(msg)
             threading.Thread(target=self._thread_cap, args=(d, is_gov), daemon=True).start()
-        else: ui.message("Capture failed.")
+        else: 
+            # Translators: Message when capture fails
+            ui.message(_("Capture failed."))
         
     def _thread_cap(self, d, is_gov):
         p = "Blind user. Return CAPTCHA code only."
@@ -822,16 +1122,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         
         r = self._call_gemini(p, attachments=[{'mime_type': 'image/png', 'data': d}])
         if r: wx.CallAfter(self._finish_captcha, r)
-        else: wx.CallAfter(ui.message, "Failed.")
+        else: wx.CallAfter(ui.message, _("Failed."))
 
     def _finish_captcha(self, text):
         api.copyToClip(text)
-        ui.message(f"Captcha: {text}")
-        wx.CallLater(800, send_ctrl_v)
+        send_ctrl_v()
+        # Translators: Message announcing CAPTCHA result
+        msg = _("Captcha: {text}").format(text=text)
+        wx.CallLater(200, ui.message, msg)
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Checks for updates manually."))
     def script_checkUpdate(self, gesture):
-        """Checks for updates manually."""
-        ui.message("Checking for updates...")
+        # Translators: Message when checking for updates
+        msg = _("Checking for updates...")
+        ui.message(msg)
         self.updater.check_for_updates(silent=False)
 
     def _capture_navigator(self):
@@ -856,19 +1161,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return base64.b64encode(s.getvalue()).decode('utf-8'),w,h
         except: return None,0,0
 
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Announces the last received translation."))
     def script_readLastTranslation(self, gesture):
-        """Announces the last received translation."""
         if self.last_translation: ui.message(f"Last: {self.last_translation}")
-        else: ui.message("No history.")
+        else: 
+            # Translators: Message when no history is available
+            ui.message(_("No history."))
     
+    # Translators: Script description for Input Gestures
+    @scriptHandler.script(description=_("Translates the text currently in the clipboard."))
     def script_translateClipboard(self, gesture):
-        """Translates the text currently in the clipboard."""
         t = api.getClipData()
         if t: 
-            ui.message("Translating Clipboard...")
+            # Translators: Message when translating from clipboard
+            msg = _("Translating Clipboard...")
+            ui.message(msg)
             threading.Thread(target=self._thread_translate, args=(t,), daemon=True).start()
         else:
-            ui.message("Clipboard empty.")
+            # Translators: Message when clipboard is empty
+            msg = _("Clipboard empty.")
+            ui.message(msg)
 
     __gestures = {
         "kb:NVDA+control+shift+t": "translateSmart",
@@ -876,6 +1189,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         "kb:NVDA+control+shift+o": "ocrFullScreen",
         "kb:NVDA+control+shift+v": "describeObject",
         "kb:NVDA+control+shift+d": "analyzeDocument",
+        "kb:NVDA+control+shift+f": "fileOCR",
         "kb:NVDA+control+shift+a": "transcribeAudio",
         "kb:NVDA+control+shift+c": "solveCaptcha",
         "kb:NVDA+control+shift+l": "readLastTranslation",
