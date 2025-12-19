@@ -494,8 +494,25 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         cHelper = gui.guiHelper.BoxSizerHelper(connectionBox, sizer=connectionSizer)
 
         # Translators: Label for API Key input
-        self.apiKey = cHelper.addLabeledControl(_("Gemini API Key:"), wx.TextCtrl)
-        self.apiKey.Value = config.conf["VisionAssistant"]["api_key"]
+        apiSizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        apiLabel = wx.StaticText(connectionBox, label=_("Gemini API Key:"))
+        apiSizer.Add(apiLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        
+        api_value = config.conf["VisionAssistant"]["api_key"]
+        
+        self.apiKeyCtrl_hidden = wx.TextCtrl(connectionBox, value=api_value, style=wx.TE_PASSWORD)
+        self.apiKeyCtrl_visible = wx.TextCtrl(connectionBox, value=api_value)
+        self.apiKeyCtrl_visible.Hide()
+        
+        apiSizer.Add(self.apiKeyCtrl_hidden, 1, wx.EXPAND | wx.RIGHT, 5)
+        apiSizer.Add(self.apiKeyCtrl_visible, 1, wx.EXPAND | wx.RIGHT, 5)
+        
+        self.showApiCheck = wx.CheckBox(connectionBox, label=_("Show API Key"))
+        self.showApiCheck.Bind(wx.EVT_CHECKBOX, self.onToggleApiVisibility)
+        apiSizer.Add(self.showApiCheck, 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        cHelper.addItem(apiSizer)
         
         model_display_names = [opt[0] for opt in MODELS]
         
@@ -588,8 +605,20 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         settingsSizer.Add(promptsSizer, 1, wx.EXPAND | wx.ALL, 5)
 
+    def onToggleApiVisibility(self, event):
+        if self.showApiCheck.IsChecked():
+            self.apiKeyCtrl_visible.SetValue(self.apiKeyCtrl_hidden.GetValue())
+            self.apiKeyCtrl_hidden.Hide()
+            self.apiKeyCtrl_visible.Show()
+        else:
+            self.apiKeyCtrl_hidden.SetValue(self.apiKeyCtrl_visible.GetValue())
+            self.apiKeyCtrl_visible.Hide()
+            self.apiKeyCtrl_hidden.Show()
+        self.Layout()
+
     def onSave(self):
-        config.conf["VisionAssistant"]["api_key"] = self.apiKey.Value.strip()
+        val = self.apiKeyCtrl_visible.GetValue() if self.showApiCheck.IsChecked() else self.apiKeyCtrl_hidden.GetValue()
+        config.conf["VisionAssistant"]["api_key"] = val.strip()
         config.conf["VisionAssistant"]["model_name"] = MODELS[self.model.GetSelection()][1]
         config.conf["VisionAssistant"]["proxy_url"] = self.proxyUrl.Value.strip()
         config.conf["VisionAssistant"]["source_language"] = SOURCE_NAMES[self.sourceLang.GetSelection()]
