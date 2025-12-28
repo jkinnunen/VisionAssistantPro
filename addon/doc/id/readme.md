@@ -12,6 +12,8 @@ Buka **Menu NVDA > Preferensi > Pengaturan > Vision Assistant Pro**.
 
 - **API Key (Kunci API):** Wajib. Kolom ini disembunyikan secara default demi keamanan (gunakan "Show API Key" untuk melihat isinya). Dapatkan kunci gratis dari [Google AI Studio](https://aistudio.google.com/).
 - **Model:** Pilih antara model **Flash** (Tercepat/Gratis) atau **Pro** (Kecerdasan Tinggi) berdasarkan kebutuhan Anda.
+- **URL proksi:** Opsional. Gunakan ini jika Google diblokir di wilayah Anda. Anda memerlukan alamat server (URL) yang menerima permintaan Anda dan meneruskannya ke API Gemini.
+  > **Catatan:** Ini **tidak** untuk VPN standar/SOCKS proxies (Seperti `127.0.0.1:1080`). URL harus berupa alamat web (Misalnya, `https://my-custom-proxy.com`) yang bertindak sebagai jembatan ke Google.
 - **Languages (Bahasa):** Atur bahasa Sumber, Target, dan Respon AI.
 - **Smart Swap:** Secara otomatis menukar bahasa jika teks sumber cocok dengan bahasa target.
 - **Direct Output (Output Langsung):** Melewati jendela obrolan dan membacakan respon langsung melalui suara (speech).
@@ -30,14 +32,15 @@ Untuk mencegah konflik pintasan keyboard, add-on ini menggunakan **Layer Perinta
 | **R**         | Text Refiner             | Merangkum, Memperbaiki Tata Bahasa, Menjelaskan, atau menjalankan **Prompt Kustom**.|
 | **V**         | Object Vision            | Mendeskripsikan objek navigator saat ini.                                 |
 | **O**         | Full Screen Vision       | Menganalisis tata letak dan konten seluruh layar.                         |
-| **Shift + V** | Analisis Video Online    | Menganalisis video **YouTube** atau **Instagram** melalui URL.            |
+| **Shift + V** | Analisis Video Online    | Menganalisa video dari **YouTube**, **Instagram**, atau **Twitter (X)** melalui URL. |
 | **D**         | Analisis Dokumen         | tanya jawab tentang file PDF/TXT/MD/PY.                                      |
 | **F**         | File OCR                 | OCR langsung dari file gambar/PDF/TIFF (Mendukung TIFF multi-halaman).    |
 | **A**         | Transkripsi Audio        | Mentranskrip file MP3/WAV/OGG.                                            |
 | **C**         | Pemecah CAPTCHA          | Menangkap dan memecahkan CAPTCHA secara otomatis.                         |
-| **S**         | Dikte Cerdas             | Mengubah ucapan menjadi teks. Tekan untuk mulai merekam, tekan lagi untuk berhenti/mengetik.|
+| **S**         | Dikte Cerdas             | Mengubah ucapan menjadi teks. Tekan untuk mulai merekam, tekan lagi untuk berhenti/mengetik. |
 | **L**         | Laporan Status           | Mengumumkan status saat ini (misalnya, "Mengunggah...", "Diam").          |
 | **U**         | Cek Pembaruan            | Memeriksa GitHub untuk versi terbaru.                                     |
+| **H** | Perintah Bantuan | Menampilkan daftar lengkap semua tombol pintasan yang tersedia dan deskripsinya dalam lapisan perintah. |
 
 ## 3. Prompt Kustom & Variabel
 
@@ -63,6 +66,11 @@ Buat perintah di Pengaturan dengan format: `Nama:Teks Prompt` (pisahkan dengan `
 - **Code Debugger:** `Debug:Temukan bug dalam kode ini dan jelaskan: [selection]`
 
 **Catatan:** Koneksi internet aktif diperlukan untuk semua fitur AI. TIFF multi-halaman diproses secara otomatis.
+
+## Perubahan untuk 3.6.0
+*   **Help System:** Menambahkan perintah bantuan (`H`) dalam Lapisan Perintah untuk menyediakan daftar semua pintasan dan fungsinya yang mudah diakses.
+*   **Online Video Analysis:** Dukungan yang diperluas untuk menyertakan video **Twitter (X)**. Juga meningkatkan deteksi dan stabilitas URL untuk pengalaman yang lebih andal.
+*   **Kontribusi Proyek:** Menambahkan dialog donasi opsional untuk pengguna yang ingin mendukung pembaruan proyek di masa mendatang dan pertumbuhan berkelanjutan.
 
 ## Perubahan untuk 3.5.0
 *   **Layer Perintah:** Memperkenalkan sistem Layer Perintah (default: `NVDA+Shift+V`) untuk mengelompokkan pintasan di bawah satu kunci utama. Misalnya, alih-alih menekan `NVDA+Control+Shift+T` untuk menerjemahkan, sekarang Anda menekan `NVDA+Shift+V` diikuti oleh `T`.
