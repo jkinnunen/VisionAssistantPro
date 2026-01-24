@@ -1,76 +1,95 @@
-Dokumentasi Vision Assistant Pro
-
-# Vision Assistant Pro
+# Dokumentasi Vision Assistant Pro
 
 **Vision Assistant Pro** adalah asisten AI multi-modal canggih untuk NVDA. Add-on ini memanfaatkan model Gemini dari Google untuk menyediakan kemampuan pembacaan layar cerdas, penerjemahan, dikte suara, dan analisis dokumen.
 
-_Add-on ini dirilis untuk komunitas sebagai penghormatan terhadap Hari Internasional Penyandang Disabilitas._
+_Add-on ini dirilis untuk komunitas dalam rangka memperingati Hari Internasional Penyandang Disabilitas._
 
 ## 1. Pengaturan & Konfigurasi
 
 Buka **Menu NVDA > Preferensi > Pengaturan > Vision Assistant Pro**.
 
-- **API Key (Kunci API):** Wajib. Kolom ini disembunyikan secara default demi keamanan (gunakan "Show API Key" untuk melihat isinya). Dapatkan kunci gratis dari [Google AI Studio](https://aistudio.google.com/).
-- **Model:** Pilih antara model **Flash** (Tercepat/Gratis) atau **Pro** (Kecerdasan Tinggi) berdasarkan kebutuhan Anda.
-- **URL proksi:** Opsional. Gunakan ini jika Google diblokir di wilayah Anda. Anda memerlukan alamat server (URL) yang menerima permintaan Anda dan meneruskannya ke API Gemini.
-  > **Catatan:** Ini **tidak** untuk VPN standar/SOCKS proxies (Seperti `127.0.0.1:1080`). URL harus berupa alamat web (Misalnya, `https://my-custom-proxy.com`) yang bertindak sebagai jembatan ke Google.
-- **Languages (Bahasa):** Atur bahasa Sumber, Target, dan Respon AI.
-- **Smart Swap:** Secara otomatis menukar bahasa jika teks sumber cocok dengan bahasa target.
-- **Direct Output (Output Langsung):** Melewati jendela obrolan dan membacakan respon langsung melalui suara (speech).
-- **Clipboard Integration:** Secara otomatis menyalin respon AI ke papan klip (clipboard).
+- **API Key (Kunci API):** Wajib. Anda dapat memasukkan beberapa kunci (dipisahkan dengan koma atau baris baru). Asisten akan secara otomatis beralih di antara kunci-kunci tersebut jika batas kuota tercapai.
+- **Model:** Pilih antara model **Flash** (Tercepat/Gratis), **Lite**, atau **Pro** (Kecerdasan Tinggi).
+- **URL Proksi:** Opsional. Gunakan ini jika Google diblokir di wilayah Anda. Harus berupa alamat web yang bertindak sebagai jembatan ke API Gemini.
+- **Mesin OCR:** Pilih antara **Chrome (Cepat)** untuk hasil cepat atau **Gemini (Terformat)** untuk pelestarian tata letak dan pengenalan tabel yang lebih unggul.
+- **Suara TTS:** Pilih gaya suara yang disukai untuk membuat file audio dari halaman dokumen.
+- **Smart Swap (Tukar Cerdas):** Secara otomatis menukar bahasa jika teks sumber cocok dengan bahasa target.
+- **Direct Output (Output Langsung):** Melewati jendela obrolan dan membacakan respons AI secara langsung melalui ucapan.
+- **Clipboard Integration (Integrasi Papan Klip):** Secara otomatis menyalin respons AI ke papan klip.
 
 ## 2. Layer Perintah & Pintasan
 
-Untuk mencegah konflik pintasan keyboard, add-on ini menggunakan **Layer Perintah**.
-1. Tekan **NVDA + Shift + V** (Kunci Utama) untuk mengaktifkan lapisan perintah (Anda akan mendengar bunyi bip).
+Untuk mencegah konflik keyboard, add-on ini menggunakan **Layer Perintah**.
+1. Tekan **NVDA + Shift + V** (Tombol Utama) untuk mengaktifkan layer (Anda akan mendengar bunyi bip).
 2. Lepaskan tombol, lalu tekan salah satu tombol tunggal berikut:
 
 | Tombol        | Fungsi                   | Deskripsi                                                                 |
 |---------------|--------------------------|---------------------------------------------------------------------------|
-| **T**         | Smart Translator         | Menerjemahkan teks di bawah kursor navigator atau teks yang dipilih.      |
-| **Shift + T** | Penerjemah Papan Klip | Menerjemahkan konten yang ada di papan klip saat ini.                      |
-| **R**         | Text Refiner             | Merangkum, Memperbaiki Tata Bahasa, Menjelaskan, atau menjalankan **Prompt Kustom**.|
-| **V**         | Object Vision            | Mendeskripsikan objek navigator saat ini.                                 |
-| **O**         | Full Screen Vision       | Menganalisis tata letak dan konten seluruh layar.                         |
-| **Shift + V** | Analisis Video Online    | Menganalisa video dari **YouTube**, **Instagram**, atau **Twitter (X)** melalui URL. |
-| **D**         | Analisis Dokumen         | tanya jawab tentang file PDF/TXT/MD/PY.                                      |
-| **F**         | File OCR                 | OCR langsung dari file gambar/PDF/TIFF (Mendukung TIFF multi-halaman).    |
-| **A**         | Transkripsi Audio        | Mentranskrip file MP3/WAV/OGG.                                            |
-| **C**         | Pemecah CAPTCHA          | Menangkap dan memecahkan CAPTCHA secara otomatis.                         |
-| **S**         | Dikte Cerdas             | Mengubah ucapan menjadi teks. Tekan untuk mulai merekam, tekan lagi untuk berhenti/mengetik. |
-| **L**         | Laporan Status           | Mengumumkan status saat ini (misalnya, "Mengunggah...", "Diam").          |
-| **U**         | Cek Pembaruan            | Memeriksa GitHub untuk versi terbaru.                                     |
-| **H** | Perintah Bantuan | Menampilkan daftar lengkap semua tombol pintasan yang tersedia dan deskripsinya dalam lapisan perintah. |
+| **T**         | Penerjemah Cerdas        | Menerjemahkan teks di bawah kursor navigator atau seleksi.                |
+| **Shift + T** | Penerjemah Papan Klip    | Menerjemahkan konten yang ada di papan klip saat ini.                     |
+| **R**         | Penyempurna Teks         | Meringkas, Memperbaiki Tata Bahasa, Menjelaskan, atau menjalankan **Prompt Kustom**.|
+| **V**         | Visi Objek               | Mendeskripsikan objek navigator saat ini.                                 |
+| **O**         | Visi Layar Penuh         | Menganalisis tata letak dan konten seluruh layar.                         |
+| **Shift + V** | Analisis Video Online    | Menganalisis video **YouTube**, **Instagram**, atau **Twitter (X)** melalui URL.      |
+| **D**         | Pembaca Dokumen          | Pembaca canggih untuk PDF dan gambar dengan pemilihan rentang halaman.    |
+| **F**         | OCR Berkas               | Pengenalan teks langsung dari file gambar, PDF, atau TIFF yang dipilih.   |
+| **A**         | Transkripsi Audio        | Mentranskrip file MP3, WAV, atau OGG menjadi teks.                        |
+| **C**         | Pemecah CAPTCHA          | Menangkap dan memecahkan CAPTCHA pada layar atau objek navigator.         |
+| **S**         | Dikte Cerdas             | Mengubah ucapan menjadi teks. Tekan untuk mulai merekam, lagi untuk berhenti/mengetik.|
+| **L**         | Laporan Status           | Mengumumkan status saat ini (misalnya, "Memindai...", "Diam").            |
+| **U**         | Periksa Pembaruan        | Memeriksa GitHub secara manual untuk versi terbaru add-on.                |
+| **H**         | Bantuan Perintah         | Menampilkan daftar semua pintasan yang tersedia dalam layer perintah.       |
+
+### 2.1 Pintasan Pembaca Dokumen (Di Dalam Penampil)
+Setelah dokumen dibuka melalui perintah **D**:
+- **Ctrl + PageDown:** Pindah ke halaman berikutnya (mengumumkan nomor halaman).
+- **Ctrl + PageUp:** Pindah ke halaman sebelumnya (mengumumkan nomor halaman).
+- **Alt + A:** Buka dialog obrolan untuk bertanya tentang dokumen.
+- **Alt + R:** Paksa pemindaian ulang halaman saat ini atau semua halaman menggunakan mesin Gemini.
+- **Alt + G:** Hasilkan dan simpan file audio berkualitas tinggi (WAV) dari konten.
+- **Alt + S / Ctrl + S:** Simpan teks yang diekstrak sebagai file TXT atau HTML.
 
 ## 3. Prompt Kustom & Variabel
 
-Buat perintah di Pengaturan dengan format: `Nama:Teks Prompt` (pisahkan dengan `|` atau baris baru).
+Anda dapat membuat perintah AI kustom yang hebat di Pengaturan menggunakan format: `Nama:Teks Prompt` (pisahkan beberapa perintah dengan `|` atau baris baru).
 
 ### Variabel yang Tersedia
 
 | Variabel         | Deskripsi                                        | Tipe Input       |
 |------------------|--------------------------------------------------|------------------|
 | `[selection]`    | Teks yang dipilih saat ini                       | Teks             |
-| `[clipboard]`    | Konten clipboard                                 | Teks             |
+| `[clipboard]`    | Konten papan klip                                | Teks             |
 | `[screen_obj]`   | Tangkapan layar objek navigator                  | Gambar           |
-| `[screen_full]`  | Tangkapan layar layar penuh                      | Gambar           |
-| `[file_ocr]`     | Pilih gambar/PDF/TIFF (default ke "Ekstrak teks")| Gambar, PDF, TIFF|
-| `[file_read]`    | Pilih dokumen teks                               | TXT, Kode, PDF   |
-| `[file_audio]`   | Pilih file audio                                 | MP3, WAV, OGG    |
+| `[screen_full]`  | Tangkapan layar penuh                            | Gambar           |
+| `[file_ocr]`     | Pilih file gambar/PDF untuk ekstraksi teks       | Gambar, PDF, TIFF|
+| `[file_read]`    | Pilih dokumen untuk dibaca                       | TXT, Kode, PDF   |
+| `[file_audio]`   | Pilih file audio untuk analisis                  | MP3, WAV, OGG    |
 
 ### Contoh Prompt Kustom
 
 - **Quick OCR:** `My OCR:[file_ocr]`
-- **Translate Image:** `Translate Img:Ekstrak teks dari gambar ini dan terjemahkan ke bahasa Indonesia. [file_ocr]`
+- **Translate Image:** `Translate Img:Ekstrak teks dari gambar ini dan terjemahkan ke Bahasa Indonesia. [file_ocr]`
 - **Analisis Audio:** `Rangkum Audio:Dengarkan rekaman ini dan rangkum poin-poin utamanya. [file_audio]`
 - **Code Debugger:** `Debug:Temukan bug dalam kode ini dan jelaskan: [selection]`
 
-**Catatan:** Koneksi internet aktif diperlukan untuk semua fitur AI. TIFF multi-halaman diproses secara otomatis.
+***
+**Catatan:** Koneksi internet aktif diperlukan untuk semua fitur AI. Dokumen multi-halaman dan TIFF diproses secara otomatis.
+
+## Perubahan untuk 4.0
+*   **Pembaca Dokumen Tingkat Lanjut:** Penampil baru yang canggih untuk PDF dan gambar dengan pemilihan rentang halaman, pemrosesan latar belakang, dan navigasi `Ctrl+PageUp/Down` yang mulus.
+*   **Submenu Alat Baru:** Menambahkan submenu khusus "Vision Assistant" di bawah menu Alat NVDA untuk akses lebih cepat ke fitur inti, pengaturan, dan dokumentasi.
+*   **Kustomisasi Fleksibel:** Kini Anda dapat memilih mesin OCR dan suara TTS pilihan Anda langsung dari panel pengaturan.
+*   **Dukungan Multi Kunci API:** Menambahkan dukungan untuk beberapa kunci API Gemini guna memastikan layanan yang berkelanjutan. Anda dapat memasukkan satu kunci per baris atau memisahkannya dengan koma di pengaturan.
+*   **Mesin OCR Alternatif:** Memperkenalkan mesin OCR baru untuk memastikan pengenalan teks yang andal bahkan saat mencapai batas kuota API Gemini.
+*   **Rotasi Kunci API Cerdas:** Secara otomatis beralih ke dan mengingat kunci API yang bekerja paling cepat untuk melewati batas kuota tanpa intervensi manual.
+*   **Dokumen ke Audio:** Kemampuan terintegrasi untuk menghasilkan dan menyimpan file audio berkualitas tinggi (WAV) dari halaman dokumen langsung di dalam pembaca.
+*   **Dialog Pembaruan yang Didesain Ulang:** Menampilkan antarmuka baru yang mudah diakses dengan kotak teks yang dapat digulir untuk membaca perubahan versi dengan jelas sebelum menginstal.
+*   **Status & UX Terpadu:** Menstandarisasi dialog file di seluruh add-on dan meningkatkan perintah 'L' untuk melaporkan kemajuan waktu nyata untuk semua tugas latar belakang.
 
 ## Perubahan untuk 3.6.0
-*   **Help System:** Menambahkan perintah bantuan (`H`) dalam Lapisan Perintah untuk menyediakan daftar semua pintasan dan fungsinya yang mudah diakses.
-*   **Online Video Analysis:** Dukungan yang diperluas untuk menyertakan video **Twitter (X)**. Juga meningkatkan deteksi dan stabilitas URL untuk pengalaman yang lebih andal.
-*   **Kontribusi Proyek:** Menambahkan dialog donasi opsional untuk pengguna yang ingin mendukung pembaruan proyek di masa mendatang dan pertumbuhan berkelanjutan.
+*   **Sistem Bantuan:** Menambahkan perintah bantuan (`H`) dalam Layer Perintah untuk menyediakan daftar semua pintasan dan fungsinya yang mudah diakses.
+*   **Analisis Video Online:** Dukungan diperluas untuk menyertakan video **Twitter (X)**. Juga meningkatkan deteksi dan stabilitas URL untuk pengalaman yang lebih andal.
+*   **Kontribusi Proyek:** Menambahkan dialog donasi opsional bagi pengguna yang ingin mendukung pembaruan masa depan dan pertumbuhan berkelanjutan proyek ini.
 
 ## Perubahan untuk 3.5.0
 *   **Layer Perintah:** Memperkenalkan sistem Layer Perintah (default: `NVDA+Shift+V`) untuk mengelompokkan pintasan di bawah satu kunci utama. Misalnya, alih-alih menekan `NVDA+Control+Shift+T` untuk menerjemahkan, sekarang Anda menekan `NVDA+Shift+V` diikuti oleh `T`.
