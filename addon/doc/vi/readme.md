@@ -1,186 +1,191 @@
 # Tài liệu hướng dẫn Vision Assistant Pro
 
-**Vision Assistant Pro** là trợ lý AI đa phương thức tiên tiến dành cho NVDA. Nó tận dụng các mô hình Gemini của Google để cung cấp khả năng đọc, dịch, đọc chính tả bằng giọng nói và phân tích tài liệu thông minh trên màn hình.
+**Vision Assistant Pro** là trợ lý AI đa năng nâng cao dành cho NVDA. Add-on này tận dụng các mô hình Gemini của Google để cung cấp các khả năng đọc màn hình thông minh, dịch thuật, soạn thảo bằng giọng nói và phân tích tài liệu.
 
-_Tiện ích bổ sung này được phát hành ra cộng đồng để vinh danh Ngày Quốc tế Người khuyết tật._
+*Add-on này được phát hành cho cộng đồng nhằm vinh danh Ngày Quốc tế Người khuyết tật.*
 
-## 1. Cài đặt & Cấu hình
+## 1. Thiết lập & Cấu hình
 
-đi đến **NVDA Trình đơn > Tùy Chọn > Cài Đặt > Vision Assistant Pro**.
+Truy cập **Menu NVDA > Tùy chọn > Cài đặt > Vision Assistant Pro**.
 
-- **API Key:** Yêu cầu. Nhận khóa miễn phí từ [Google AI Studio](https://aistudio.google.com/).
-- **Mô hình:** Chọn giữa các mẫu **Flash** (Nhanh nhất/Miễn phí) hoặc **Pro** (Thông minh cao) dựa trên nhu cầu của bạn.
-- **Proxy URL:** Không bắt buộc. Sử dụng điều này nếu Google bị chặn trong khu vực của bạn. Bạn cần một địa chỉ máy chủ (URL) nhận yêu cầu của bạn và chuyển tiếp chúng đến API Gemini.
-- **Công cụ OCR:** Chọn giữa **Chrome (nhanh)** để có kết quả nhanh hoặc **Gemini (đã định dạng)** để bảo toàn bố cục và nhận dạng bảng tốt hơn.
-- **Giọng TTs:** Chọn kiểu giọng nói ưa thích để tạo file âm thanh từ các trang tài liệu.
-- **Chuyển đổi thông minh:** Tự động hoán đổi ngôn ngữ nếu văn bản nguồn khớp với ngôn ngữ đích.
-- **Đầu ra trực tiếp:** Bỏ qua cửa sổ trò chuyện và thông báo phản hồi trực tiếp qua lời nói.
-- **Tích hợp bộ nhớ tạm:** Tự động sao chép phản hồi AI vào bộ nhớ tạm.
+* **Khóa API:** Bắt buộc. Bạn có thể nhập nhiều khóa (phân tách bằng dấu phẩy hoặc xuống dòng). Trợ lý sẽ tự động luân chuyển giữa các khóa nếu một khóa hết hạn mức (quota).
+* **Mô hình AI:** Chọn giữa các mô hình **Flash** (Nhanh nhất/Miễn phí), **Lite**, hoặc **Pro** (Trí tuệ cao).
+* **Proxy URL:** Không bắt buộc. Sử dụng nếu Google bị chặn ở khu vực của bạn. Đây phải là một địa chỉ web đóng vai trò làm cầu nối tới API Gemini.
+* **Công cụ OCR:** Chọn giữa **Chrome (Nhanh)** để có kết quả nhanh chóng hoặc **Gemini (Có định dạng)** để giữ nguyên bố cục và nhận dạng bảng biểu tốt hơn.
+* **Giọng đọc TTS:** Chọn kiểu giọng đọc ưu thích để tạo tệp âm thanh từ các trang tài liệu.
+* **Hoán đổi thông minh:** Tự động hoán đổi ngôn ngữ nếu văn bản nguồn khớp với ngôn ngữ đích.
+* **Kết quả trực tiếp:** Bỏ qua cửa sổ chat và thông báo phản hồi của AI trực tiếp bằng giọng nói.
+* **Tích hợp bộ nhớ tạm:** Tự động sao chép phản hồi của AI vào bộ nhớ tạm.
 
-## 2. Lớp lệnh và phím tắt
+## 2. Lớp lệnh & Phím tắt
 
-Để tránh xung đột bàn phím, tiện ích bổ sung này sử dụng **Lớp lệnh**.
+Để tránh xung đột phím tắt, add-on này sử dụng một **Lớp lệnh**.
 
-1. Nhấn **NVDA + Shift + V** (Master Key) để kích hoạt lớp (bạn sẽ nghe thấy tiếng bíp).
-2. Nhả phím, sau đó nhấn một trong các phím đơn sau:
+1. Nhấn **NVDA + Shift + V** (Phím chính) để kích hoạt lớp lệnh (bạn sẽ nghe thấy một tiếng bíp).
+2. Thả các phím, sau đó nhấn một trong các phím đơn sau:
 
-| phím tắt                    | chức năng             | mô tả                                                                 |
-|-----------------------------|----------------------|-----------------------------------------------------------------------------|
-| **T**           | trình dịch thông minh     | Dịch văn bản dưới con trỏ điều hướng. Ưu tiên lựa chọn.      |
-| **Shift + T**           | Dịch từ bộ nhớ | dịch nội dng trong bộ nhớ. **khuyên dùng cho trình duyệt web**.            |
-| **S**           | Đọc chính tả thông minh       | Chuyển đổi lời nói thành văn bản. Nhấn một lần để bắt đầu, một lần nữa để dừng và gõ.       |
-| **R**           | Tinh chỉnh văn bản         | Tóm tắt, sửa lỗi ngữ pháp, giải thích hoặc chạy **Prompts Tùy chỉnh**.                 |
-| **C**           | Giải CAPTCHA        | Tự động chụp và giải CAPTCHA.                                 |
-| **V**           | hỗ trợ nhìn đối tượng        | Mô tả đối tượng điều hướng với cuộc trò chuyện tiếp theo.                         |
-| **O**           | hỗ trợ nhìn toàn màn hình    | Phân tích toàn bộ bố cục và nội dung màn hình.                                  |
-| **Shift + V** | Phân tích video trực tuyến | Phân tích video **YouTube** hoặc **Instagram** qua URL.                        |
-| **D**           | Trình đọc tài liệu | Trình đọc nâng cao cho PDF và hình ảnh với lựa chọn phạm vi trang.               |
-| **F**           | File OCR             | OCR trực tiếp từ image/PDF file.                                             |
-| **A**           |Phiên âm âm thanh    | phiên âm MP3/WAV/OGG files.                                               |
-| **L**         | Báo cáo trạng thái | Thông báo trạng thái hiện tại (ví dụ: "Đang tải lên...", "Không hoạt động").                |
-| **U**           | kiểm tra cập nhật         | Kiểm tra GitHub cho phiên bản mới nhất.                                            |
-| **H** | Lệnh trợ giúp | Hiển thị danh sách đầy đủ tất cả các phím tắt có sẵn và mô tả của chúng trong lớp lệnh. |
+| Phím | Chức năng | Mô tả |
+| --- | --- | --- |
+| **T** | Trình dịch thông minh | Dịch văn bản dưới con trỏ điều hướng hoặc đoạn đang chọn. |
+| **Shift + T** | Dịch bộ nhớ tạm | Dịch nội dung hiện có trong bộ nhớ tạm. |
+| **R** | Tinh chỉnh văn bản | Tóm tắt, Sửa ngữ pháp, Giải thích hoặc chạy **Lệnh tùy chỉnh**. |
+| **V** | Mô tả đối tượng | Mô tả đối tượng điều hướng hiện tại. |
+| **O** | Mô tả toàn màn hình | Phân tích bố cục và nội dung của toàn bộ màn hình. |
+| **Shift + V** | Phân tích video trực tuyến | Phân tích video **YouTube**, **Instagram**, hoặc **Twitter (X)** qua đường dẫn. |
+| **D** | Trình đọc tài liệu | Trình đọc nâng cao cho PDF và hình ảnh với khả năng chọn phạm vi trang. |
+| **F** | Nhận diện tệp (OCR) | Nhận diện văn bản trực tiếp từ các tệp hình ảnh, PDF hoặc TIFF được chọn. |
+| **A** | Phiên âm âm thanh | Phiên âm các tệp MP3, WAV hoặc OGG thành văn bản. |
+| **C** | Giải CAPTCHA | Chụp và giải CAPTCHA trên màn hình hoặc đối tượng điều hướng. |
+| **S** | Soạn thảo thông minh | Chuyển đổi giọng nói thành văn bản. Nhấn để bắt đầu ghi âm, nhấn lần nữa để dừng/nhập văn bản. |
+| **L** | Báo cáo trạng thái | Thông báo tiến trình hiện tại (ví dụ: "Đang quét...", "Đang chờ"). |
+| **U** | Kiểm tra cập nhật | Kiểm tra phiên bản mới nhất của add-on trên GitHub thủ công. |
+| **H** | Trợ giúp lệnh | Hiển thị danh sách tất cả các phím tắt có sẵn trong lớp lệnh. |
 
-### 2.1 Phím tắt trình đọc tài liệu (Trình xem bên trong)
-Khi một tài liệu được mở thông qua lệnh **D** :
-- **Ctrl + PageDown:** Chuyển sang trang tiếp theo (thông báo số trang).
-- **Ctrl + PageUp:** Chuyển về trang trước (thông báo số trang).
-- **Alt + A:** Mở hộp thoại trò chuyện để đặt câu hỏi về tài liệu.
-- **Alt + R:** Buộc quét lại trang hiện tại hoặc tất cả các trang bằng công cụ Gemini.
-- **Alt + G:** Tạo và lưu file âm thanh chất lượng cao (WAV) từ nội dung.
-- **Alt + S / Ctrl + S:** Lưu văn bản được trích xuất dưới dạng tệp TXT hoặc HTML.
+### 2.1 Phím tắt trong Trình đọc tài liệu (Bên trong trình xem)
 
-## 3. tùy chỉnh Prompts & biến
+Khi một tài liệu được mở thông qua lệnh **D**:
 
-tạo lệnh trong cài đặt: `Name:Prompt Text` (tách biệt với `|` hoặc dòng mới).
+* **Ctrl + PageDown:** Chuyển sang trang tiếp theo (thông báo số trang).
+* **Ctrl + PageUp:** Chuyển về trang trước (thông báo số trang).
+* **Alt + A:** Mở hộp thoại chat để đặt câu hỏi về tài liệu.
+* **Alt + R:** Buộc quét lại trang hiện tại hoặc tất cả các trang bằng công cụ Gemini.
+* **Alt + G:** Tạo và lưu tệp âm thanh chất lượng cao (WAV) từ nội dung.
+* **Alt + S / Ctrl + S:** Lưu văn bản đã trích xuất dưới dạng tệp TXT hoặc HTML.
 
-### Biến có sẵn
+## 3. Lệnh tùy chỉnh & Biến
 
-| biến         | Mô tả                                      | Nhập đầu vào       |
-|------------------|--------------------------------------------------|------------------|
-| `[selection]`    | Currently selected text                          | Text             |
-| `[clipboard]`    | Clipboard content                                | Text             |
-| `[screen_obj]`   | Screenshot of navigator object                   | Image            |
-| `[screen_full]`  | Full screen screenshot                           | Image            |
-| `[file_ocr]`     | Select image/PDF/TIFF (defaults to "Extract text")| Image, PDF, TIFF |
-| `[file_read]`    | Select text document                             | TXT, Code, PDF   |
-| `[file_audio]`   | Select audio file                                | MP3, WAV, OGG    |
+Bạn có thể tạo các lệnh AI tùy chỉnh mạnh mẽ trong phần Cài đặt bằng định dạng: `Tên:Nội dung lệnh` (phân tách nhiều lệnh bằng dấu `|` hoặc xuống dòng).
 
-### Ví dụ Prompts tùy chỉnh
+### Các biến hỗ trợ
 
-- **Quick OCR:** `My OCR:[file_ocr]`
-- **Translate Image:** `Translate Img:Extract text from this image and translate to Persian. [file_ocr]`
-- **Analyze Audio:** `Summarize Audio:Listen to this recording and summarize the main points. [file_audio]`
-- **Code Debugger:** `Debug:Find bugs in this code and explain them: [selection]`
+| Biến | Mô tả | Loại đầu vào |
+| --- | --- | --- |
+| `[selection]` | Văn bản đang được chọn | Văn bản |
+| `[clipboard]` | Nội dung bộ nhớ tạm | Văn bản |
+| `[screen_obj]` | Chụp ảnh đối tượng điều hướng | Hình ảnh |
+| `[screen_full]` | Chụp ảnh toàn màn hình | Hình ảnh |
+| `[file_ocr]` | Chọn tệp ảnh/PDF để trích xuất văn bản | Hình ảnh, PDF, TIFF |
+| `[file_read]` | Chọn tài liệu để đọc | TXT, Code, PDF |
+| `[file_audio]` | Chọn tệp âm thanh để phân tích | MP3, WAV, OGG |
 
-***
-**Lưu ý:** Cần có kết nối internet hoạt động cho tất cả các tính năng AI. TIFF nhiều trang được xử lý tự động.
+### Ví dụ về Lệnh tùy chỉnh
 
-## Thay đổi cho 4.0
+* **OCR nhanh:** `OCR của tôi:[file_ocr]`
+* **Dịch hình ảnh:** `Dịch ảnh:Trích xuất văn bản từ hình ảnh này và dịch sang tiếng Anh. [file_ocr]`
+* **Phân tích âm thanh:** `Tóm tắt âm thanh:Nghe bản ghi này và tóm tắt các điểm chính. [file_audio]`
+* **Gỡ lỗi mã nguồn:** `Gỡ lỗi:Tìm lỗi trong đoạn mã này và giải thích chúng: [selection]`
 
-*   **Trình đọc tài liệu nâng cao:** Trình xem PDF và hình ảnh mới mạnh mẽ với tính năng chọn phạm vi trang, xử lý nền và điều hướng `Ctrl+PageUp/Down` liền mạch.
-*   **Trình đơn con mới:** Đã thêm menu con "Vision Assistant" trong menu Công cụ của NVDA để truy cập nhanh hơn vào các tính năng, cài đặt và tài liệu.
-*   **Tùy chỉnh linh hoạt:** Giờ đây, bạn có thể chọn công cụ OCR và giọng nói TTS ưa thích của mình trực tiếp từ bảng cài đặt.
-*   **Hỗ trợ nhiều khóa API:** Đã thêm hỗ trợ cho nhiều khóa API Gemini để đảm bảo dịch vụ liên tục. Bạn có thể nhập một khóa trên mỗi dòng hoặc phân tách chúng bằng dấu phẩy trong cài đặt.
-*   **Công cụ OCR thay thế:** Đã giới thiệu công cụ OCR mới để đảm bảo khả năng nhận dạng văn bản đáng tin cậy ngay cả khi đạt đến giới hạn API Gemini.
-*   **Xoay khóa API thông minh:** Tự động chuyển sang và ghi nhớ khóa API hoạt động nhanh nhất để vượt qua giới hạn mà không cần can thiệp thủ công.
-*   **Chuyển tài liệu sang âm thanh:** Khả năng tích hợp để tạo và lưu các file âm thanh chất lượng cao (WAV) từ các trang tài liệu trực tiếp trong trình đọc.
-*   **Hộp thoại Cập nhật được thiết kế lại:** giao diện mới có thể truy cập với hộp văn bản để đọc rõ ràng các thay đổi của phiên bản trước khi cài đặt.
-*   **Trạng thái hợp nhất & UX:** Hộp thoại file được tiêu chuẩn hóa trên tiện ích bổ sung và nâng cao lệnh 'L' để báo cáo tiến trình theo thời gian thực cho tất cả các tác vụ nền.
+---
 
-## thay đổi cho 3.6.0
+**Lưu ý:** Cần có kết nối internet để sử dụng tất cả các tính năng AI. Các tài liệu nhiều trang và tệp TIFF được xử lý tự động.
 
-*   **Hệ thống trợ giúp:** Đã thêm lệnh trợ giúp (`H`) trong Lớp lệnh để cung cấp danh sách dễ truy cập gồm tất cả các phím tắt và chức năng của chúng.
-*   **Phân tích video trực tuyến:** Hỗ trợ mở rộng để bao gồm các video **Twitter (X)**. Đồng thời cải thiện khả năng phát hiện và độ ổn định của URL để có trải nghiệm đáng tin cậy hơn.
-*   **Đóng góp cho dự án:** Đã thêm tùy chọn  quyên góp hộp thoại cho những người dùng muốn hỗ trợ các bản cập nhật trong tương lai và sự phát triển liên tục của dự án.
+## Các thay đổi trong 4.0.1
 
-## Thay đổi cho 3.5.0
+* **Trình đọc tài liệu nâng cao:** Trình xem mới mạnh mẽ cho PDF và hình ảnh với khả năng chọn phạm vi trang, xử lý trong nền và điều hướng `Ctrl+PageUp/Down` mượt mà.
+* **Trình đơn phụ mới trong Tools:** Thêm một trình đơn phụ "Vision Assistant" riêng biệt trong menu Công cụ của NVDA để truy cập nhanh hơn vào các tính năng chính, cài đặt và tài liệu hướng dẫn.
+* **Tùy biến linh hoạt:** Giờ đây bạn có thể chọn công cụ OCR và giọng đọc TTS ưa thích trực tiếp từ bảng cài đặt.
+* **Hỗ trợ nhiều khóa API:** Thêm hỗ trợ cho nhiều khóa API Gemini. Bạn có thể nhập mỗi dòng một khóa hoặc phân tách bằng dấu phẩy trong cài đặt.
+* **Công cụ OCR thay thế:** Giới thiệu một công cụ OCR mới để đảm bảo nhận diện văn bản đáng tin cậy ngay cả khi đạt giới hạn hạn mức API Gemini.
+* **Luân chuyển khóa API thông minh:** Tự động chuyển sang và ghi nhớ khóa API hoạt động nhanh nhất để vượt qua giới hạn hạn mức.
+* **Tài liệu sang MP3/WAV:** Tích hợp khả năng tạo và lưu tệp âm thanh chất lượng cao ở cả định dạng MP3 (128kbps) và WAV trực tiếp trong trình đọc.
+* **Hỗ trợ Instagram Stories:** Thêm khả năng mô tả và phân tích Instagram Stories bằng đường dẫn của chúng.
+* **Hỗ trợ TikTok:** Giới thiệu hỗ trợ cho video TikTok, cho phép mô tả hình ảnh đầy đủ và phiên âm âm thanh của các clip.
+* **Thiết kế lại hộp thoại cập nhật:** Giao diện hỗ trợ tiếp cận mới với khung văn bản có thể cuộn để đọc rõ ràng các thay đổi phiên bản trước khi cài đặt.
+* **Trạng thái & UX hợp nhất:** Tiêu chuẩn hóa các hộp thoại tệp trong toàn bộ add-on và cải tiến lệnh 'L' để báo cáo tiến độ theo thời gian thực.
 
-*   **Lớp lệnh:** Giới thiệu hệ thống Lớp Lệnh (mặc định: `NVDA+Shift+V`) để nhóm các phím tắt dưới một phím chính duy nhất. Ví dụ, thay vì nhấn `NVDA+Control+Shift+T` để dịch, bây giờ bạn nhấn `NVDA+Shift+V` theo sau là `T`.
-*   **Phân tích video trực tuyến:** Đã thêm một tính năng mới để phân tích video YouTube và Instagram trực tiếp bằng cách cung cấp URL.
+## Các thay đổi trong 3.6.0
 
-## Thay đổi cho 3.1.0
+* **Hệ thống trợ giúp:** Thêm lệnh trợ giúp (`H`) trong Lớp lệnh để cung cấp danh sách tất cả các phím tắt và chức năng của chúng một cách dễ dàng.
+* **Phân tích video trực tuyến:** Mở rộng hỗ trợ bao gồm cả video trên **Twitter (X)**. Đồng thời cải thiện khả năng phát hiện đường dẫn và độ ổn định để có trải nghiệm đáng tin cậy hơn.
+* **Đóng góp dự án:** Thêm hộp thoại ủng hộ (donation) tùy chọn cho những người dùng muốn hỗ trợ các bản cập nhật trong tương lai và sự phát triển liên tục của dự án.
 
-*   **Chế độ đầu ra trực tiếp:** Đã thêm tùy chọn bỏ qua hộp thoại trò chuyện và nghe phản hồi AI trực tiếp qua giọng nói để có trải nghiệm nhanh hơn và liền mạch hơn.
-*   **Tích hợp bộ nhớ tạm:** Đã thêm cài đặt mới để tự động sao chép phản hồi AI vào bảng nhớ tạm.
+## Các thay đổi trong 3.5.0
 
-## THAY ĐỔI CHO 3.0
+* **Lớp lệnh:** Giới thiệu hệ thống Lớp lệnh (mặc định: `NVDA+Shift+V`) để nhóm các phím tắt dưới một phím chính duy nhất. Ví dụ, thay vì nhấn `NVDA+Control+Shift+T` để dịch, giờ đây bạn nhấn `NVDA+Shift+V` sau đó nhấn `T`.
+* **Phân tích video trực tuyến:** Thêm tính năng mới để phân tích video YouTube và Instagram trực tiếp bằng cách cung cấp đường dẫn.
 
-*   **NGÔN NGỮ MỚI:** đã thêm bản dịch  **Persian** VÀ **Vietnamese** 
-*   **Mô hình AI mở rộng:Sắp xếp lại danh sách lựa chọn model với các tiền tố rõ ràng (`[Free]`, `[Pro]`, `[Auto]`) để giúp người dùng phân biệt giữa model miễn phí và model có giới hạn (trả phí). Đã thêm hỗ trợ cho **Gemini 3.0 Pro** and **Gemini 2.0 Flash Lite**.
-*   **tính ổn định của đọc chính tả thông minh:** Cải thiện đáng kể độ ổn định của Đọc chính tả thông minh. Đã thêm tính năng kiểm tra an toàn để bỏ qua các đoạn âm thanh ngắn hơn 1 giây, ngăn ngừa ảo giác AI và lỗi trống.
-*   **sử lí File:** Đã khắc phục sự cố tải lên tệp có tên không phải tiếng Anh không thành công.
-*   **tối ưu hóa Prompt:** Cải thiện logic dịch và kết quả hỗ trợ nhìn có cấu trúc.
+## Các thay đổi trong 3.1.0
 
-## Thay đổi cho phiên bản 2.9
+* **Chế độ kết quả trực tiếp:** Thêm tùy chọn để bỏ qua hộp thoại chat và nghe phản hồi của AI trực tiếp qua giọng nói để có trải nghiệm nhanh hơn và liền mạch hơn.
+* **Tích hợp bộ nhớ tạm:** Thêm cài đặt mới để tự động sao chép phản hồi AI vào bộ nhớ tạm.
 
-*   **Đã thêm bản dịch tiếng Pháp và tiếng Thổ Nhĩ Kỳ.**
-*   **Chế độ xem định dạng:** Đã thêm nút "Xem định dạng" trong hộp thoại trò chuyện để xem cuộc trò chuyện có định dạng phù hợp (tiêu đề, định dạng, mã) trong cửa sổ có thể duyệt tiêu chuẩn.
-*   **Cài đặt Markdown:** Đã thêm tùy chọn mới "Làm sạch makdownr trong trò chuyện" trong Cài đặt. Việc bỏ chọn tùy chọn này sẽ cho phép người dùng xem cú pháp Markdown thô (ví dụ: `**`, `#`) trong cửa sổ trò chuyện.
-*   **Quản lý hộp thoại:** Đã khắc phục sự cố trong đó "Tinh chỉnh văn bản" hoặc cửa sổ trò chuyện mở nhiều lần hoặc không lấy nét chính xác.
-*   **Cải tiến UX:** Tiêu đề hộp thoại tệp được tiêu chuẩn hóa thành "Mở" và loại bỏ các thông báo bằng giọng nói dư thừa (ví dụ: "Mở menu...") để có trải nghiệm mượt mà hơn.
+## Các thay đổi trong 3.0
 
-## Thay đổi cho 2.8
+* **Ngôn ngữ mới:** Thêm bản dịch tiếng **Ba Tư** và tiếng **Việt**.
+* **Mở rộng mô hình AI:** Sắp xếp lại danh sách lựa chọn mô hình với các tiền tố rõ ràng (`[Free]`, `[Pro]`, `[Auto]`) để giúp người dùng phân biệt giữa các mô hình miễn phí và các mô hình giới hạn hạn mức (trả phí). Thêm hỗ trợ cho **Gemini 3.0 Pro** và **Gemini 2.0 Flash Lite**.
+* **Độ ổn định của soạn thảo:** Cải thiện đáng kể độ ổn định của Soạn thảo thông minh. Thêm kiểm tra an toàn để bỏ qua các đoạn âm thanh ngắn hơn 1 giây, ngăn chặn AI "ảo giác" và các lỗi trống.
+* **Xử lý tệp:** Khắc phục lỗi tải lên các tệp có tên không phải tiếng Anh bị thất bại.
+* **Tối ưu hóa câu lệnh:** Cải thiện logic Dịch thuật và cấu trúc kết quả Thị giác (Vision).
 
-* Đã thêm bản dịch tiếng Ý.
-*   **Báo cáo trạng thái:** Đã thêm lệnh mới (NVDA+Control+Shift+I) để thông báo trạng thái hiện tại của tiện ích bổ sung (ví dụ: "Đang tải lên...", "Phân tích...").
-*   **Xuất HTML:** Nút "Lưu nội dung" trong hộp thoại kết quả hiện lưu kết quả đầu ra dưới dạng tệp HTML được định dạng, giữ nguyên các kiểu như tiêu đề và văn bản in đậm.
-*   **Giao diện người dùng cài đặt:** Cải thiện bố cục bảng Cài đặt với khả năng phân nhóm có thể truy cập được.
-*   **Mẫu mới:** Đã thêm hỗ trợ cho gemini-flash-mới nhất và gemini-flash-lite-mới nhất.
-*   **Ngôn ngữ:** Đã thêm tiếng Nepal vào các ngôn ngữ được hỗ trợ.
-*   **Tinh chỉnh logic menu:** Đã sửa lỗi nghiêm trọng khiến lệnh "Tinh chỉnh văn bản" không thành công nếu ngôn ngữ giao diện NVDA không phải là tiếng Anh.
-*   **Đọc chính tả:** Cải thiện tính năng phát hiện khoảng lặng để ngăn văn bản xuất ra không chính xác khi không có giọng nói nào được nhập vào.
-*   **Cài đặt cập nhật:** "Kiểm tra các bản cập nhật khi khởi động" hiện bị tắt theo mặc định để tuân thủ các chính sách của Cửa hàng tiện ích bổ sung.
-* Dọn dẹp mã.
+## Các thay đổi trong 2.9
 
-## Thay đổi cho 2.7
+* **Thêm bản dịch tiếng Pháp và tiếng Thổ Nhĩ Kỳ.**
+* **Xem có định dạng:** Thêm nút "Xem bản có định dạng" trong hộp thoại chat để xem cuộc hội thoại với định dạng chuẩn (Tiêu đề, Chữ đậm, Mã nguồn) trong một cửa sổ duyệt văn bản tiêu chuẩn.
+* **Cài đặt Markdown:** Thêm tùy chọn mới "Làm sạch Markdown trong Chat" trong Cài đặt. Bỏ chọn mục này cho phép người dùng thấy cú pháp Markdown thô (ví dụ: `**`, `#`) trong cửa sổ chat.
+* **Quản lý hộp thoại:** Khắc phục lỗi các cửa sổ "Tinh chỉnh văn bản" hoặc cửa sổ chat mở ra nhiều lần hoặc không thể tập trung chính xác.
+* **Cải tiến UX:** Tiêu chuẩn hóa tiêu đề các hộp thoại tệp thành "Mở" và loại bỏ các thông báo giọng nói dư thừa (ví dụ: "Đang mở trình đơn...") để có trải nghiệm mượt mà hơn.
 
-* Đã di chuyển cấu trúc dự án sang Mẫu tiện ích bổ sung NV Access chính thức để tuân thủ các tiêu chuẩn tốt hơn.
-* Triển khai logic thử lại tự động đối với các lỗi HTTP 429 (Giới hạn tốc độ) để đảm bảo độ tin cậy khi lưu lượng truy cập cao.
-* Lời nhắc dịch được tối ưu hóa để có độ chính xác cao hơn và xử lý logic "Hoán đổi thông minh" tốt hơn.
+## Các thay đổi trong 2.8
+
+* Thêm bản dịch tiếng Ý.
+* **Báo cáo trạng thái:** Thêm lệnh mới (NVDA+Control+Shift+I) để thông báo trạng thái hiện tại của add-on (ví dụ: "Đang tải lên...", "Đang phân tích...").
+* **Xuất HTML:** Nút "Lưu nội dung" trong các hộp thoại kết quả giờ đây lưu kết quả dưới dạng tệp HTML có định dạng, giữ nguyên các kiểu như tiêu đề và chữ đậm.
+* **Giao diện Cài đặt:** Cải thiện bố cục bảng Cài đặt với các nhóm có thể tiếp cận tốt hơn.
+* **Mô hình mới:** Thêm hỗ trợ cho gemini-flash-latest và gemini-flash-lite-latest.
+* **Ngôn ngữ:** Thêm tiếng Nepal vào danh sách các ngôn ngữ được hỗ trợ.
+* **Logic trình đơn Tinh chỉnh:** Khắc phục một lỗi nghiêm trọng khiến các lệnh "Tinh chỉnh văn bản" thất bại nếu ngôn ngữ giao diện NVDA không phải là tiếng Anh.
+* **Soạn thảo:** Cải thiện khả năng phát hiện sự im lặng để ngăn kết quả văn bản không chính xác khi không có tiếng nói đầu vào.
+* **Cài đặt cập nhật:** Mục "Kiểm tra cập nhật khi khởi động" hiện bị tắt theo mặc định để tuân thủ các chính sách của Cửa hàng Add-on.
+* Làm sạch mã nguồn.
+
+## Các thay đổi trong 2.7
+
+* Di chuyển cấu trúc dự án sang Mẫu Add-on chính thức của NV Access để tuân thủ tốt hơn các tiêu chuẩn.
+* Triển khai logic tự động thử lại cho các lỗi HTTP 429 (Giới hạn hạn mức) để đảm bảo độ tin cậy khi lưu lượng truy cập cao.
+* Tối ưu hóa các câu lệnh dịch thuật để có độ chính xác cao hơn và xử lý logic "Hoán đổi thông minh" tốt hơn.
 * Cập nhật bản dịch tiếng Nga.
 
-## Thay đổi cho 2.6
+## Các thay đổi trong 2.6
 
-* Đã thêm hỗ trợ dịch tiếng Nga (Cảm ơn nvda-ru).
-* Đã cập nhật thông báo lỗi để cung cấp phản hồi mang tính mô tả hơn về khả năng kết nối.
-* Đã thay đổi ngôn ngữ mục tiêu mặc định sang tiếng Anh.
+* Thêm hỗ trợ bản dịch tiếng Nga (Cảm ơn nvda-ru).
+* Cập nhật các thông báo lỗi để cung cấp phản hồi mô tả chi tiết hơn về kết nối.
+* Thay đổi ngôn ngữ đích mặc định thành tiếng Anh.
 
-## Thay đổi cho 2.5
+## Các thay đổi trong 2.5
 
-* Đã thêm Lệnh OCR tệp gốc (NVDA+Control+Shift+F).
-* Đã thêm nút "Lưu trò chuyện" vào hộp thoại kết quả.
-* Đã triển khai hỗ trợ bản địa hóa đầy đủ (i18n).
-* Chuyển phản hồi âm thanh sang mô-đun âm gốc của NVDA.
-* Đã chuyển sang API tệp Gemini để xử lý tốt hơn các tệp PDF và âm thanh.
-* Đã sửa lỗi sự cố khi dịch văn bản có dấu ngoặc nhọn.
+* Thêm lệnh Nhận diện tệp (OCR) gốc (NVDA+Control+Shift+F).
+* Thêm nút "Lưu cuộc trò chuyện" vào các hộp thoại kết quả.
+* Triển khai hỗ trợ bản địa hóa đầy đủ (i18n).
+* Di chuyển phản hồi âm thanh sang mô-đun âm báo gốc của NVDA.
+* Chuyển sang sử dụng Gemini File API để xử lý các tệp PDF và âm thanh tốt hơn.
+* Khắc phục lỗi crash khi dịch văn bản có chứa dấu ngoặc nhọn.
 
-## Thay đổi cho 2.1.1
+## Các thay đổi trong 2.1.1
 
-* Đã khắc phục sự cố trong đó biến [file ocr] không hoạt động chính xác trong Lời nhắc Tùy chỉnh.
+* Khắc phục lỗi biến [file_ocr] hoạt động không chính xác trong các Lệnh tùy chỉnh.
 
-## Thay đổi cho 2.1
+## Các thay đổi trong 2.1
 
-* Chuẩn hóa tất cả các phím tắt để sử dụng NVDA+Control+Shift nhằm loại bỏ xung đột với bố cục Laptop của NVDA và các phím nóng hệ thống.
+* Tiêu chuẩn hóa tất cả các phím tắt sử dụng tổ hợp NVDA+Control+Shift để loại bỏ các xung đột với bố cục Laptop của NVDA và các phím nóng hệ thống.
 
-## Thay đổi cho 2.0
+## Các thay đổi trong 2.0
 
 * Triển khai hệ thống Tự động cập nhật tích hợp.
-* Đã thêm Bộ đệm dịch thuật thông minh để truy xuất ngay văn bản đã dịch trước đó.
-* Đã thêm Bộ nhớ hội thoại để tinh chỉnh kết quả theo ngữ cảnh trong hộp thoại trò chuyện.
-* Thêm lệnh dịch từ Clipboard (NVDA+Control+Shift+Y).
-* Lời nhắc AI được tối ưu hóa để thực thi nghiêm ngặt đầu ra ngôn ngữ đích.
-* Đã sửa lỗi sự cố do các ký tự đặc biệt trong văn bản đầu vào.
+* Thêm Bộ nhớ tạm dịch thông minh để truy xuất tức thì các văn bản đã dịch trước đó.
+* Thêm Bộ nhớ hội thoại để tinh chỉnh kết quả theo ngữ cảnh trong các hộp thoại chat.
+* Thêm lệnh Dịch bộ nhớ tạm riêng biệt (NVDA+Control+Shift+Y).
+* Tối ưu hóa các câu lệnh AI để ép buộc nghiêm ngặt kết quả đầu ra theo ngôn ngữ đích.
+* Khắc phục lỗi crash do các ký tự đặc biệt trong văn bản đầu vào.
 
-## Thay đổi cho 1.5
+## Các thay đổi trong 1.5
 
-* Đã thêm hỗ trợ cho hơn 20 ngôn ngữ mới.
-* Đã triển khai Hộp thoại Tinh chỉnh Tương tác cho các câu hỏi tiếp theo.
-* Đã thêm tính năng Đọc chính tả thông minh gốc.
-* Đã thêm danh mục "Trợ lý thị giác" vào hộp thoại Cử chỉ nhập liệu của NVDA.
-* Đã sửa lỗi COMError gặp sự cố trong các ứng dụng cụ thể như Firefox và Word.
-* Đã thêm cơ chế thử lại tự động cho các lỗi máy chủ.
+* Thêm hỗ trợ cho hơn 20 ngôn ngữ mới.
+* Triển khai Hộp thoại tinh chỉnh tương tác cho các câu hỏi tiếp nối.
+* Thêm tính năng Soạn thảo thông minh gốc.
+* Thêm danh mục "Vision Assistant" vào hộp thoại Cử chỉ nhập liệu của NVDA.
+* Khắc phục các lỗi COMError trong các ứng dụng cụ thể như Firefox và Word.
+* Thêm cơ chế tự động thử lại cho các lỗi máy chủ.
 
-## Thay đổi cho 1.0
+## Các thay đổi trong 1.0
 
-* Phát hành lần đầu.
+* Phiên bản phát hành đầu tiên.
