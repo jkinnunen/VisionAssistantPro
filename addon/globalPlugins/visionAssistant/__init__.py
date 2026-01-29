@@ -1893,7 +1893,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 LauncherDialog.instance.Destroy()
         except: pass
         
-        if hasattr(self, 'update_timer') and self.update_timer.IsRunning():
+        if hasattr(self, 'update_timer') and self.update_timer and self.update_timer.IsRunning():
             self.update_timer.Stop()
         
         for dlg in [self.refine_dlg, self.refine_menu_dlg, self.vision_dlg, self.doc_dlg]:
