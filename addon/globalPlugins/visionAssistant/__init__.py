@@ -873,7 +873,7 @@ class UpdateManager:
 
 
 class VisionQADialog(wx.Dialog):
-    def __init__(self, parent, title, initial_text, context_data, callback_fn, extra_info=None, raw_content=None, status_callback=None):
+    def __init__(self, parent, title, initial_text, context_data, callback_fn, extra_info=None, raw_content=None, status_callback=None, announce_on_open=True, allow_questions=True):
         super(VisionQADialog, self).__init__(parent, title=title, size=(550, 500), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.context_data = context_data 
         self.callback_fn = callback_fn
@@ -881,6 +881,8 @@ class VisionQADialog(wx.Dialog):
         self.chat_history = [] 
         self.raw_content = raw_content
         self.status_callback = status_callback
+        self.announce_on_open = announce_on_open
+        self.allow_questions = allow_questions
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         # Translators: Label for the AI response text area in a chat dialog
@@ -902,16 +904,20 @@ class VisionQADialog(wx.Dialog):
         if not (extra_info and extra_info.get('skip_init_history')):
              self.chat_history.append({"role": "model", "parts": [{"text": initial_text}]})
 
-        # Translators: Label for user input field in a chat dialog
-        ask_text = _("Ask:")
-        inputLbl = wx.StaticText(self, label=ask_text)
-        mainSizer.Add(inputLbl, 0, wx.ALL, 5)
-        self.inputArea = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER, size=(-1, 30))
-        mainSizer.Add(self.inputArea, 0, wx.EXPAND | wx.ALL, 5)
+        self.inputArea = None
+        if allow_questions:
+            # Translators: Label for user input field in a chat dialog
+            ask_text = _("Ask:")
+            inputLbl = wx.StaticText(self, label=ask_text)
+            mainSizer.Add(inputLbl, 0, wx.ALL, 5)
+            self.inputArea = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER, size=(-1, 30))
+            mainSizer.Add(self.inputArea, 0, wx.EXPAND | wx.ALL, 5)
         
         btnSizer = wx.BoxSizer(wx.HORIZONTAL)
-        # Translators: Button to send message in a chat dialog
-        self.askBtn = wx.Button(self, label=_("Send"))
+        self.askBtn = None
+        if allow_questions:
+            # Translators: Button to send message in a chat dialog
+            self.askBtn = wx.Button(self, label=_("Send"))
         # Translators: Button to view the content in a formatted HTML window
         self.viewBtn = wx.Button(self, label=_("View Formatted"))
         self.viewBtn.Bind(wx.EVT_BUTTON, self.onView)
@@ -927,7 +933,8 @@ class VisionQADialog(wx.Dialog):
         self.viewBtn.Enable(bool(self.raw_content))
         self.saveContentBtn.Enable(bool(self.raw_content))
 
-        btnSizer.Add(self.askBtn, 0, wx.ALL, 5)
+        if self.askBtn:
+            btnSizer.Add(self.askBtn, 0, wx.ALL, 5)
         btnSizer.Add(self.viewBtn, 0, wx.ALL, 5)
         btnSizer.Add(self.saveContentBtn, 0, wx.ALL, 5)
         btnSizer.Add(self.saveBtn, 0, wx.ALL, 5)
@@ -935,13 +942,21 @@ class VisionQADialog(wx.Dialog):
         mainSizer.Add(btnSizer, 0, wx.ALIGN_RIGHT)
         
         self.SetSizer(mainSizer)
-        self.inputArea.SetFocus()
-        self.askBtn.Bind(wx.EVT_BUTTON, self.onAsk)
+        if self.inputArea:
+            self.inputArea.SetFocus()
+        else:
+            self.outputArea.SetFocus()
+        if self.askBtn:
+            self.askBtn.Bind(wx.EVT_BUTTON, self.onAsk)
         self.saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
-        self.inputArea.Bind(wx.EVT_TEXT_ENTER, self.onAsk)
-        if display_text: wx.CallLater(300, ui.message, display_text)
+        if self.inputArea:
+            self.inputArea.Bind(wx.EVT_TEXT_ENTER, self.onAsk)
+        if display_text and self.announce_on_open:
+            wx.CallLater(300, ui.message, display_text)
 
     def onAsk(self, event):
+        if not self.inputArea:
+            return
         question = self.inputArea.Value
         if not question.strip(): return
         # Translators: Format for displaying User message in a chat dialog
@@ -1824,6 +1839,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self.refine_menu_dlg = None
         self.vision_dlg = None
         self.doc_dlg = None
+        self.translation_dlg = None
         self.toggling = False
         
         if config.conf["VisionAssistant"]["check_update_startup"]:
@@ -1911,7 +1927,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if hasattr(self, 'update_timer') and self.update_timer and self.update_timer.IsRunning():
             self.update_timer.Stop()
         
-        for dlg in [self.refine_dlg, self.refine_menu_dlg, self.vision_dlg, self.doc_dlg]:
+        for dlg in [self.refine_dlg, self.refine_menu_dlg, self.vision_dlg, self.doc_dlg, self.translation_dlg]:
             if dlg:
                 try: dlg.Destroy()
                 except: pass
@@ -2294,11 +2310,39 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             wx.CallAfter(self._announce_translation, clean_res)
 
     def _announce_translation(self, text):
-        if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+        if config.conf["VisionAssistant"]["copy_to_clipboard"] and not config.conf["VisionAssistant"]["skip_chat_dialog"]:
             api.copyToClip(text)
         # Translators: Message reported when calling translation command
         msg = _("Translated: {text}").format(text=text)
         self.report_status(msg)
+        if self._handle_direct_output(text):
+            return
+        wx.CallAfter(self._open_translation_dialog, text)
+
+    def _open_translation_dialog(self, text):
+        if self.translation_dlg:
+            try: self.translation_dlg.Destroy()
+            except: pass
+            self.translation_dlg = None
+
+        def noop_callback(ctx, q, history, extra):
+            return None, None
+
+        # Translators: Dialog title for Translation results
+        self.translation_dlg = VisionQADialog(
+            gui.mainFrame, 
+            _("{name} - Translation").format(name=ADDON_NAME), 
+            text, 
+            None, 
+            noop_callback, 
+            extra_info={'skip_init_history': True},
+            raw_content=text,
+            status_callback=self.report_status,
+            announce_on_open=False,
+            allow_questions=False
+        )
+        self.translation_dlg.Show()
+        self.translation_dlg.Raise()
 
     def _get_text_smart(self):
         focus_obj = api.getFocusObject()
