@@ -23,21 +23,16 @@ Command Layer: Press NVDA+Shift+V, then:
 - Smart Dictation (S)
 - Announce Status (L)
 - Check Update (U)"""),
-    addon_version="4.0.2",
+    addon_version="4.0.3",
     # Brief changelog for this version
     # Translators: what's new content for the add-on version to be shown in the add-on store
-addon_changelog=_("""## Changes for 4.0.1
-*   **Advanced Document Reader:** A powerful new viewer for PDF and images with page range selection, background processing, and seamless `Ctrl+PageUp/Down` navigation.
-*   **New Tools Submenu:** Added a dedicated "Vision Assistant" submenu under NVDA's Tools menu for quicker access to core features, settings, and documentation.
-*   **Flexible Customization:** You can now choose your preferred OCR engine and TTS voice directly from the settings panel.
-*   **Multiple API Key Support:** Added support for multiple Gemini API keys. You can enter one key per line or separate them with commas in the settings.
-*   **Alternative OCR Engine:** Introduced a new OCR engine to ensure reliable text recognition even when hitting Gemini API quota limits.
-*   **Smart API Key Rotation:** Automatically switches to and remembers the fastest working API key to bypass quota limits.
-*   **Document to MP3/WAV:** Integrated capability to generate and save high-quality audio files in both MP3 (128kbps) and WAV formats directly within the reader.
-*   **Instagram Stories Support:** Added the ability to describe and analyze Instagram Stories using their URLs.
-*   **TikTok Support:** Introduced support for TikTok videos, allowing for full visual description and audio transcription of clips.
-*   **Redesigned Update Dialog:** Features a new accessible interface with a scrollable text box to clearly read version changes before installing.
-*   **Unified Status & UX:** Standardized file dialogs across the add-on and enhanced the 'L' command to report real-time progress."""),
+    addon_changelog=_("""## Changes for 4.0.3
+*   **Enhanced Network Resilience:** Added an automatic retry mechanism to better handle unstable internet connections and temporary server errors, ensuring more reliable AI responses.
+*   **Visual Translation Dialog:** Introduced a dedicated window for translation results. Users can now easily navigate and read long translations line-by-line, similar to OCR results.
+*   **Aggregated Formatted View:** The "View Formatted" feature in the Document Reader now displays all processed pages in a single, organized window with clear page headers.
+*   **Optimized OCR Workflow:** Automatically skips the page range selection for single-page documents, making the recognition process faster and more seamless.
+*   **Improved API Stability:** Switched to a more robust header-based authentication method, resolving potential "All API Keys failed" errors caused by key rotation conflicts.
+*   **Bug Fixes:** Resolved several potential crashes, including an issue during add-on termination and a focus error in the chat dialog."""),
     addon_author="Mahmood Hozhabri",
     addon_url="https://github.com/mahmoodhozhabri/VisionAssistantPro",
     addon_sourceURL="https://github.com/mahmoodhozhabri/VisionAssistantPro",
