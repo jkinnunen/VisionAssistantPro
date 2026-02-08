@@ -145,6 +145,7 @@ confspec = {
     "smart_swap": "boolean(default=True)",
     "captcha_mode": "string(default='navigator')",
     "custom_prompts": "string(default='')",
+    "default_refine_prompts": "string(default='')",
     "check_update_startup": "boolean(default=False)",
     "clean_markdown_chat": "boolean(default=True)",
     "copy_to_clipboard": "boolean(default=False)",
@@ -179,7 +180,360 @@ Input Text:
 
 PROMPT_UI_LOCATOR = "Analyze UI (Size: {width}x{height}). Request: '{query}'. Output JSON: {{\"x\": int, \"y\": int, \"found\": bool}}."
 
+REFINE_PROMPT_KEYS = ("summarize", "fix_grammar", "fix_translate", "explain")
+ADVANCED_PROMPT_KEYS = {
+    "document_chat_ack",
+    "vision_followup_context",
+    "vision_followup_suffix",
+    "refine_files_only",
+}
+
+LEGACY_REFINER_TOKENS = {
+    "summarize": "[summarize]",
+    "fix_grammar": "[fix_grammar]",
+    "fix_translate": "[fix_translate]",
+    "explain": "[explain]",
+}
+
+DEFAULT_SYSTEM_PROMPTS = (
+    {
+        "key": "summarize",
+        "section": _("Refine"),
+        "label": _("Summarize"),
+        "prompt": "Summarize the text below in {response_lang}.",
+    },
+    {
+        "key": "fix_grammar",
+        "section": _("Refine"),
+        "label": _("Fix Grammar"),
+        "prompt": "Fix grammar in the text below. Output ONLY the fixed text.",
+    },
+    {
+        "key": "fix_translate",
+        "section": _("Refine"),
+        "label": _("Fix Grammar & Translate"),
+        "prompt": "Fix grammar and translate to {target_lang}.{swap_instruction} Output ONLY the result.",
+    },
+    {
+        "key": "explain",
+        "section": _("Refine"),
+        "label": _("Explain"),
+        "prompt": "Explain the text below in {response_lang}.",
+    },
+    {
+        "key": "translate_main",
+        "section": _("Translation"),
+        "label": _("Smart Translation"),
+        "prompt": PROMPT_TRANSLATE.strip(),
+    },
+    {
+        "key": "translate_quick",
+        "section": _("Translation"),
+        "label": _("Quick Translation"),
+        "prompt": "Translate to {target_lang}. Output ONLY translation.",
+    },
+    {
+        "key": "document_chat_system",
+        "section": _("Document"),
+        "label": _("Document Chat Context"),
+        "prompt": "STRICTLY Respond in {response_lang}. Use Markdown formatting. Analyze the attached content to answer.",
+    },
+    {
+        "key": "document_chat_ack",
+        "section": _("Advanced"),
+        "label": _("Document Chat Bootstrap Reply"),
+        "prompt": "Context received. Ready for questions.",
+    },
+    {
+        "key": "vision_navigator_object",
+        "section": _("Vision"),
+        "label": _("Navigator Object Analysis"),
+        "prompt": (
+            "Analyze this image. Describe the layout, visible text, and UI elements. "
+            "Use Markdown formatting (headings, lists) to organize the description. "
+            "Language: {response_lang}. Ensure the response is strictly in {response_lang}. "
+            "IMPORTANT: Start directly with the description content. Do not add introductory "
+            "sentences like 'Here is the analysis' or 'The image shows'."
+        ),
+    },
+    {
+        "key": "vision_fullscreen",
+        "section": _("Vision"),
+        "label": _("Full Screen Analysis"),
+        "prompt": (
+            "Analyze this image. Describe the layout, visible text, and UI elements. "
+            "Use Markdown formatting (headings, lists) to organize the description. "
+            "Language: {response_lang}. Ensure the response is strictly in {response_lang}. "
+            "IMPORTANT: Start directly with the description content. Do not add introductory "
+            "sentences like 'Here is the analysis' or 'The image shows'."
+        ),
+    },
+    {
+        "key": "vision_followup_context",
+        "section": _("Advanced"),
+        "label": _("Vision Follow-up Context"),
+        "prompt": "Image Context. Target Language: {response_lang}",
+    },
+    {
+        "key": "vision_followup_suffix",
+        "section": _("Advanced"),
+        "label": _("Vision Follow-up Answer Rule"),
+        "prompt": "Answer strictly in {response_lang}",
+    },
+    {
+        "key": "video_analysis",
+        "section": _("Video"),
+        "label": _("Video Analysis"),
+        "prompt": (
+            "Analyze this video. Provide a detailed description of the visual content and a "
+            "summary of the audio. IMPORTANT: Write the entire response STRICTLY in "
+            "{response_lang} language."
+        ),
+    },
+    {
+        "key": "audio_transcription",
+        "section": _("Audio"),
+        "label": _("Audio Transcription"),
+        "prompt": "Transcribe this audio in {response_lang}.",
+    },
+    {
+        "key": "dictation_transcribe",
+        "section": _("Audio"),
+        "label": _("Smart Dictation"),
+        "prompt": (
+            "Transcribe speech. Use native script. Fix stutters. If there is no speech, silence, "
+            "or background noise only, write exactly: [[[NOSPEECH]]]"
+        ),
+    },
+    {
+        "key": "ocr_image_extract",
+        "section": _("OCR"),
+        "label": _("OCR Image Extraction"),
+        "prompt": (
+            "Extract all visible text from this image. Strictly preserve original formatting "
+            "(headings, lists, tables) using Markdown. Do not output any system messages or "
+            "code block backticks (```). Output ONLY the raw content."
+        ),
+    },
+    {
+        "key": "ocr_document_extract",
+        "section": _("OCR"),
+        "label": _("OCR Document Extraction"),
+        "prompt": (
+            "Extract all visible text from this document. Strictly preserve original formatting "
+            "(headings, lists, tables) using Markdown. You MUST insert the exact delimiter "
+            "'[[[PAGE_SEP]]]' immediately after the content of every single page. Do not output "
+            "any system messages or code block backticks (```). Output ONLY the raw content."
+        ),
+    },
+    {
+        "key": "ocr_document_translate",
+        "section": _("Document"),
+        "label": _("Document OCR + Translate"),
+        "prompt": (
+            "Extract all text from this document. Preserve formatting (Markdown). Then translate "
+            "the content to {target_lang}. Output ONLY the translated content. Do not add "
+            "explanations."
+        ),
+    },
+    {
+        "key": "captcha_solver_base",
+        "section": _("CAPTCHA"),
+        "label": _("CAPTCHA Solver"),
+        "prompt": (
+            "Blind user. Return CAPTCHA code only. If NO CAPTCHA is detected in the image, "
+            "strictly return: [[[NO_CAPTCHA]]].{captcha_extra}"
+        ),
+    },
+    {
+        "key": "refine_files_only",
+        "section": _("Advanced"),
+        "label": _("Refine Files-Only Fallback"),
+        "prompt": "Analyze these files.",
+    },
+)
+
+PROMPT_VARIABLES_GUIDE = (
+    # Input/context variables.
+    ("[selection]", _("Currently selected text"), _("Text")),
+    ("[clipboard]", _("Clipboard content"), _("Text")),
+    ("[screen_obj]", _("Screenshot of the navigator object"), _("Image")),
+    ("[screen_full]", _("Screenshot of the entire screen"), _("Image")),
+    ("[file_ocr]", _("Select image/PDF/TIFF for text extraction"), _("Image, PDF, TIFF")),
+    ("[file_read]", _("Select document for reading"), _("TXT, Code, PDF")),
+    ("[file_audio]", _("Select audio file for analysis"), _("MP3, WAV, OGG")),
+    # Refine action tokens.
+    ("[summarize]", _("Shortcut token: inserts summarize instruction"), _("Shortcut")),
+    ("[fix_grammar]", _("Shortcut token: inserts grammar correction instruction"), _("Shortcut")),
+    ("[fix_translate]", _("Shortcut token: inserts grammar + translation instruction"), _("Shortcut")),
+    ("[explain]", _("Shortcut token: inserts explanation instruction"), _("Shortcut")),
+    # Default prompt template placeholders.
+    ("{target_lang}", _("Configured target language"), _("Placeholder")),
+    ("{source_lang}", _("Configured source language"), _("Placeholder")),
+    ("{response_lang}", _("Configured AI response language"), _("Placeholder")),
+    ("{swap_target}", _("Smart-swap fallback language"), _("Placeholder")),
+    ("{smart_swap}", _("Smart-swap enabled flag (True/False)"), _("Placeholder")),
+    ("{swap_instruction}", _("Conditional smart-swap instruction"), _("Placeholder")),
+    ("{text_content}", _("Input text to translate"), _("Placeholder")),
+    ("{width}", _("Captured image width"), _("Placeholder")),
+    ("{height}", _("Captured image height"), _("Placeholder")),
+    ("{captcha_extra}", _("CAPTCHA locale-specific instruction"), _("Placeholder")),
+)
+
 # --- Helpers ---
+
+def get_builtin_default_prompts():
+    builtins = []
+    for item in DEFAULT_SYSTEM_PROMPTS:
+        p = str(item["prompt"]).strip()
+        builtins.append({
+            "key": item["key"],
+            "section": item["section"],
+            "label": item["label"],
+            "display_label": f"{item['section']} - {item['label']}",
+            "prompt": p,
+            "default": p,
+        })
+    return builtins
+
+def get_builtin_default_prompt_map():
+    return {item["key"]: item for item in get_builtin_default_prompts()}
+
+def parse_custom_prompts(raw_value):
+    items = []
+    if not raw_value:
+        return items
+
+    normalized = raw_value.replace("\r\n", "\n").replace("\r", "\n")
+    for line in normalized.split("\n"):
+        for segment in line.split("|"):
+            segment = segment.strip()
+            if not segment or ":" not in segment:
+                continue
+            name, content = segment.split(":", 1)
+            name = name.strip()
+            content = content.strip()
+            if name and content:
+                items.append({"name": name, "content": content})
+    return items
+
+def serialize_custom_prompts(items):
+    if not items:
+        return ""
+    parts = []
+    for item in items:
+        name = str(item.get("name", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if name and content:
+            parts.append(f"{name}:{content}")
+    return "|".join(parts)
+
+def load_default_prompt_overrides():
+    try:
+        raw = config.conf["VisionAssistant"]["default_refine_prompts"]
+    except Exception:
+        raw = ""
+    if not isinstance(raw, str) or not raw.strip():
+        return {}
+
+    try:
+        data = json.loads(raw)
+    except Exception as e:
+        log.warning(f"Invalid default_refine_prompts config, using built-ins: {e}")
+        return {}
+
+    if not isinstance(data, dict):
+        return {}
+
+    # Migrate old key used in previous versions.
+    legacy_vision = data.get("vision_image_analysis")
+    if isinstance(legacy_vision, str) and legacy_vision.strip():
+        data.setdefault("vision_navigator_object", legacy_vision.strip())
+        data.setdefault("vision_fullscreen", legacy_vision.strip())
+
+    valid_keys = set(get_builtin_default_prompt_map().keys())
+    overrides = {}
+    for key, value in data.items():
+        if key in valid_keys and isinstance(value, str) and value.strip():
+            overrides[key] = value.strip()
+    return overrides
+
+def get_configured_default_prompt_map():
+    prompt_map = get_builtin_default_prompt_map()
+    overrides = load_default_prompt_overrides()
+    for key, override in overrides.items():
+        if key not in prompt_map:
+            continue
+        if key in LEGACY_REFINER_TOKENS and override == LEGACY_REFINER_TOKENS[key]:
+            continue
+        prompt_map[key]["prompt"] = override
+    return prompt_map
+
+def get_configured_default_prompts():
+    prompt_map = get_configured_default_prompt_map()
+    items = []
+    for item in DEFAULT_SYSTEM_PROMPTS:
+        key = item["key"]
+        if key in prompt_map:
+            items.append(dict(prompt_map[key]))
+    items.sort(
+        key=lambda item: (
+            item.get("key", "") in ADVANCED_PROMPT_KEYS,
+            item.get("display_label", "").casefold(),
+        )
+    )
+    return items
+
+def get_prompt_text(prompt_key):
+    prompt_map = get_configured_default_prompt_map()
+    item = prompt_map.get(prompt_key)
+    if item:
+        return item["prompt"]
+    return ""
+
+def serialize_default_prompt_overrides(items):
+    if not items:
+        return ""
+
+    base_map = {item["key"]: item["prompt"] for item in get_builtin_default_prompts()}
+    overrides = {}
+    for item in items:
+        key = item.get("key")
+        prompt_text = item.get("prompt", "")
+        if key not in base_map:
+            continue
+        if not isinstance(prompt_text, str):
+            continue
+        prompt_text = prompt_text.strip()
+        if prompt_text and prompt_text != base_map[key]:
+            overrides[key] = prompt_text
+
+    if not overrides:
+        return ""
+    return json.dumps(overrides, ensure_ascii=False)
+
+def get_refine_menu_options():
+    options = []
+    prompt_map = get_configured_default_prompt_map()
+    for key in REFINE_PROMPT_KEYS:
+        item = prompt_map.get(key)
+        if item:
+            options.append((item["label"], item["prompt"]))
+
+    for item in parse_custom_prompts(config.conf["VisionAssistant"]["custom_prompts"]):
+        # Translators: Prefix for custom prompts in the Refine menu
+        options.append((_("Custom: ") + item["name"], item["content"]))
+    return options
+
+def apply_prompt_template(template, replacements):
+    if not isinstance(template, str):
+        return ""
+
+    text = template
+    for key, value in replacements:
+        text = text.replace("{" + key + "}", str(value))
+
+    return text.strip()
 
 def finally_(func, final):
     @wraps(func)
@@ -597,7 +951,9 @@ class GeminiHandler:
         def _logic(key, txt, lang):
             model = config.conf["VisionAssistant"]["model_name"]
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            payload = {"contents": [{"parts": [{"text": f"Translate to {lang}. Output ONLY translation."}, {"text": txt}]}]}
+            quick_template = get_prompt_text("translate_quick") or "Translate to {target_lang}. Output ONLY translation."
+            quick_prompt = apply_prompt_template(quick_template, [("target_lang", lang)])
+            payload = {"contents": [{"parts": [{"text": quick_prompt}, {"text": txt}]}]}
             req = request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json", "x-goog-api-key": key})
             with GeminiHandler._get_opener().open(req, timeout=90) as r:
                 return json.loads(r.read().decode())['candidates'][0]['content']['parts'][0]['text']
@@ -608,7 +964,8 @@ class GeminiHandler:
         def _logic(key, img_data):
             model = config.conf["VisionAssistant"]["model_name"]
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            payload = {"contents": [{"parts": [{"inline_data": {"mime_type": "image/jpeg", "data": base64.b64encode(img_data).decode('utf-8')}}, {"text": "Extract all visible text from this image. Strictly preserve original formatting (headings, lists, tables) using Markdown. Do not output any system messages or code block backticks (```). Output ONLY the raw content."}]}]}
+            ocr_image_prompt = get_prompt_text("ocr_image_extract")
+            payload = {"contents": [{"parts": [{"inline_data": {"mime_type": "image/jpeg", "data": base64.b64encode(img_data).decode('utf-8')}}, {"text": ocr_image_prompt}]}]}
             req = request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json", "x-goog-api-key": key})
             with GeminiHandler._get_opener().open(req, timeout=90) as r:
                 return json.loads(r.read().decode())['candidates'][0]['content']['parts'][0]['text']
@@ -661,7 +1018,7 @@ class GeminiHandler:
                 GeminiHandler._register_file_uri(uri, key)
                 
                 url = f"{base_url}/v1beta/models/{model}:generateContent"
-                prompt = "Extract all visible text from this document. Strictly preserve original formatting (headings, lists, tables) using Markdown. You MUST insert the exact delimiter '[[[PAGE_SEP]]]' immediately after the content of every single page. Do not output any system messages or code block backticks (```). Output ONLY the raw content."
+                prompt = get_prompt_text("ocr_document_extract")
                 contents = [{"parts": [{"file_data": {"mime_type": mime_type, "file_uri": uri}}, {"text": prompt}]}]
                 
                 req_gen = request.Request(url, data=json.dumps({"contents": contents}).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
@@ -1072,6 +1429,478 @@ class VisionQADialog(wx.Dialog):
                 msg = _("Save failed: {error}").format(error=e)
                 show_error_dialog(msg)
 
+class PromptItemDialog(wx.Dialog):
+    def __init__(self, parent, title, name="", prompt_text=""):
+        super().__init__(parent, title=title, size=(620, 260), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.name_ctrl = None
+        self.prompt_ctrl = None
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Translators: Label for prompt name input field.
+        name_label = wx.StaticText(self, label=_("Name:"))
+        main_sizer.Add(name_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        self.name_ctrl = wx.TextCtrl(self, value=name)
+        main_sizer.Add(self.name_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        if callable(getattr(name_label, "SetLabelFor", None)):
+            name_label.SetLabelFor(self.name_ctrl)
+
+        # Translators: Label for prompt text input field.
+        prompt_label = wx.StaticText(self, label=_("Prompt Text:"))
+        main_sizer.Add(prompt_label, 0, wx.LEFT | wx.RIGHT, 10)
+        self.prompt_ctrl = wx.TextCtrl(
+            self,
+            value=prompt_text,
+            style=wx.TE_PROCESS_ENTER,
+        )
+        main_sizer.Add(self.prompt_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        if callable(getattr(prompt_label, "SetLabelFor", None)):
+            prompt_label.SetLabelFor(self.prompt_ctrl)
+
+        # Translators: Helper text about custom prompt input limitations.
+        hint = wx.StaticText(self, label=_("Custom prompt text must be a single line and cannot contain '|'."))
+        main_sizer.Add(hint, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        button_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(self, wx.ID_OK)
+        ok_btn.SetDefault()
+        cancel_btn = wx.Button(self, wx.ID_CANCEL)
+        button_sizer.AddButton(ok_btn)
+        button_sizer.AddButton(cancel_btn)
+        button_sizer.Realize()
+
+        footer_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Translators: Button label to open the variables help dialog.
+        self.variables_btn = wx.Button(self, label=_("Variables Guide"))
+        self.variables_btn.Bind(wx.EVT_BUTTON, self.on_open_variables)
+        footer_sizer.Add(self.variables_btn, 0, wx.RIGHT, 10)
+        footer_sizer.AddStretchSpacer()
+        footer_sizer.Add(button_sizer, 0)
+        main_sizer.Add(footer_sizer, 0, wx.EXPAND | wx.ALL, 10)
+
+        self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
+        self.SetSizer(main_sizer)
+        self.name_ctrl.SetFocus()
+
+    def on_ok(self, event):
+        name = self.name_ctrl.GetValue().strip()
+        prompt_text = self.prompt_ctrl.GetValue().strip()
+
+        if not name:
+            # Translators: Validation error for empty prompt name.
+            msg = _("Name cannot be empty.")
+            # Translators: Title of validation warning dialog.
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.name_ctrl.SetFocus()
+            return
+        if ":" in name or "|" in name:
+            # Translators: Validation error for unsupported characters in prompt name.
+            msg = _("Name cannot contain ':' or '|'.")
+            # Translators: Title of validation warning dialog.
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.name_ctrl.SetFocus()
+            return
+        if not prompt_text:
+            # Translators: Validation error for empty prompt text.
+            msg = _("Prompt text cannot be empty.")
+            # Translators: Title of validation warning dialog.
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.prompt_ctrl.SetFocus()
+            return
+        if "|" in prompt_text:
+            # Translators: Validation error for unsupported separator character in prompt text.
+            msg = _("Prompt text cannot contain '|'.")
+            # Translators: Title of validation warning dialog.
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.prompt_ctrl.SetFocus()
+            return
+        if "\n" in prompt_text or "\r" in prompt_text:
+            # Translators: Validation error for unsupported line breaks in custom prompt text.
+            msg = _("Prompt text cannot contain line breaks.")
+            # Translators: Title of validation warning dialog.
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.prompt_ctrl.SetFocus()
+            return
+        event.Skip()
+
+    def on_open_variables(self, event):
+        dlg = PromptVariablesGuideDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def get_item(self):
+        return {
+            "name": self.name_ctrl.GetValue().strip(),
+            "content": self.prompt_ctrl.GetValue().strip(),
+        }
+
+class PromptVariablesGuideDialog(wx.Dialog):
+    def __init__(self, parent):
+        # Translators: Title for the prompt variables help dialog.
+        super().__init__(parent, title=_("Prompt Variables Guide"), size=(620, 420), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Translators: Intro text for the prompt variables help dialog.
+        intro = wx.StaticText(self, label=_("Use these variables inside prompt text:"))
+        main_sizer.Add(intro, 0, wx.ALL, 10)
+
+        lines = []
+        for token, description, input_type in PROMPT_VARIABLES_GUIDE:
+            lines.append(f"{token} - {description} ({input_type})")
+
+        content = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP)
+        content.SetValue("\n".join(lines))
+        main_sizer.Add(content, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        close_btn = wx.Button(self, wx.ID_OK, label=_("Close"))
+        close_btn.SetDefault()
+        main_sizer.Add(close_btn, 0, wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        self.SetSizer(main_sizer)
+
+class PromptManagerDialog(wx.Dialog):
+    def __init__(self, parent, default_items, custom_items):
+        # Translators: Title for the prompt manager dialog.
+        super().__init__(parent, title=_("Prompt Manager"), size=(760, 560), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.default_items = [dict(item) for item in default_items]
+        self.custom_items = [dict(item) for item in custom_items]
+        self._default_selection = wx.NOT_FOUND
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.notebook = wx.Notebook(self)
+        self.default_panel = wx.Panel(self.notebook)
+        self.custom_panel = wx.Panel(self.notebook)
+        # Translators: Notebook tab for built-in refine prompts.
+        self.notebook.AddPage(self.default_panel, _("Default Prompts"))
+        # Translators: Notebook tab for user-defined prompts.
+        self.notebook.AddPage(self.custom_panel, _("Custom Prompts"))
+        main_sizer.Add(self.notebook, 1, wx.EXPAND | wx.ALL, 10)
+
+        self._build_default_tab()
+        self._build_custom_tab()
+
+        footer_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Translators: Button label to open the variables help dialog.
+        self.variables_btn = wx.Button(self, label=_("Variables Guide"))
+        self.variables_btn.Bind(wx.EVT_BUTTON, self.on_open_variables)
+        footer_sizer.Add(self.variables_btn, 0, wx.RIGHT, 10)
+        # Translators: Note explaining when prompt changes are persisted.
+        self.save_note = wx.StaticText(self, label=_("Changes are applied only when you press OK."))
+        footer_sizer.Add(self.save_note, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        footer_sizer.AddStretchSpacer()
+
+        ok_btn = wx.Button(self, wx.ID_OK)
+        ok_btn.SetDefault()
+        cancel_btn = wx.Button(self, wx.ID_CANCEL)
+        ok_btn.Bind(wx.EVT_BUTTON, self.on_ok)
+        footer_sizer.Add(ok_btn, 0, wx.RIGHT, 8)
+        footer_sizer.Add(cancel_btn, 0)
+        main_sizer.Add(footer_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        self.SetSizer(main_sizer)
+        self.CentreOnParent()
+
+    def _build_default_tab(self):
+        tab_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        left_sizer = wx.BoxSizer(wx.VERTICAL)
+        # Translators: Label above the list of default prompt entries.
+        default_list_label = wx.StaticText(self.default_panel, label=_("Default Prompts"))
+        left_sizer.Add(default_list_label, 0, wx.BOTTOM, 5)
+        self.default_list = wx.ListBox(
+            self.default_panel,
+            choices=[item.get("display_label", item["label"]) for item in self.default_items],
+            style=wx.LB_SINGLE,
+        )
+        if callable(getattr(default_list_label, "SetLabelFor", None)):
+            default_list_label.SetLabelFor(self.default_list)
+        self.default_list.SetMinSize((320, -1))
+        self.default_list.Bind(wx.EVT_LISTBOX, self.on_default_selected)
+        left_sizer.Add(self.default_list, 1, wx.EXPAND | wx.BOTTOM, 8)
+
+        # Translators: Button label to reset currently selected default prompt.
+        self.reset_selected_btn = wx.Button(self.default_panel, label=_("Reset Selected"))
+        self.reset_selected_btn.Bind(wx.EVT_BUTTON, self.on_reset_selected_default)
+        left_sizer.Add(self.reset_selected_btn, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        # Translators: Button label to reset all default prompts.
+        self.reset_all_btn = wx.Button(self.default_panel, label=_("Reset All"))
+        self.reset_all_btn.Bind(wx.EVT_BUTTON, self.on_reset_all_defaults)
+        left_sizer.Add(self.reset_all_btn, 0, wx.EXPAND)
+
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+        # Translators: Label above the prompt editor textarea.
+        default_prompt_label = wx.StaticText(self.default_panel, label=_("Prompt Text:"))
+        right_sizer.Add(default_prompt_label, 0, wx.BOTTOM, 5)
+        self.default_prompt_ctrl = wx.TextCtrl(
+            self.default_panel,
+            style=wx.TE_MULTILINE | wx.TE_DONTWRAP,
+        )
+        if callable(getattr(default_prompt_label, "SetLabelFor", None)):
+            default_prompt_label.SetLabelFor(self.default_prompt_ctrl)
+        right_sizer.Add(self.default_prompt_ctrl, 1, wx.EXPAND | wx.BOTTOM, 8)
+
+        # Translators: Button label to apply current editor text to the selected default prompt.
+        self.save_default_btn = wx.Button(self.default_panel, label=_("Apply to Selected"))
+        self.save_default_btn.Bind(wx.EVT_BUTTON, self.on_save_selected_default)
+        right_sizer.Add(self.save_default_btn, 0, wx.ALIGN_RIGHT)
+
+        tab_sizer.Add(left_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        tab_sizer.Add(right_sizer, 1, wx.EXPAND | wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
+        self.default_panel.SetSizer(tab_sizer)
+
+        if self.default_items:
+            self.default_list.SetSelection(0)
+            self._default_selection = 0
+            self.default_prompt_ctrl.SetValue(self.default_items[0]["prompt"])
+        else:
+            self.default_prompt_ctrl.Disable()
+            self.save_default_btn.Disable()
+            self.reset_selected_btn.Disable()
+            self.reset_all_btn.Disable()
+
+    def _build_custom_tab(self):
+        tab_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        left_sizer = wx.BoxSizer(wx.VERTICAL)
+        # Translators: Label above the list of custom prompts.
+        custom_list_label = wx.StaticText(self.custom_panel, label=_("Custom Prompts"))
+        left_sizer.Add(custom_list_label, 0, wx.BOTTOM, 5)
+        self.custom_list = wx.ListBox(self.custom_panel, style=wx.LB_SINGLE)
+        if callable(getattr(custom_list_label, "SetLabelFor", None)):
+            custom_list_label.SetLabelFor(self.custom_list)
+        self.custom_list.SetMinSize((240, -1))
+        self.custom_list.Bind(wx.EVT_LISTBOX, self.on_custom_selected)
+        left_sizer.Add(self.custom_list, 1, wx.EXPAND | wx.BOTTOM, 8)
+
+        action_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Translators: Button label for adding a custom prompt.
+        self.add_custom_btn = wx.Button(self.custom_panel, label=_("Add"))
+        # Translators: Button label for editing a custom prompt.
+        self.edit_custom_btn = wx.Button(self.custom_panel, label=_("Edit"))
+        # Translators: Button label for removing a custom prompt.
+        self.remove_custom_btn = wx.Button(self.custom_panel, label=_("Remove"))
+        self.add_custom_btn.Bind(wx.EVT_BUTTON, self.on_add_custom)
+        self.edit_custom_btn.Bind(wx.EVT_BUTTON, self.on_edit_custom)
+        self.remove_custom_btn.Bind(wx.EVT_BUTTON, self.on_remove_custom)
+        action_sizer.Add(self.add_custom_btn, 0, wx.RIGHT, 5)
+        action_sizer.Add(self.edit_custom_btn, 0, wx.RIGHT, 5)
+        action_sizer.Add(self.remove_custom_btn, 0)
+        left_sizer.Add(action_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        move_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Translators: Button label for moving selected custom prompt up in the list.
+        self.move_up_btn = wx.Button(self.custom_panel, label=_("Move Up"))
+        # Translators: Button label for moving selected custom prompt down in the list.
+        self.move_down_btn = wx.Button(self.custom_panel, label=_("Move Down"))
+        self.move_up_btn.Bind(wx.EVT_BUTTON, self.on_move_custom_up)
+        self.move_down_btn.Bind(wx.EVT_BUTTON, self.on_move_custom_down)
+        move_sizer.Add(self.move_up_btn, 0, wx.RIGHT, 5)
+        move_sizer.Add(self.move_down_btn, 0)
+        left_sizer.Add(move_sizer, 0, wx.EXPAND)
+
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+        # Translators: Label above the custom prompt preview area.
+        custom_preview_label = wx.StaticText(self.custom_panel, label=_("Prompt Preview:"))
+        right_sizer.Add(custom_preview_label, 0, wx.BOTTOM, 5)
+        self.custom_preview = wx.TextCtrl(self.custom_panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP)
+        if callable(getattr(custom_preview_label, "SetLabelFor", None)):
+            custom_preview_label.SetLabelFor(self.custom_preview)
+        right_sizer.Add(self.custom_preview, 1, wx.EXPAND)
+
+        tab_sizer.Add(left_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        tab_sizer.Add(right_sizer, 1, wx.EXPAND | wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
+        self.custom_panel.SetSizer(tab_sizer)
+
+        self._refresh_custom_list()
+
+    def _save_current_default_editor(self):
+        if self._default_selection == wx.NOT_FOUND or self._default_selection >= len(self.default_items):
+            return True
+
+        prompt_text = self.default_prompt_ctrl.GetValue().strip()
+        if not prompt_text:
+            # Translators: Validation error for empty prompt text.
+            msg = _("Prompt text cannot be empty.")
+            # Translators: Title of validation warning dialog.
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.default_prompt_ctrl.SetFocus()
+            return False
+
+        self.default_items[self._default_selection]["prompt"] = prompt_text
+        return True
+
+    def on_default_selected(self, event):
+        if not self._save_current_default_editor():
+            self.default_list.SetSelection(self._default_selection)
+            return
+
+        new_selection = self.default_list.GetSelection()
+        if new_selection == wx.NOT_FOUND or new_selection >= len(self.default_items):
+            return
+
+        self._default_selection = new_selection
+        self.default_prompt_ctrl.SetValue(self.default_items[new_selection]["prompt"])
+
+    def on_save_selected_default(self, event):
+        if self._save_current_default_editor():
+            # Translators: Message shown after applying changes to the selected default prompt.
+            ui.message(_("Selected prompt updated."))
+
+    def on_reset_selected_default(self, event):
+        idx = self.default_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self.default_items):
+            return
+        self.default_items[idx]["prompt"] = self.default_items[idx]["default"]
+        self.default_prompt_ctrl.SetValue(self.default_items[idx]["prompt"])
+
+    def on_reset_all_defaults(self, event):
+        if not self.default_items:
+            return
+        # Translators: Confirmation text before resetting all default prompts.
+        msg = _("Reset all default prompts to built-in values?")
+        # Translators: Title of confirmation dialog.
+        title = _("Confirm Reset")
+        if wx.MessageBox(msg, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION) != wx.YES:
+            return
+        for item in self.default_items:
+            item["prompt"] = item["default"]
+        idx = self.default_list.GetSelection()
+        if idx != wx.NOT_FOUND and idx < len(self.default_items):
+            self.default_prompt_ctrl.SetValue(self.default_items[idx]["prompt"])
+        else:
+            self.default_prompt_ctrl.SetValue("")
+
+    def _refresh_custom_list(self, selection=None):
+        self.custom_list.Set([item["name"] for item in self.custom_items])
+        if not self.custom_items:
+            self.custom_preview.SetValue("")
+            self._update_custom_buttons()
+            return
+
+        if selection is None:
+            selection = self.custom_list.GetSelection()
+            if selection == wx.NOT_FOUND:
+                selection = 0
+
+        selection = max(0, min(selection, len(self.custom_items) - 1))
+        self.custom_list.SetSelection(selection)
+        self.custom_preview.SetValue(self.custom_items[selection]["content"])
+        self._update_custom_buttons()
+
+    def _update_custom_buttons(self):
+        idx = self.custom_list.GetSelection()
+        has_selection = idx != wx.NOT_FOUND and idx < len(self.custom_items)
+        self.edit_custom_btn.Enable(has_selection)
+        self.remove_custom_btn.Enable(has_selection)
+        self.move_up_btn.Enable(has_selection and idx > 0)
+        self.move_down_btn.Enable(has_selection and idx < len(self.custom_items) - 1)
+
+    def _name_exists(self, name, skip_index=None):
+        wanted = name.strip().lower()
+        for idx, item in enumerate(self.custom_items):
+            if skip_index is not None and idx == skip_index:
+                continue
+            if item["name"].strip().lower() == wanted:
+                return True
+        return False
+
+    def on_custom_selected(self, event):
+        idx = self.custom_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self.custom_items):
+            self.custom_preview.SetValue("")
+        else:
+            self.custom_preview.SetValue(self.custom_items[idx]["content"])
+        self._update_custom_buttons()
+
+    def on_add_custom(self, event):
+        # Translators: Title of dialog for adding a custom prompt.
+        dlg = PromptItemDialog(self, _("Add Custom Prompt"))
+        if dlg.ShowModal() == wx.ID_OK:
+            item = dlg.get_item()
+            if self._name_exists(item["name"]):
+                # Translators: Validation error for duplicate custom prompt name.
+                msg = _("A custom prompt with this name already exists.")
+                # Translators: Title of validation warning dialog.
+                title = _("Validation Error")
+                wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            else:
+                self.custom_items.append(item)
+                self._refresh_custom_list(selection=len(self.custom_items) - 1)
+        dlg.Destroy()
+
+    def on_edit_custom(self, event):
+        idx = self.custom_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self.custom_items):
+            return
+
+        current = self.custom_items[idx]
+        # Translators: Title of dialog for editing a custom prompt.
+        dlg = PromptItemDialog(self, _("Edit Custom Prompt"), current["name"], current["content"])
+        if dlg.ShowModal() == wx.ID_OK:
+            item = dlg.get_item()
+            if self._name_exists(item["name"], skip_index=idx):
+                # Translators: Validation error for duplicate custom prompt name.
+                msg = _("A custom prompt with this name already exists.")
+                # Translators: Title of validation warning dialog.
+                title = _("Validation Error")
+                wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            else:
+                self.custom_items[idx] = item
+                self._refresh_custom_list(selection=idx)
+        dlg.Destroy()
+
+    def on_remove_custom(self, event):
+        idx = self.custom_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self.custom_items):
+            return
+        name = self.custom_items[idx].get("name", "")
+        # Translators: Confirmation text before deleting a custom prompt.
+        msg = _("Remove custom prompt '{name}'?").format(name=name)
+        # Translators: Title of confirmation dialog.
+        title = _("Confirm Remove")
+        if wx.MessageBox(msg, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION) != wx.YES:
+            return
+        del self.custom_items[idx]
+        self._refresh_custom_list(selection=idx)
+
+    def on_move_custom_up(self, event):
+        idx = self.custom_list.GetSelection()
+        if idx <= 0 or idx >= len(self.custom_items):
+            return
+        self.custom_items[idx - 1], self.custom_items[idx] = self.custom_items[idx], self.custom_items[idx - 1]
+        self._refresh_custom_list(selection=idx - 1)
+
+    def on_move_custom_down(self, event):
+        idx = self.custom_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self.custom_items) - 1:
+            return
+        self.custom_items[idx], self.custom_items[idx + 1] = self.custom_items[idx + 1], self.custom_items[idx]
+        self._refresh_custom_list(selection=idx + 1)
+
+    def on_open_variables(self, event):
+        dlg = PromptVariablesGuideDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_ok(self, event):
+        if not self._save_current_default_editor():
+            return
+        self.EndModal(wx.ID_OK)
+
+    def get_default_items(self):
+        return [dict(item) for item in self.default_items]
+
+    def get_custom_items(self):
+        return [dict(item) for item in self.custom_items]
+
 class SettingsPanel(gui.settingsDialogs.SettingsPanel):
     title = ADDON_NAME
     def makeSettings(self, settingsSizer):
@@ -1196,18 +2025,41 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         self.captchaMode.SetSelection(0 if config.conf["VisionAssistant"]["captcha_mode"] == 'navigator' else 1)
         settingsSizer.Add(capSizer, 0, wx.EXPAND | wx.ALL, 5)
 
-        # --- Custom Prompts Group ---
-        # Translators: Title of the settings group for custom prompts
-        groupLabel = _("Custom Prompts")
+        self.defaultPromptItems = get_configured_default_prompts()
+        self.customPromptItems = parse_custom_prompts(config.conf["VisionAssistant"]["custom_prompts"])
+
+        # --- Prompt Manager Group ---
+        # Translators: Title of the settings group for prompt management
+        groupLabel = _("Prompts")
         promptsBox = wx.StaticBox(self, label=groupLabel)
         promptsSizer = wx.StaticBoxSizer(promptsBox, wx.VERTICAL)
         pHelper = gui.guiHelper.BoxSizerHelper(promptsBox, sizer=promptsSizer)
-        # Translators: Helper text explaining the format for custom prompts
-        pHelper.addItem(wx.StaticText(promptsBox, label=_("Format: Name:Content")))
-        self.customPrompts = wx.TextCtrl(promptsBox, style=wx.TE_MULTILINE, size=(-1, 100))
-        self.customPrompts.Value = config.conf["VisionAssistant"]["custom_prompts"]
-        pHelper.addItem(self.customPrompts)
-        settingsSizer.Add(promptsSizer, 1, wx.EXPAND | wx.ALL, 5)
+        # Translators: Description for the prompt manager button.
+        pHelper.addItem(wx.StaticText(promptsBox, label=_("Manage default system prompts and custom refine prompts.")))
+        # Translators: Button label to open prompt manager dialog.
+        self.managePromptsBtn = wx.Button(promptsBox, label=_("Manage Prompts..."))
+        self.managePromptsBtn.Bind(wx.EVT_BUTTON, self.onManagePrompts)
+        pHelper.addItem(self.managePromptsBtn)
+        self.promptsSummary = wx.StaticText(promptsBox)
+        pHelper.addItem(self.promptsSummary)
+        self._refreshPromptSummary()
+        settingsSizer.Add(promptsSizer, 0, wx.EXPAND | wx.ALL, 5)
+
+    def _refreshPromptSummary(self):
+        # Translators: Summary text for prompt counts in settings.
+        summary = _("Default prompts: {defaultCount}, Custom prompts: {customCount}").format(
+            defaultCount=len(self.defaultPromptItems),
+            customCount=len(self.customPromptItems),
+        )
+        self.promptsSummary.SetLabel(summary)
+
+    def onManagePrompts(self, event):
+        dlg = PromptManagerDialog(self, self.defaultPromptItems, self.customPromptItems)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.defaultPromptItems = dlg.get_default_items()
+            self.customPromptItems = dlg.get_custom_items()
+            self._refreshPromptSummary()
+        dlg.Destroy()
 
     def onToggleApiVisibility(self, event):
         if self.showApiCheck.IsChecked():
@@ -1235,7 +2087,8 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         config.conf["VisionAssistant"]["copy_to_clipboard"] = self.copyToClipboard.Value
         config.conf["VisionAssistant"]["skip_chat_dialog"] = self.skipChatDialog.Value
         config.conf["VisionAssistant"]["captcha_mode"] = 'navigator' if self.captchaMode.GetSelection() == 0 else 'fullscreen'
-        config.conf["VisionAssistant"]["custom_prompts"] = self.customPrompts.Value.strip()
+        config.conf["VisionAssistant"]["custom_prompts"] = serialize_custom_prompts(self.customPromptItems)
+        config.conf["VisionAssistant"]["default_refine_prompts"] = serialize_default_prompt_overrides(self.defaultPromptItems)
         config.conf["VisionAssistant"]["ocr_engine"] = OCR_ENGINES[self.ocr_sel.GetSelection()][1]
         config.conf["VisionAssistant"]["tts_voice"] = GEMINI_VOICES[self.voice_sel.GetSelection()][0]
 
@@ -2251,7 +3104,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             with open(self.temp_audio_file, "rb") as f:
                 audio_data = base64.b64encode(f.read()).decode('utf-8')
             
-            p = 'Transcribe speech. Use native script. Fix stutters. If there is no speech, silence, or background noise only, write exactly: [[[NOSPEECH]]]'
+            dictation_template = get_prompt_text("dictation_transcribe") or (
+                "Transcribe speech. Use native script. Fix stutters. If there is no speech, "
+                "silence, or background noise only, write exactly: [[[NOSPEECH]]]"
+            )
+            p = apply_prompt_template(dictation_template, [("response_lang", config.conf["VisionAssistant"]["ai_response_language"])])
             
             res = self._call_gemini_safe(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}])
             
@@ -2312,13 +3169,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             wx.CallAfter(self._announce_translation, self.last_translation)
             return
 
-        safe_text = text.replace('{', '{{').replace('}', '}}')
-        p = PROMPT_TRANSLATE.format(
-            target_lang=t, 
-            swap_target=fallback, 
-            smart_swap=str(swap),
-            text_content=safe_text
-        )
+        translation_template = get_prompt_text("translate_main")
+        p = apply_prompt_template(translation_template, [
+            ("target_lang", t),
+            ("swap_target", fallback),
+            ("smart_swap", str(swap)),
+            ("text_content", text),
+        ])
         res = self._call_gemini_safe(p)
         if res:
             clean_res = clean_markdown(res)
@@ -2428,27 +3285,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         wx.CallLater(100, self._open_refine_dialog, captured_text)
 
     def _open_refine_dialog(self, captured_text):
-        options = [
-            # Translators: A choice in the menu of the text refinement command
-            (_("Summarize"), "[summarize]"),
-            # Translators: A choice in the menu of the text refinement command
-            (_("Fix Grammar"), "[fix_grammar]"),
-            # Translators: A choice in the menu of the text refinement command
-            (_("Fix Grammar & Translate"), "[fix_translate]"),
-            # Translators: A choice in the menu of the text refinement command
-            (_("Explain"), "[explain]"),
-        ]
-        
-        custom_raw = config.conf["VisionAssistant"]["custom_prompts"]
-        if custom_raw:
-            for line in custom_raw.split('|'):
-                if ':' in line:
-                    parts = line.split(':', 1)
-                    name = parts[0].strip()
-                    content = parts[1].strip()
-                    if name and content:
-                        # Translators: Prefix for custom prompts in the Refine menu
-                        options.append((_("Custom: ") + name, content))
+        options = get_refine_menu_options()
+        if not options:
+            prompt_map = get_builtin_default_prompt_map()
+            for key in REFINE_PROMPT_KEYS:
+                if key in prompt_map:
+                    item = prompt_map[key]
+                    options.append((item["label"], item["prompt"]))
         
         display_choices = [opt[0] for opt in options]
         
@@ -2512,12 +3355,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
         prompt_text = custom_content
         attachments = []
+        fallback = "English" if source_lang == "Auto-detect" else source_lang
+        swap_instr = f" If text is in {target_lang}, translate to {fallback}." if smart_swap else ""
+        prompt_text = apply_prompt_template(prompt_text, [
+            ("target_lang", target_lang),
+            ("source_lang", source_lang),
+            ("response_lang", resp_lang),
+            ("swap_target", fallback),
+            ("swap_instruction", swap_instr),
+        ])
         
         if "[fix_translate]" in prompt_text:
-            fallback = "English" if source_lang == "Auto-detect" else source_lang
-            swap_instr = f"If text is in {target_lang}, translate to {fallback}." if smart_swap else ""
             prompt_text = prompt_text.replace("[fix_translate]", 
-                f"Fix grammar and translate to {target_lang}. {swap_instr} Output ONLY the result.")
+                f"Fix grammar and translate to {target_lang}.{swap_instr} Output ONLY the result.")
         
         prompt_text = prompt_text.replace("[summarize]", f"Summarize the text below in {resp_lang}.")
         prompt_text = prompt_text.replace("[fix_grammar]", "Fix grammar in the text below. Output ONLY the fixed text.")
@@ -2587,7 +3437,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             prompt_text = prompt_text.replace("[file_ocr]", "").replace("[file_read]", "").replace("[file_audio]", "")
             
             if not prompt_text.strip() and attachments:
-                 prompt_text = "Analyze these files."
+                 prompt_text = get_prompt_text("refine_files_only") or "Analyze these files."
             
         if captured_text and not used_selection and not file_paths:
             prompt_text += f"\n\n---\nInput Text:\n{captured_text}\n---\n"
@@ -2740,7 +3590,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 return
             attachments = [{'mime_type': mime_type, 'file_uri': file_uri}]
             
-            p = f"Extract all text from this document. Preserve formatting (Markdown). Then translate the content to {target_lang}. Output ONLY the translated content. Do not add explanations."
+            ocr_translate_template = get_prompt_text("ocr_document_translate")
+            p = apply_prompt_template(ocr_translate_template, [("target_lang", target_lang)])
             res = self._call_gemini_safe(p, attachments=attachments)
             
             try: os.remove(upload_path)
@@ -2773,7 +3624,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
         def doc_callback(ctx_atts, q, history, dum2):
             lang = config.conf["VisionAssistant"]["ai_response_language"]
-            system_instr = (f"STRICTLY Respond in {lang}. Use Markdown formatting. Analyze the attached content to answer.")
+            system_template = get_prompt_text("document_chat_system")
+            system_instr = apply_prompt_template(system_template, [("response_lang", lang)])
             context_parts = []
             if ctx_atts:
                 for att in ctx_atts:
@@ -2786,7 +3638,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             context_parts.append({"text": f"Context: {system_instr}"})
             messages = []
             messages.append({"role": "user", "parts": context_parts})
-            messages.append({"role": "model", "parts": [{"text": "Context received. Ready for questions."}]})
+            ack_text = get_prompt_text("document_chat_ack") or "Context received. Ready for questions."
+            messages.append({"role": "model", "parts": [{"text": ack_text}]})
             if history: messages.extend(history)
             messages.append({"role": "user", "parts": [{"text": q}]})
             return self._call_gemini_safe(messages), None
@@ -2824,20 +3677,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             # Translators: Message reported when calling an image analysis command
             msg = _("Scanning...")
             self.report_status(msg)
-            wx.CallLater(100, lambda: threading.Thread(target=self._thread_vision, args=(d, w, h), daemon=True).start())
+            wx.CallLater(100, lambda: threading.Thread(target=self._thread_vision, args=(d, w, h, full), daemon=True).start())
         else: 
             # Translators: Message reported when calling an image analysis command
             msg = _("Capture failed.")
             self.report_status(msg)
 
-    def _thread_vision(self, img, w, h):
+    def _thread_vision(self, img, w, h, full=False):
         lang = config.conf["VisionAssistant"]["ai_response_language"]
-        p = (
-            f"Analyze this image. Describe the layout, visible text, and UI elements. "
-            f"Use Markdown formatting (headings, lists) to organize the description. "
-            f"Language: {lang}. Ensure the response is strictly in {lang}. "
-            "IMPORTANT: Start directly with the description content. Do not add introductory sentences like 'Here is the analysis' or 'The image shows'."
-        )
+        vision_key = "vision_fullscreen" if full else "vision_navigator_object"
+        vision_template = get_prompt_text(vision_key)
+        p = apply_prompt_template(vision_template, [
+            ("response_lang", lang),
+            ("width", w),
+            ("height", h),
+        ])
         att = [{'mime_type': 'image/png', 'data': img}]
         res = self._call_gemini_safe(p, attachments=att)
         if res:
@@ -2854,14 +3708,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
         def cb(atts, q, history, sz):
             lang = config.conf["VisionAssistant"]["ai_response_language"]
-            current_user_msg = {"role": "user", "parts": [{"text": f"{q} (Answer strictly in {lang})"}]}
+            followup_suffix_template = get_prompt_text("vision_followup_suffix") or "Answer strictly in {response_lang}"
+            followup_suffix = apply_prompt_template(followup_suffix_template, [("response_lang", lang)])
+            current_user_msg = {"role": "user", "parts": [{"text": f"{q} ({followup_suffix})"}]}
             messages = []
             initial_history = (not history) or (len(history) == 1 and history[0].get("role") == "model")
             if initial_history:
                 parts = []
                 for att in atts:
                     parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
-                parts.append({"text": f"Image Context. Target Language: {lang}"})
+                followup_context_template = get_prompt_text("vision_followup_context") or "Image Context. Target Language: {response_lang}"
+                followup_context = apply_prompt_template(followup_context_template, [("response_lang", lang)])
+                parts.append({"text": followup_context})
                 messages.append({"role": "user", "parts": parts})
                 if history and history[0].get("role") == "model":
                     messages.append(history[0])
@@ -2912,7 +3770,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             msg = _("Analyzing...")
             wx.CallAfter(self.report_status, msg)
             lang = config.conf["VisionAssistant"]["ai_response_language"]
-            p = f"Transcribe this audio in {lang}."
+            audio_template = get_prompt_text("audio_transcription")
+            p = apply_prompt_template(audio_template, [("response_lang", lang)])
             
             att = [{'mime_type': mime_type, 'file_uri': file_uri}]
             res = self._call_gemini_safe(p, attachments=att)
@@ -2974,7 +3833,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         wx.CallAfter(self.report_status, _("Processing Video..."))
         
         lang = config.conf["VisionAssistant"]["ai_response_language"]
-        p = f"Analyze this video. Provide a detailed description of the visual content and a summary of the audio. IMPORTANT: Write the entire response STRICTLY in {lang} language."
+        video_template = get_prompt_text("video_analysis")
+        p = apply_prompt_template(video_template, [("response_lang", lang)])
 
         chat_attachments = []
 
@@ -3056,9 +3916,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self.report_status(msg)
         
     def _thread_cap(self, d, is_gov):
-        p = "Blind user. Return CAPTCHA code only. If NO CAPTCHA is detected in the image, strictly return: [[[NO_CAPTCHA]]]"
-        if is_gov: p += " Read 5 Persian digits, convert to English."
-        else: p += " Convert to English digits."
+        cap_template = get_prompt_text("captcha_solver_base") or (
+            "Blind user. Return CAPTCHA code only. If NO CAPTCHA is detected in the image, "
+            "strictly return: [[[NO_CAPTCHA]]].{captcha_extra}"
+        )
+        cap_extra = " Read 5 Persian digits, convert to English." if is_gov else " Convert to English digits."
+        p = apply_prompt_template(cap_template, [("captcha_extra", cap_extra)])
         
         r = self._call_gemini_safe(p, attachments=[{'mime_type': 'image/png', 'data': d}])
         if r:
