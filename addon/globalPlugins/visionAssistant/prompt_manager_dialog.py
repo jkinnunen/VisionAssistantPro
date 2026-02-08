@@ -69,14 +69,6 @@ class PromptItemDialog(wx.Dialog):
             wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             self.name_ctrl.SetFocus()
             return
-        if ":" in name or "|" in name:
-            # Translators: Validation error for unsupported characters in prompt name.
-            msg = _("Name cannot contain ':' or '|'.")
-            # Translators: Title of validation warning dialog.
-            title = _("Validation Error")
-            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
-            self.name_ctrl.SetFocus()
-            return
         if not prompt_text.strip():
             # Translators: Validation error for empty prompt text.
             msg = _("Prompt text cannot be empty.")
