@@ -1442,8 +1442,6 @@ class PromptItemDialog(wx.Dialog):
         main_sizer.Add(name_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
         self.name_ctrl = wx.TextCtrl(self, value=name)
         main_sizer.Add(self.name_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-        if callable(getattr(name_label, "SetLabelFor", None)):
-            name_label.SetLabelFor(self.name_ctrl)
 
         # Translators: Label for prompt text input field.
         prompt_label = wx.StaticText(self, label=_("Prompt Text:"))
@@ -1454,8 +1452,6 @@ class PromptItemDialog(wx.Dialog):
             style=wx.TE_PROCESS_ENTER,
         )
         main_sizer.Add(self.prompt_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-        if callable(getattr(prompt_label, "SetLabelFor", None)):
-            prompt_label.SetLabelFor(self.prompt_ctrl)
 
         # Translators: Helper text about custom prompt input limitations.
         hint = wx.StaticText(self, label=_("Custom prompt text must be a single line and cannot contain '|'."))
@@ -1618,8 +1614,6 @@ class PromptManagerDialog(wx.Dialog):
             choices=[item.get("display_label", item["label"]) for item in self.default_items],
             style=wx.LB_SINGLE,
         )
-        if callable(getattr(default_list_label, "SetLabelFor", None)):
-            default_list_label.SetLabelFor(self.default_list)
         self.default_list.SetMinSize((320, -1))
         self.default_list.Bind(wx.EVT_LISTBOX, self.on_default_selected)
         left_sizer.Add(self.default_list, 1, wx.EXPAND | wx.BOTTOM, 8)
@@ -1642,8 +1636,6 @@ class PromptManagerDialog(wx.Dialog):
             self.default_panel,
             style=wx.TE_MULTILINE | wx.TE_DONTWRAP,
         )
-        if callable(getattr(default_prompt_label, "SetLabelFor", None)):
-            default_prompt_label.SetLabelFor(self.default_prompt_ctrl)
         right_sizer.Add(self.default_prompt_ctrl, 1, wx.EXPAND | wx.BOTTOM, 8)
 
         # Translators: Button label to apply current editor text to the selected default prompt.
@@ -1673,8 +1665,6 @@ class PromptManagerDialog(wx.Dialog):
         custom_list_label = wx.StaticText(self.custom_panel, label=_("Custom Prompts"))
         left_sizer.Add(custom_list_label, 0, wx.BOTTOM, 5)
         self.custom_list = wx.ListBox(self.custom_panel, style=wx.LB_SINGLE)
-        if callable(getattr(custom_list_label, "SetLabelFor", None)):
-            custom_list_label.SetLabelFor(self.custom_list)
         self.custom_list.SetMinSize((240, -1))
         self.custom_list.Bind(wx.EVT_LISTBOX, self.on_custom_selected)
         left_sizer.Add(self.custom_list, 1, wx.EXPAND | wx.BOTTOM, 8)
@@ -1710,8 +1700,6 @@ class PromptManagerDialog(wx.Dialog):
         custom_preview_label = wx.StaticText(self.custom_panel, label=_("Prompt Preview:"))
         right_sizer.Add(custom_preview_label, 0, wx.BOTTOM, 5)
         self.custom_preview = wx.TextCtrl(self.custom_panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP)
-        if callable(getattr(custom_preview_label, "SetLabelFor", None)):
-            custom_preview_label.SetLabelFor(self.custom_preview)
         right_sizer.Add(self.custom_preview, 1, wx.EXPAND)
 
         tab_sizer.Add(left_sizer, 0, wx.EXPAND | wx.ALL, 10)
