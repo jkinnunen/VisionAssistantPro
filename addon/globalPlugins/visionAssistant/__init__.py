@@ -145,6 +145,7 @@ confspec = {
     "smart_swap": "boolean(default=True)",
     "captcha_mode": "string(default='navigator')",
     "custom_prompts": "string(default='')",
+    "custom_prompts_v2": "string(default='')",
     "default_refine_prompts": "string(default='')",
     "check_update_startup": "boolean(default=False)",
     "clean_markdown_chat": "boolean(default=True)",
@@ -382,7 +383,25 @@ def get_builtin_default_prompts():
 def get_builtin_default_prompt_map():
     return {item["key"]: item for item in get_builtin_default_prompts()}
 
-def parse_custom_prompts(raw_value):
+def _normalize_custom_prompt_items(items):
+    normalized = []
+    if not isinstance(items, list):
+        return normalized
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        content = item.get("content")
+        if not isinstance(name, str) or not isinstance(content, str):
+            continue
+        name = name.strip()
+        content = content.strip()
+        if name and content:
+            normalized.append({"name": name, "content": content})
+    return normalized
+
+def parse_custom_prompts_legacy(raw_value):
     items = []
     if not raw_value:
         return items
@@ -400,16 +419,128 @@ def parse_custom_prompts(raw_value):
                 items.append({"name": name, "content": content})
     return items
 
-def serialize_custom_prompts(items):
+def serialize_custom_prompts_legacy(items):
     if not items:
         return ""
     parts = []
-    for item in items:
+    for item in _normalize_custom_prompt_items(items):
         name = str(item.get("name", "")).strip()
         content = str(item.get("content", "")).strip()
         if name and content:
             parts.append(f"{name}:{content}")
     return "|".join(parts)
+
+def parse_custom_prompts_v2(raw_value):
+    if not isinstance(raw_value, str) or not raw_value.strip():
+        return None
+    try:
+        data = json.loads(raw_value)
+    except Exception as e:
+        log.warning(f"Invalid custom_prompts_v2 config, falling back to legacy format: {e}")
+        return None
+    return _normalize_custom_prompt_items(data)
+
+def serialize_custom_prompts_v2(items):
+    normalized = _normalize_custom_prompt_items(items)
+    if not normalized:
+        return ""
+    return json.dumps(normalized, ensure_ascii=False)
+
+def load_configured_custom_prompts():
+    try:
+        raw_v2 = config.conf["VisionAssistant"]["custom_prompts_v2"]
+    except Exception:
+        raw_v2 = ""
+    items_v2 = parse_custom_prompts_v2(raw_v2)
+    if items_v2 is not None:
+        return items_v2
+    return parse_custom_prompts_legacy(config.conf["VisionAssistant"]["custom_prompts"])
+
+def _sanitize_default_prompt_overrides(data):
+    if not isinstance(data, dict):
+        return {}, False
+
+    changed = False
+    mutable = dict(data)
+    # Migrate old key used in previous versions.
+    legacy_vision = mutable.pop("vision_image_analysis", None)
+    if legacy_vision is not None:
+        changed = True
+    if isinstance(legacy_vision, str) and legacy_vision.strip():
+        legacy_text = legacy_vision.strip()
+        nav_value = mutable.get("vision_navigator_object")
+        if not isinstance(nav_value, str) or not nav_value.strip():
+            mutable["vision_navigator_object"] = legacy_text
+            changed = True
+        full_value = mutable.get("vision_fullscreen")
+        if not isinstance(full_value, str) or not full_value.strip():
+            mutable["vision_fullscreen"] = legacy_text
+            changed = True
+
+    valid_keys = set(get_builtin_default_prompt_map().keys())
+    sanitized = {}
+    for key, value in mutable.items():
+        if key not in valid_keys or not isinstance(value, str):
+            changed = True
+            continue
+        prompt_text = value.strip()
+        if not prompt_text:
+            changed = True
+            continue
+        if key in LEGACY_REFINER_TOKENS and prompt_text == LEGACY_REFINER_TOKENS[key]:
+            # Drop old token-only overrides and fallback to current built-ins.
+            changed = True
+            continue
+        if prompt_text != value:
+            changed = True
+        sanitized[key] = prompt_text
+    return sanitized, changed
+
+def migrate_prompt_config_if_needed():
+    changed = False
+
+    # Migrate custom prompts to v2 and keep legacy mirror for backward compatibility.
+    try:
+        raw_v2 = config.conf["VisionAssistant"]["custom_prompts_v2"]
+    except Exception:
+        raw_v2 = ""
+    raw_legacy = config.conf["VisionAssistant"]["custom_prompts"]
+
+    v2_items = parse_custom_prompts_v2(raw_v2)
+    if v2_items is None:
+        target_items = parse_custom_prompts_legacy(raw_legacy)
+    else:
+        target_items = v2_items
+
+    serialized_v2 = serialize_custom_prompts_v2(target_items)
+    if serialized_v2 != (raw_v2 or ""):
+        config.conf["VisionAssistant"]["custom_prompts_v2"] = serialized_v2
+        changed = True
+
+    serialized_legacy = serialize_custom_prompts_legacy(target_items)
+    if serialized_legacy != (raw_legacy or ""):
+        config.conf["VisionAssistant"]["custom_prompts"] = serialized_legacy
+        changed = True
+
+    # Normalize default prompt overrides and persist migrations.
+    try:
+        raw_defaults = config.conf["VisionAssistant"]["default_refine_prompts"]
+    except Exception:
+        raw_defaults = ""
+    if isinstance(raw_defaults, str) and raw_defaults.strip():
+        try:
+            defaults_data = json.loads(raw_defaults)
+        except Exception:
+            defaults_data = None
+        if isinstance(defaults_data, dict):
+            sanitized, migrated = _sanitize_default_prompt_overrides(defaults_data)
+            if migrated:
+                config.conf["VisionAssistant"]["default_refine_prompts"] = (
+                    json.dumps(sanitized, ensure_ascii=False) if sanitized else ""
+                )
+                changed = True
+
+    return changed
 
 def load_default_prompt_overrides():
     try:
@@ -425,20 +556,7 @@ def load_default_prompt_overrides():
         log.warning(f"Invalid default_refine_prompts config, using built-ins: {e}")
         return {}
 
-    if not isinstance(data, dict):
-        return {}
-
-    # Migrate old key used in previous versions.
-    legacy_vision = data.get("vision_image_analysis")
-    if isinstance(legacy_vision, str) and legacy_vision.strip():
-        data.setdefault("vision_navigator_object", legacy_vision.strip())
-        data.setdefault("vision_fullscreen", legacy_vision.strip())
-
-    valid_keys = set(get_builtin_default_prompt_map().keys())
-    overrides = {}
-    for key, value in data.items():
-        if key in valid_keys and isinstance(value, str) and value.strip():
-            overrides[key] = value.strip()
+    overrides, _ = _sanitize_default_prompt_overrides(data)
     return overrides
 
 def get_configured_default_prompt_map():
@@ -503,7 +621,7 @@ def get_refine_menu_options():
         if item:
             options.append((item["label"], item["prompt"]))
 
-    for item in parse_custom_prompts(config.conf["VisionAssistant"]["custom_prompts"]):
+    for item in load_configured_custom_prompts():
         # Translators: Prefix for custom prompts in the Refine menu
         options.append((_("Custom: ") + item["name"], item["content"]))
     return options
@@ -1997,7 +2115,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         settingsSizer.Add(capSizer, 0, wx.EXPAND | wx.ALL, 5)
 
         self.defaultPromptItems = get_configured_default_prompts()
-        self.customPromptItems = parse_custom_prompts(config.conf["VisionAssistant"]["custom_prompts"])
+        self.customPromptItems = load_configured_custom_prompts()
 
         # --- Prompt Manager Group ---
         # Translators: Title of the settings group for prompt management
@@ -2058,7 +2176,9 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         config.conf["VisionAssistant"]["copy_to_clipboard"] = self.copyToClipboard.Value
         config.conf["VisionAssistant"]["skip_chat_dialog"] = self.skipChatDialog.Value
         config.conf["VisionAssistant"]["captcha_mode"] = 'navigator' if self.captchaMode.GetSelection() == 0 else 'fullscreen'
-        config.conf["VisionAssistant"]["custom_prompts"] = serialize_custom_prompts(self.customPromptItems)
+        config.conf["VisionAssistant"]["custom_prompts_v2"] = serialize_custom_prompts_v2(self.customPromptItems)
+        # Keep legacy mirror for backward compatibility with previous add-on versions.
+        config.conf["VisionAssistant"]["custom_prompts"] = serialize_custom_prompts_legacy(self.customPromptItems)
         config.conf["VisionAssistant"]["default_refine_prompts"] = serialize_default_prompt_overrides(self.defaultPromptItems)
         config.conf["VisionAssistant"]["ocr_engine"] = OCR_ENGINES[self.ocr_sel.GetSelection()][1]
         config.conf["VisionAssistant"]["tts_voice"] = GEMINI_VOICES[self.voice_sel.GetSelection()][0]
@@ -2638,6 +2758,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         super(GlobalPlugin, self).__init__()
         global _vision_assistant_instance
         _vision_assistant_instance = self
+        try:
+            migrate_prompt_config_if_needed()
+        except Exception as e:
+            log.warning(f"Prompt config migration failed: {e}")
         gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(SettingsPanel)
         
         self.updater = UpdateManager(GITHUB_REPO)
