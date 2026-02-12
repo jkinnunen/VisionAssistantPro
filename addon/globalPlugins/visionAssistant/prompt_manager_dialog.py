@@ -32,10 +32,6 @@ class PromptItemDialog(wx.Dialog):
         )
         main_sizer.Add(self.prompt_ctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
-        # Translators: Helper text about custom prompt input capabilities.
-        hint = wx.StaticText(self, label=_("Custom prompt text supports multiple lines and '|' in v2. Legacy versions may not import these prompts."))
-        main_sizer.Add(hint, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-
         button_sizer = wx.StdDialogButtonSizer()
         ok_btn = wx.Button(self, wx.ID_OK)
         ok_btn.SetDefault()
