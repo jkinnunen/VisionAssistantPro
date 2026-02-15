@@ -1085,7 +1085,7 @@ class GeminiHandler:
                     uri, name = res['file']['uri'], res['file']['name']
                 
                 active = False
-                for _ in range(30):
+                for attempt in range(30):
                     req_check = request.Request(f"{base_url}/v1beta/{name}", headers={"x-goog-api-key": key})
                     with opener.open(req_check, timeout=30) as r:
                         state = json.loads(r.read().decode()).get('state')
@@ -1174,7 +1174,7 @@ class GeminiHandler:
                 with opener.open(req_up, timeout=180) as r:
                     res = json.loads(r.read().decode())
                     uri, name = res['file']['uri'], res['file']['name']
-                for _ in range(30):
+                for attempt in range(30):
                     req_check = request.Request(f"{base_url}/v1beta/{name}", headers={"x-goog-api-key": key})
                     with opener.open(req_check, timeout=30) as r:
                         state = json.loads(r.read().decode()).get('state')
@@ -1864,7 +1864,9 @@ class ChatDialog(wx.Dialog):
 
 class DocumentViewerDialog(wx.Dialog):
     def __init__(self, parent, virtual_doc, settings):
-        super().__init__(parent, title=ADDON_NAME, size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX)
+        # Translators: Title of the Document Reader window.
+        title_text = f"{ADDON_NAME} - {_('Document Reader')}"
+        super().__init__(parent, title=title_text, size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX)
         self.v_doc = virtual_doc
         self.start_page = settings['start']
         self.end_page = settings['end']
@@ -2116,7 +2118,13 @@ class DocumentViewerDialog(wx.Dialog):
             
             if not results or (len(results) == 1 and str(results[0]).startswith("ERROR:")):
                 err_msg = results[0][6:] if results else _("Unknown error")
-                wx.CallAfter(ui.message, _("Scan failed: {err}").format(err=err_msg))
+                # Translators: Message reported when batch scan fails
+                error_text = _("Scan failed: {err}").format(err=err_msg)
+                for i in range(self.start_page, self.end_page + 1):
+                    self.page_cache[i] = error_text
+                
+                wx.CallAfter(self.update_view)
+                wx.CallAfter(ui.message, error_text)
                 return
 
             for i, text_part in enumerate(results):
@@ -2543,7 +2551,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if not file_name_id: return None
 
             check_url = f"{base_url}/v1beta/{file_name_id}"
-            for _ in range(30):
+            for attempt in range(30):
                 try:
                     req_check = request.Request(check_url, headers={"x-goog-api-key": api_key})
                     with get_proxy_opener().open(req_check, timeout=10) as response:
