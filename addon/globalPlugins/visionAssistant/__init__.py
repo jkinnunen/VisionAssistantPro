@@ -782,7 +782,7 @@ def get_tiktok_download_link(tiktok_url):
         data = urlencode(params).encode('utf-8')
         req = request.Request(api_url, data=data, headers=headers, method='POST')
         opener = get_proxy_opener()
-        with opener.open(req, timeout=30) as response:
+        with opener.open(req, timeout=120) as response:
             res = json.loads(response.read().decode('utf-8'))
             if res.get('code') == 0:
                 play_url = res['data']['play']
@@ -793,7 +793,7 @@ def get_tiktok_download_link(tiktok_url):
 def _download_temp_video(url):
     try:
         req = request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with request.urlopen(req, timeout=60) as response:
+        with request.urlopen(req, timeout=120) as response:
             fd, path = tempfile.mkstemp(suffix=".mp4")
             os.close(fd)
             with open(path, 'wb') as f:
@@ -873,7 +873,7 @@ class ChromeOCREngine:
         try:
             req = request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method="POST")
             opener = get_proxy_opener()
-            with opener.open(req, timeout=30) as response:
+            with opener.open(req, timeout=120) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode('utf-8'))
                     regions = data['results'][0]['engineResults'][0]['ocrEngine'].get('ocrRegions', [])
@@ -903,14 +903,16 @@ class SmartProgrammersOCREngine:
         try:
             req = request.Request(url, data=b'\r\n'.join(body), headers={'Content-Type': f"multipart/form-data; boundary={boundary.decode('utf-8')}"}, method="POST")
             opener = get_proxy_opener()
-            with opener.open(req, timeout=40) as response:
+            with opener.open(req, timeout=120) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode('utf-8'))
                     text = data.get("text", "").replace("\\n", "\n")
                     return text if text.strip() else None
-        except Exception as e:
-            log.error(f"SmartProgrammers OCR Failed: {e}", exc_info=True)
-            return None
+        except error.HTTPError as e:
+            if e.code == 400:
+                return None
+        except Exception:
+            pass
         return None
 
 class GoogleTranslator:
@@ -923,7 +925,7 @@ class GoogleTranslator:
             url = f"{base_url}?{parse.urlencode(params)}"
             req = request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             opener = get_proxy_opener()
-            with opener.open(req, timeout=30) as response:
+            with opener.open(req, timeout=120) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode('utf-8'))
                     if data and isinstance(data, list) and len(data) > 0:
@@ -1053,7 +1055,7 @@ class GeminiHandler:
             ocr_image_prompt = get_prompt_text("ocr_image_extract")
             payload = {"contents": [{"parts": [{"inline_data": {"mime_type": "image/jpeg", "data": base64.b64encode(img_data).decode('utf-8')}}, {"text": ocr_image_prompt}]}]}
             req = request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json", "x-goog-api-key": key})
-            with GeminiHandler._get_opener().open(req, timeout=90) as r:
+            with GeminiHandler._get_opener().open(req, timeout=120) as r:
                 return json.loads(r.read().decode())['candidates'][0]['content']['parts'][0]['text']
         return GeminiHandler._call_with_rotation(_logic, image_bytes)
 
@@ -1076,7 +1078,7 @@ class GeminiHandler:
                 headers = {"X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": str(f_size), "X-Goog-Upload-Header-Content-Type": mime_type, "Content-Type": "application/json", "x-goog-api-key": key}
                 
                 req = request.Request(init_url, data=json.dumps({"file": {"display_name": "batch"}}).encode(), headers=headers, method="POST")
-                with opener.open(req, timeout=60) as r: upload_url = r.headers.get("x-goog-upload-url")
+                with opener.open(req, timeout=120) as r: upload_url = r.headers.get("x-goog-upload-url")
                 
                 with open(file_path, 'rb') as f: f_data = f.read()
                 req_up = request.Request(upload_url, data=f_data, headers={"Content-Length": str(f_size), "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize"}, method="POST")
@@ -1147,7 +1149,7 @@ class GeminiHandler:
             contents.append({"role": "user", "parts": user_parts})
             
             req = request.Request(url, data=json.dumps({"contents": contents}).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
-            with GeminiHandler._get_opener().open(req, timeout=90) as r:
+            with GeminiHandler._get_opener().open(req, timeout=120) as r:
                 return json.loads(r.read().decode())['candidates'][0]['content']['parts'][0]['text']
         forced_key = GeminiHandler._get_registered_key(file_uri) if file_uri else None
         if forced_key:
@@ -1168,7 +1170,7 @@ class GeminiHandler:
                 init_url = f"{base_url}/upload/v1beta/files"
                 headers = {"X-Goog-Upload-Protocol": "resumable", "X-Goog-Upload-Command": "start", "X-Goog-Upload-Header-Content-Length": str(f_size), "X-Goog-Upload-Header-Content-Type": mime_type, "Content-Type": "application/json", "x-goog-api-key": key}
                 req = request.Request(init_url, data=json.dumps({"file": {"display_name": os.path.basename(file_path)}}).encode(), headers=headers, method="POST")
-                with opener.open(req, timeout=60) as r: upload_url = r.headers.get("x-goog-upload-url")
+                with opener.open(req, timeout=120) as r: upload_url = r.headers.get("x-goog-upload-url")
                 with open(file_path, 'rb') as f: f_data = f.read()
                 req_up = request.Request(upload_url, data=f_data, headers={"Content-Length": str(f_size), "X-Goog-Upload-Offset": "0", "X-Goog-Upload-Command": "upload, finalize"}, method="POST")
                 with opener.open(req_up, timeout=180) as r:
@@ -1274,7 +1276,7 @@ class UpdateManager:
         try:
             url = f"https://api.github.com/repos/{self.repo_name}/releases/latest"
             req = request.Request(url, headers={"User-Agent": "NVDA-Addon"})
-            with request.urlopen(req, timeout=10) as response:
+            with request.urlopen(req, timeout=60) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode('utf-8'))
                     latest_tag = data.get("tag_name", "").lstrip("v")
