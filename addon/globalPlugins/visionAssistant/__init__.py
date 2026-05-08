@@ -5549,7 +5549,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
     def _thread_ai_computer_use(self, user_command):
         try:
-            max_turns = 5
+            max_turns = 10
             current_command = user_command
             if not self._operator_history: self._operator_history = []
             resp_lang = config.conf["VisionAssistant"]["ai_response_language"]
@@ -5729,8 +5729,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         winUser.keybd_event(0x23, 0, 1, 0)
         time.sleep(0.05)
         winUser.keybd_event(0x23, 0, 1 | 2, 0)
-        time.sleep(0.2)
-        
+        time.sleep(0.1)
         for _ in range(30):
             winUser.keybd_event(0x08, 0, 0, 0)
             winUser.keybd_event(0x08, 0, 2, 0)
@@ -5739,33 +5738,37 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         old_clip_data = None
         try:
             old_clip_data = api.getClipData()
-        except Exception as e:
-            log.debugWarning(f"VisionAssistant: Could not backup clipboard: {e}")
+        except: pass
 
-        clean_text = text.replace('\n', '').replace("'", "").replace('"', '').strip()
+        clean_text = text.replace('\n', '').strip()
         
         try:
             api.copyToClip(clean_text)
-            time.sleep(0.3)
+            time.sleep(0.5) 
             
             winUser.keybd_event(0x11, 0, 0, 0)
+            time.sleep(0.15)
+            
             winUser.keybd_event(0x56, 0, 0, 0)
+            time.sleep(0.1)
             winUser.keybd_event(0x56, 0, 2, 0)
+            
+            time.sleep(0.15)
             winUser.keybd_event(0x11, 0, 2, 0)
-            time.sleep(0.5)
+            
+            time.sleep(0.4)
         except Exception as e:
-            log.error(f"VisionAssistant: Typing via clipboard failed: {e}")
+            log.error(f"VisionAssistant: Typing failed: {e}")
 
         if old_clip_data:
             try:
                 api.copyToClip(old_clip_data)
-            except:
-                pass
+            except: pass
         
-        time.sleep(0.5)
-        winUser.keybd_event(0x0D, 0, 0, 0)
-        winUser.keybd_event(0x0D, 0, 2, 0)
-        time.sleep(0.2)
+        if press_enter:
+            time.sleep(0.5)
+            winUser.keybd_event(0x0D, 0, 0, 0)
+            winUser.keybd_event(0x0D, 0, 2, 0)
 
     __gestures = {
         "kb:NVDA+shift+v": "activateLayer",

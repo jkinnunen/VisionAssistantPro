@@ -80,13 +80,11 @@ jobs:
         sed -i 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' log_part.txt
         
         sed -i 's/\*\*\([^*]*\)\*\*/<b>\1<\/b>/g' log_part.txt
-        
-        sed -i "s/\*\([^*]*\)\*/<i>\1<\/i>/g" log_part.txt
-
+        sed -i 's/\*\([^*]*\)\*/<i>\1<\/i>/g' log_part.txt
         sed -i 's/^## \(.*\)/<b>🔹 \1<\/b>/g' log_part.txt
-        
         sed -i 's/^\* /• /g' log_part.txt
-        sed -i 's/^[[:space:]]*• /  • /g' log_part.txt
+        
+        sed -i 's/\*//g' log_part.txt
 
         cat << 'EOF' > tg_msg.txt
         <b>🚀 New Release: Vision Assistant Pro</b>
