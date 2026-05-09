@@ -9,27 +9,28 @@ _Ten dodatek został udostępniony społeczności z okazji Międzynarodowego Dni
 Przejdź do **Menu NVDA > Preferencje > Ustawienia > Vision Assistant Pro**.
 
 ### 1.1 Ustawienia połączenia
-- **Dostawca:** Najpierw Wybierz usługę AI. Obsługiwani dostawcy to **Google Gemini**, **OpenAI**, **Mistral**, **Groq** oraz **Niestandardowy** (serwery zgodne z OpenAI, np. Ollama/LM Studio).
+- **Dostawca:** Wybierz preferowaną usługę AI. Obsługiwani dostawcy to **Google Gemini**, **OpenAI**, **Mistral**, **Groq** oraz **Niestandardowy** (serwery zgodne z OpenAI, np. Ollama/LM Studio).
 - **Ważne:** Zalecamy korzystanie z **Google Gemini**, który zapewnia najlepszą jakość (szczególnie przy analizie obrazów i plików).
 - **Klucz API:** Wymagany. Można podać wiele kluczy (rozdzielonych przecinkami lub w osobnych wierszach), aby dodatek rotował je automatycznie.
 - **Pobierz modele:** Po wprowadzeniu klucza API naciśnij ten przycisk, aby pobrać aktualną listę dostępnych modeli od dostawcy.
 - **Model AI:** Wybierz główny model używany do czatu i analizy.
 
 ### 1.2 Osobny model dla każdego zadania
-*Dostępne dla Gemini, OpenAI, Groq i Mistral.*
+*Dostępne dla wszystkich dostawców, w tym Gemini, OpenAI, Groq, Mistral i Niestandardowy.*
 
-> **⚠️ Uwaga:** Te ustawienia są przeznaczone dla **doświadczonych użytkowników**. Jeśli nie wiesz, do czego służy dany model, zostaw tę opcję **odznaczoną**. Wybranie nieodpowiedniego modelu (np. modelu tekstowego do rozpoznawania obrazów) spowoduje błędy.
+> **⚠️ Uwaga:** Te ustawienia są przeznaczone wyłącznie dla **doświadczonych użytkowników**. Jeśli nie wiesz, do czego służy dany model, zostaw tę opcję **odznaczoną**. Wybranie nieodpowiedniego modelu (np. modelu tekstowego dla zadań wizualnych) spowoduje błędy i zatrzyma działanie dodatku.
 
-Zaznacz **„Osobny model dla każdego zadania"**. Pozwala to wybrać konkretne modele z listy rozwijanej:
-- **Model dla OCR / rozpoznawania obrazów:** Model do analizy obrazów.
-- **Rozpoznawanie mowy (STT):** Model do dyktowania.
+Zaznacz **„Osobny model dla każdego zadania"**, aby uzyskać szczegółową kontrolę. Pozwala to wybrać konkretne modele z listy rozwijanej dla różnych zadań:
+- **Model dla OCR / rozpoznawania obrazów:** Wyspecjalizowany model do analizy obrazów.
+- **Rozpoznawanie mowy (STT):** Konkretny model do dyktowania.
 - **Synteza mowy (TTS):** Model do generowania audio.
+- **Model Operatora AI:** Konkretny model do zadań autonomicznego sterowania komputerem.
 *Uwaga: Nieobsługiwane funkcje (np. TTS dla Groq) zostaną automatycznie ukryte.*
 
 ### 1.3 Adresy usług (niestandardowy dostawca)
 *Dostępne tylko przy wybranym dostawcy „Niestandardowy".*
 
-> **⚠️ Uwaga:** Ta sekcja umożliwia ręczną konfigurację API i jest przeznaczona dla **użytkowników prowadzących lokalne serwery lub proxy**. Błędne adresy URL lub nazwy modeli uniemożliwią połączenie. Jeśli nie wiesz, do czego służą te pola, zostaw tę opcję **odznaczoną**.
+> **⚠️ Uwaga:** Ta sekcja umożliwia ręczną konfigurację API i jest przeznaczona dla **zaawansowanych użytkowników** prowadzących lokalne serwery lub proxy. Błędne adresy URL lub nazwy modeli uniemożliwią połączenie. Jeśli nie wiesz dokładnie, do czego służą te pola, zostaw tę opcję **odznaczoną**.
 
 Zaznacz **„Adresy usług"**, aby ręcznie podać dane serwera. W przeciwieństwie do natywnych dostawców, tutaj trzeba **wpisać** konkretne adresy URL i nazwy modeli:
 - **URL listy modeli:** Adres do pobrania dostępnych modeli.
@@ -37,8 +38,8 @@ Zaznacz **„Adresy usług"**, aby ręcznie podać dane serwera. W przeciwieńst
 - **Niestandardowe modele:** Wpisz ręcznie nazwę modelu (np. `llama3:8b`) dla każdego zadania.
 
 ### 1.4 Preferencje ogólne
-- **Silnik OCR:** Wybierz między **Chrome (szybki)** a **Gemini (formatowany)**, który lepiej zachowuje układ strony.
-    - *Uwaga:* Jeśli wybierzesz „Gemini (formatowany)", ale dostawcą jest np. OpenAI/Groq, dodatek automatycznie skieruje obraz do modelu rozpoznawania aktywnego dostawcy.
+- **Silnik OCR:** Wybierz między **Chrome (szybki)** dla błyskawicznych wyników a **AI (zaawansowany)** dla lepszego zachowania układu strony.
+    - *Uwaga:* Jeśli wybierzesz „AI (zaawansowany)", ale dostawcą jest OpenAI/Groq, dodatek inteligentnie skieruje obraz do modelu rozpoznawania obrazów aktywnego dostawcy.
 - **Głos TTS:** Wybierz preferowany styl głosu. Lista aktualizuje się automatycznie na podstawie aktywnego dostawcy.
 - **Kreatywność (temperatura):** Kontroluje losowość odpowiedzi AI. Niższe wartości są lepsze dla tłumaczenia i OCR.
 - **URL serwera proxy:** Skonfiguruj, jeśli usługi AI są ograniczone w twoim regionie (obsługuje lokalne proxy, np. `127.0.0.1`, oraz adresy pośredniczące).
@@ -49,23 +50,25 @@ Aby uniknąć konfliktów z innymi skrótami, dodatek korzysta z **warstwy polec
 1. Naciśnij **NVDA + Shift + V** (klawisz główny), aby aktywować warstwę (usłyszysz sygnał dźwiękowy).
 2. Puść klawisze, a następnie naciśnij jeden z poniższych:
 
-| Klawisz       | Funkcja                  | Opis                                                                        |
-|---------------|--------------------------|-----------------------------------------------------------------------------|
-| **T**         | Tłumacz                  | Tłumaczy tekst pod kursorem nawigatora lub zaznaczenie.                     |
-| **Shift + T** | Tłumaczenie schowka      | Tłumaczy zawartość schowka.                                                |
-| **R**         | Poprawianie tekstu       | Podsumuj, popraw gramatykę, wyjaśnij lub uruchom **niestandardowe polecenie**. |
-| **V**         | Opis obiektu             | Opisuje bieżący obiekt nawigatora.                                          |
-| **O**         | Rozpoznawanie ekranu     | Analizuje układ i zawartość całego ekranu.                                  |
-| **Shift + V** | Analiza wideo online     | Analizuj filmy z **YouTube**, **Instagrama**, **TikToka** lub **Twittera (X)**. |
-| **D**         | Czytnik dokumentów       | Czytnik PDF i obrazów z wyborem zakresu stron.                              |
-| **F**         | OCR pliku                | Rozpoznawanie tekstu z wybranego obrazu, PDF lub TIFF.                      |
-| **A**         | Transkrypcja audio       | Transkrybuje pliki MP3, WAV lub OGG na tekst.                              |
-| **C**         | Rozwiązywanie CAPTCHA    | Przechwytuje i rozwiązuje CAPTCHA.              |
-| **S**         | Dyktowanie               | Zamienia mowę na tekst. Naciśnij raz, aby nagrywać, ponownie, aby zakończyć.  |
-| **L**         | Raport stanu             | Odczytuje bieżący postęp (np. „Skanowanie...", „Bezczynny").               |
-| **U**         | Sprawdzanie aktualizacji | Ręcznie sprawdza najnowszą wersję dodatku na GitHubie.                     |
-| **Spacja**    | Ostatnia odpowiedź AI    | Wyświetla ostatnią odpowiedź AI w oknie czatu do przeglądu lub kontynuacji. |
-| **H**         | Pomoc poleceń            | Wyświetla listę wszystkich dostępnych skrótów w warstwie poleceń.           |
+| Klawisz       | Funkcja                       | Opis                                                                        |
+|---------------|-------------------------------|-----------------------------------------------------------------------------|
+| **Shift + A** | **Operator AI**               | **Sterowanie autonomiczne:** Powiedz AI, aby wykonała zadanie na ekranie.   |
+| **E**         | **Eksplorator interfejsu**    | **Interaktywne klikanie:** Identyfikuje i klika elementy interfejsu w dowolnej aplikacji. |
+| **T**         | Tłumacz                       | Tłumaczy tekst pod kursorem nawigatora lub zaznaczenie.                     |
+| **Shift + T** | Tłumaczenie schowka           | Tłumaczy zawartość schowka.                                                 |
+| **R**         | Poprawianie tekstu            | Podsumuj, popraw gramatykę, wyjaśnij lub uruchom **niestandardowe polecenie**. |
+| **V**         | Opis obiektu                  | Opisuje bieżący obiekt nawigatora.                                          |
+| **O**         | Rozpoznawanie ekranu          | Analizuje układ i zawartość całego ekranu.                                  |
+| **Shift + V** | Analiza wideo online          | Analizuj filmy z **YouTube**, **Instagrama**, **TikToka** lub **Twittera (X)**. |
+| **D**         | Czytnik dokumentów            | Czytnik PDF i obrazów z wyborem zakresu stron.                              |
+| **F**         | **Inteligentna akcja na pliku** | Rozpoznawanie zależne od kontekstu z wybranego obrazu, PDF lub TIFF.      |
+| **A**         | Transkrypcja audio            | Transkrybuje pliki MP3, WAV lub OGG na tekst.                               |
+| **C**         | Rozwiązywanie CAPTCHA         | Przechwytuje i rozwiązuje CAPTCHA.                                          |
+| **S**         | Dyktowanie                    | Zamienia mowę na tekst. Naciśnij raz, aby nagrywać, ponownie, aby zakończyć. |
+| **L**         | Raport stanu                  | Odczytuje bieżący postęp (np. „Skanowanie...", „Bezczynny").                |
+| **U**         | Sprawdzanie aktualizacji      | Ręcznie sprawdza najnowszą wersję dodatku na GitHubie.                      |
+| **Spacja**    | Ostatnia odpowiedź AI         | Wyświetla ostatnią odpowiedź AI w oknie czatu do przeglądu lub kontynuacji. |
+| **H**         | Pomoc poleceń                 | Wyświetla listę wszystkich dostępnych skrótów w warstwie poleceń.           |
 
 ### 2.1 Skróty czytnika dokumentów (wewnątrz przeglądarki)
 - **Ctrl + PageDown:** Przejdź do następnej strony.
@@ -98,6 +101,22 @@ Bądź na bieżąco z najnowszymi wiadomościami i aktualizacjami:
 - **GitHub Issues:** Zgłaszanie błędów i propozycje nowych funkcji.
 
 ---
+
+## Zmiany w wersji 5.5.2
+
+* **Naprawa błędu wpisywania w Operatorze AI:** Rozwiązano błąd, w którym litera „v" była wpisywana zamiast wklejania tekstu na niektórych systemach. Poprawka usuwa konflikty czasowe występujące przy dużym obciążeniu systemu.
+* **Większa stabilność:** Dodano solidną obsługę błędów dla operacji na schowku, aby zapobiec awariom dodatku, gdy schowek systemowy jest tymczasowo zablokowany przez inne aplikacje.
+* **Optymalizacja czasu reakcji:** Dostosowano wewnętrzne opóźnienia zdarzeń klawiatury w celu zapewnienia większej niezawodności na różnych prędkościach systemowych i lepszej zgodności z zewnętrznymi menedżerami schowka.
+
+## Zmiany w wersji 5.5 (Aktualizacja automatyzacji)
+
+* **Operator AI (Sterowanie autonomiczne - Shift+A):** To perła w koronie wersji 5.5. Vision Assistant Pro przeszedł z biernego asystenta w Twojego osobistego **Operatora AI**. Nie tylko opisuje ekran, lecz przejmuje sterowanie.
+    * *Jak to działa:* Możesz teraz wydawać AI instrukcje słowne, aby obsługiwała Twój komputer. Na przykład w całkowicie niedostępnej aplikacji, gdzie czytnik ekranu milczy, możesz nacisnąć **Shift+A** i wpisać: *"Kliknij przycisk Ustawienia"* lub *"Znajdź pole wyszukiwania, wpisz 'Najnowsze wiadomości' i naciśnij enter."* AI wizualnie identyfikuje elementy, przesuwa kursor i wykonuje zadanie za Ciebie.
+    * *Uwaga o wydajności:* Funkcja jest zoptymalizowana dla **Gemini 3.0 Flash (Preview)**, dostarczając niezwykle szybkich i inteligentnych odpowiedzi, które poradzą sobie nawet z najbardziej złożonymi układami interfejsu.
+    * **⚠️ Ostrzeżenie o zużyciu API:** Ponieważ Operator AI musi „widzieć" dokładnie to, co się dzieje, aby działać precyzyjnie, wysyła zrzut ekranu w wysokiej rozdzielczości na każdym kroku. Częste używanie znacznie szybciej zużyje Twój limit API niż standardowe zadania tekstowe.
+* **Wizualny Eksplorator interfejsu (E):** Zmęczony nawigacją po „nieoznaczonych przyciskach"? Naciśnij **E**, aby uruchomić Eksplorator interfejsu. AI przeskanuje całe okno i wygeneruje listę każdego klikalnego elementu, jaki widzi: ikon, grafik i menu. Wybierz element z listy, a Operator AI kliknie go za Ciebie. To jak „warstwa dostępności" nałożona na dowolną aplikację.
+* **Inteligentna akcja na pliku zależna od kontekstu (F):** Klawisz „F" został gruntownie przebudowany. Nie zakłada już, że chcesz tylko OCR. Gdy wybierzesz pojedynczy obraz, inteligentnie zapyta o Twoją intencję: możesz wybrać **Szczegółowy opis wizualny**, aby zrozumieć scenę, lub **Strukturalne wyodrębnienie tekstu (OCR)** do czytania. Menu dostosowuje się dynamicznie do typu pliku i aktywnego silnika AI.
+* **Optymalizacja rdzenia:** Wykonaliśmy głębokie czyszczenie wewnętrznej logiki dodatku, usuwając nieużywane funkcje legacy i zbędny kod. Daje to lżejsze, szybsze i bardziej niezawodne działanie dla wszystkich użytkowników.
 
 ## Zmiany w wersji 5.0
 
