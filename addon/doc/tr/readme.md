@@ -112,7 +112,28 @@ En son haberler, özellikler ve sürümlerden haberdar olun:
 * **Telegram Kanalı:** [https://t.me/VisionAssistantPro](https://t.me/VisionAssistantPro)
 * **GitHub Issues:** Hata bildirimleri ve özellik istekleri için.
 
+## 5. Proje Destekçileri
+
+Cömert mali katkılarıyla bu projenin sürekli geliştirilmesini ve sürdürülmesini destekleyen topluluk üyelerimize yürekten teşekkür ederiz:
+
+* **@Alyabani94**
+
+*Projeye finansal olarak destek olmak istiyorsanız ve adınızı burada görmek istiyorsanız, **Bağış Yap** seçeneğini NVDA Araçlar menüsünde (Profesyonel Görsel Asistan alt menüsü) veya kurulum sonrasında kurulum sürecinde bulabilirsiniz.*
+
+
 ---
+
+## 5.6 İçin Değişiklikler
+
+*   **“Yok (Metin Katmanını Ayıkla)” OCR Motoru eklendi**: Kullanıcılar artık YZ kredisi kullanmadan aranabilir PDF'lerden doğrudan metin ayıklayabilir; bu da metin tabanlı belgelerde hızı ve gizliliği önemli ölçüde artırır.
+*   **UI Gezgini Doğruluğu İyileştirildi**: UI Gezgini istemini, öğe türlerini (Liste Öğeleri gibi) daha iyi tanımlayacak ve Görev Çubuğu ve Saat gibi Windows sistem bileşenlerini yok sayarak “(İşaretli)”, “(Seçili)” veya “(Genişletilmiş)” gibi durumları doğru bir şekilde bildirecek şekilde iyileştirildi.
+*   **Kurulum Ayarları Hatırlatıcısı**: Kurulumdan sonra, kullanıcıları API anahtarlarını ve tercihlerini yapılandırmak için ayarlar menüsüne yönlendiren bir bildirim eklendi.
+
+## 5.5.2 için değişiklikler
+
+* **Yapay Zeka Operatörü Yazma Sorunu Düzeltildi:** Belirli sistemlerde metin yapıştırmak yerine 'v' harfinin yazılmasına neden olan bir hata çözüldü. Bu düzeltme, yüksek sistem yükü sırasında meydana gelen zamanlama çakışmalarını giderir.
+* **Gelişmiş Kararlılık:** Sistem panosu diğer uygulamalar tarafından geçici olarak kilitlendiğinde eklentilerin çökmesini önlemek amacıyla pano işlemlerine yönelik güçlü hata yönetimi eklendi.
+* **Zamanlama Optimizasyonu:** Farklı sistem hızlarında daha yüksek güvenilirlik ve üçüncü taraf Pano Yöneticileriyle daha iyi uyumluluk sağlamak amacıyla klavye olaylarına yönelik dahili gecikmeler ayarlandı.
 
 ## 5.5 İçin Değişiklikler (Otomasyon Güncellemesi)
 

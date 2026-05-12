@@ -199,17 +199,42 @@ def get_localized_languages():
     return lang_list
 
 BASE_LANGUAGES = get_localized_languages()
+# Translators: Option in the language list to automatically detect the source language.
 SOURCE_LIST = [(_("Auto-detect"), "auto")] + BASE_LANGUAGES
 SOURCE_NAMES = [x[0] for x in SOURCE_LIST]
 TARGET_LIST = BASE_LANGUAGES
 TARGET_NAMES = [x[0] for x in TARGET_LIST]
 TARGET_CODES = {x[0]: x[1] for x in BASE_LANGUAGES}
 
+def get_lang_name(conf_key):
+    code = config.conf["VisionAssistant"][conf_key]
+    if code == "auto":
+        return "Auto-detect"
+    return languageHandler.getLanguageDescription(code) or "English"
+
+def migrate_language_config():
+    changed = False
+    lang_keys = ["source_language", "target_language", "ai_response_language"]
+    
+    name_to_code_map = {name: code for name, code in TARGET_CODES.items()}
+    name_to_code_map["Auto-detect"] = "auto"
+    name_to_code_map[_("Auto-detect")] = "auto"
+
+    for key in lang_keys:
+        val = config.conf["VisionAssistant"].get(key)
+        if val in name_to_code_map:
+            config.conf["VisionAssistant"][key] = name_to_code_map[val]
+            changed = True
+            
+    return changed
+
 OCR_ENGINES = [
     # Translators: OCR Engine option (Fast but less formatted)
     (_("Chrome (Fast)"), "chrome"),
     # Translators: OCR Engine option (Slower but better formatting/AI-driven)
-    (_("AI (Advanced)"), "gemini")
+    (_("AI (Advanced)"), "gemini"),
+    # Translators: OCR Engine option for searchable PDFs (extracts text without OCR)
+    (_("None (Extract Text Layer)"), "none")
 ]
 
 confspec = {
@@ -262,9 +287,9 @@ confspec = {
     "custom_models_list": "string(default='')",
     "proxy_url": "string(default='')",
     "ai_temperature": "float(default=0.7, min=0.0, max=2.0)",
-    "target_language": "string(default='English')",
-    "source_language": "string(default='Auto-detect')",
-    "ai_response_language": "string(default='English')",
+    "target_language": "string(default='en')",
+    "source_language": "string(default='auto')",
+    "ai_response_language": "string(default='en')",
     "smart_swap": "boolean(default=True)",
     "captcha_mode": "string(default='navigator')",
     "custom_prompts": "string(default='')",
@@ -510,12 +535,22 @@ DEFAULT_SYSTEM_PROMPTS = (
         "guardedFeatureLabel": _("UI Explorer"),
         "requiredMarkers": ["{app_name}"],
         "prompt": (
-            "Analyze this UI screenshot for the app: {app_name}. "
-            "Identify all clickable or interactive elements (buttons, icons, menu items, fields). "
-            "For each element, provide a descriptive label and its center coordinates. "
-            "Coordinates scale: 0-1000. Ignore NVDA windows.\n"
+            "You are an expert accessibility assistant. Focus ONLY on the application: {app_name}. "
+            "\n\nCRITICAL EXCLUSIONS:\n"
+            "1. Ignore the Windows Taskbar, Start Button, Clock, and System Tray icons.\n"
+            "2. Ignore any NVDA, Screen Reader, or 'Vision Assistant' dialogs.\n"
+            "\nLABELING RULES:\n"
+            "- Format: '[Type] Name (State)'.\n"
+            "- Standard Types: Button, Checkbox, Radio Button, Tab, List Item, Menu Item, Text Field, Link.\n"
+            "- Use 'Icon' ONLY for standalone graphical buttons that do not fit other categories.\n"
+            "\nSTATE DETECTION (Be strict):\n"
+            "- Use '(Checked)' or '(Unchecked)' ONLY for checkboxes and radio buttons.\n"
+            "- Use '(Selected)' ONLY if the item has a clear visual highlight/indicator compared to others.\n"
+            "- Use '(Expanded)' or '(Collapsed)' for menus or tree nodes.\n"
+            "- If an item is in a list, call it '[List Item]' not '[Icon]'.\n"
+            "\nCoordinates: Scale 0-1000. Provide center points.\n"
             "Output ONLY a valid JSON list of objects: "
-            "[{\"label\": \"Element Name\", \"x\": int, \"y\": int}, ...]"
+            "[{\"label\": \"...\", \"x\": int, \"y\": int}, ...]"
         ),
     },
     {
@@ -760,7 +795,8 @@ def migrate_prompt_config_if_needed():
                 config.conf["VisionAssistant"]["default_refine_prompts"] = (
                     json.dumps(sanitized, ensure_ascii=False) if sanitized else ""
                 )
-                changed = True
+    if migrate_language_config():
+        changed = True
 
     return changed
 
@@ -1896,6 +1932,7 @@ class AIHandler:
         p = config.conf["VisionAssistant"]["active_provider"]
         if p == "mistral":
             keys = AIHandler.get_keys("mistral")
+            # Translators: Error message shown when the user attempts an AI operation without configuring any API keys in the settings.
             if not keys: return "ERROR:" + _("No API Keys configured.")
             url = AIHandler.get_endpoint("ocr")
             is_pdf = "pdf" in mime_type.lower()
@@ -2058,6 +2095,7 @@ class UpdateManager:
                         wx.CallAfter(ui.message, msg)
         except Exception as e:
             if not silent:
+                # Translators: Error message shown when the add-on fails to check for updates. The {error} placeholder is replaced with specific error details.
                 msg = _("Update check failed: {error}").format(error=e)
                 show_error_dialog(msg)
 
@@ -2521,16 +2559,19 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         lHelper = gui.guiHelper.BoxSizerHelper(langBox, sizer=langSizer)
         # Translators: Label for Source Language selection
         self.sourceLang = lHelper.addLabeledControl(_("Source:"), wx.Choice, choices=SOURCE_NAMES)
-        try: self.sourceLang.SetSelection(SOURCE_NAMES.index(config.conf["VisionAssistant"]["source_language"]))
-        except: self.sourceLang.SetSelection(0)
+        curr_s_code = config.conf["VisionAssistant"]["source_language"]
+        s_idx = next((i for i, x in enumerate(SOURCE_LIST) if x[1] == curr_s_code), 0)
+        self.sourceLang.SetSelection(s_idx)
         # Translators: Label for Target Language selection
         self.targetLang = lHelper.addLabeledControl(_("Target:"), wx.Choice, choices=TARGET_NAMES)
-        try: self.targetLang.SetSelection(TARGET_NAMES.index(config.conf["VisionAssistant"]["target_language"]))
-        except: self.targetLang.SetSelection(0)
+        curr_t_code = config.conf["VisionAssistant"]["target_language"]
+        t_idx = next((i for i, x in enumerate(TARGET_LIST) if x[1] == curr_t_code), 0)
+        self.targetLang.SetSelection(t_idx)
         # Translators: Label for AI Response Language selection
         self.aiResponseLang = lHelper.addLabeledControl(_("AI Response:"), wx.Choice, choices=TARGET_NAMES)
-        try: self.aiResponseLang.SetSelection(TARGET_NAMES.index(config.conf["VisionAssistant"]["ai_response_language"]))
-        except: self.aiResponseLang.SetSelection(0)
+        curr_ai_code = config.conf["VisionAssistant"]["ai_response_language"]
+        ai_idx = next((i for i, x in enumerate(TARGET_LIST) if x[1] == curr_ai_code), 0)
+        self.aiResponseLang.SetSelection(ai_idx)
         # Translators: Checkbox for Smart Swap feature
         self.smartSwap = lHelper.addItem(wx.CheckBox(langBox, label=_("Smart Swap")))
         self.smartSwap.Value = config.conf["VisionAssistant"]["smart_swap"]
@@ -2558,6 +2599,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         dHelper.addItem(self.voice_sel)
         settingsSizer.Add(docSizer, 0, wx.EXPAND | wx.ALL, 5)
 
+        # Translators: Title of the settings group for Captchas
         # --- CAPTCHA Group ---
         groupLabel = _("CAPTCHA")
         capBox = wx.StaticBox(self, label=groupLabel)
@@ -3005,9 +3047,9 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
             config.conf["VisionAssistant"]["ai_temperature"] = float(self.aiTemp.GetStringSelection())
             config.conf["VisionAssistant"]["proxy_url"] = self.proxyUrl.Value.strip()
-            config.conf["VisionAssistant"]["source_language"] = SOURCE_NAMES[self.sourceLang.GetSelection()]
-            config.conf["VisionAssistant"]["target_language"] = TARGET_NAMES[self.targetLang.GetSelection()]
-            config.conf["VisionAssistant"]["ai_response_language"] = TARGET_NAMES[self.aiResponseLang.GetSelection()]
+            config.conf["VisionAssistant"]["source_language"] = SOURCE_LIST[self.sourceLang.GetSelection()][1]
+            config.conf["VisionAssistant"]["target_language"] = TARGET_LIST[self.targetLang.GetSelection()][1]
+            config.conf["VisionAssistant"]["ai_response_language"] = TARGET_LIST[self.aiResponseLang.GetSelection()][1]
             config.conf["VisionAssistant"]["smart_swap"] = self.smartSwap.Value
             config.conf["VisionAssistant"]["check_update_startup"] = self.checkUpdateStartup.Value
             config.conf["VisionAssistant"]["clean_markdown_chat"] = self.cleanMarkdown.Value
@@ -3122,7 +3164,7 @@ class RangeDialog(wx.Dialog):
             'start': self.spin_from.GetValue() - 1,
             'end': self.spin_to.GetValue() - 1,
             'translate': self.chk_trans.IsChecked(),
-            'lang': TARGET_NAMES[self.cmb_lang.GetSelection()]
+            'lang': TARGET_LIST[self.cmb_lang.GetSelection()][0]
         }
 
 class ChatDialog(wx.Dialog):
@@ -3345,7 +3387,7 @@ class DocumentViewerDialog(wx.Dialog):
             
             hbox_tts.Add(self.voice_sel, 1, wx.EXPAND)
             vbox.Add(hbox_tts, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-
+        # Translators: Label for a button to close the dialog.
         btn_close = wx.Button(panel, wx.ID_CLOSE, label=_("Close"))
         btn_close.Bind(wx.EVT_BUTTON, lambda e: self.Destroy())
         vbox.Add(btn_close, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -3387,36 +3429,73 @@ class DocumentViewerDialog(wx.Dialog):
     def _get_page_text_logic(self, page_num):
         file_path, page_idx = self.v_doc.get_page_info(page_num)
         if not file_path: return ""
+        doc = None
         try:
             doc = fitz.open(file_path)
             page = doc.load_page(page_idx)
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            img_bytes = pix.tobytes("jpg")
-            doc.close()
             
             engine = config.conf["VisionAssistant"]["ocr_engine"]
             text = None
             
-            if engine == 'gemini':
-                img_b64 = base64.b64encode(img_bytes).decode('utf-8')
-                text = AIHandler.ocr(img_b64, "image/jpeg")
-            
-            if not text or not text.strip() or engine == 'chrome':
-                text = ChromeOCREngine.recognize(img_bytes)
+            if engine == 'none':
+                blocks = page.get_text("blocks", sort=True)
+                processed_blocks = []
+                
+                for b in blocks:
+                    lines = [l.strip() for l in b[4].splitlines() if l.strip()]
+                    if not lines:
+                        continue
+                    
+                    if lines[0] == ':' and len(lines) > 1:
+                        lines[1] = lines[1] + ':'
+                        lines.pop(0)
+                    
+                    block_text = " ".join(lines)
+                    
+                    if block_text.startswith(':') and any('\u0600' <= c <= '\u06FF' for c in block_text):
+                        parts = block_text[1:].strip().split(' ', 1)
+                        if len(parts) > 1:
+                            block_text = parts[0] + ': ' + parts[1]
+                        else:
+                            block_text = parts[0] + ':'
+                            
+                    processed_blocks.append(block_text)
+                
+                text = "\n".join(processed_blocks)
+                if not text:
+                    # Translators: Message shown when a PDF has no text layer.
+                    text = _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings.")
+            else:
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img_bytes = pix.tobytes("jpg")
+                
+                if engine == 'gemini':
+                    img_b64 = base64.b64encode(img_bytes).decode('utf-8')
+                    text = AIHandler.ocr(img_b64, "image/jpeg")
+                
+                if not text or not text.strip() or engine == 'chrome':
+                    text = ChromeOCREngine.recognize(img_bytes)
+                    if not text or not text.strip():
+                        text = SmartProgrammersOCREngine.recognize(img_bytes)
+                
                 if not text or not text.strip():
-                    text = SmartProgrammersOCREngine.recognize(img_bytes)
+                    # Translators: Placeholder text when OCR fails
+                    text = _("[OCR failed. Try a different AI model or provider.]")
             
-            if not text or not text.strip():
-                # Translators: Placeholder text when OCR fails
-                text = _("[OCR failed. Try a different AI model or provider.]")
+            final_text = str(text) if text else ""
+            doc.close()
             
-            if self.do_translate and text and "[OCR failed" not in text:
+            if self.do_translate and final_text and not final_text.startswith("["):
                 if engine == 'chrome':
-                    text = GoogleTranslator.translate(text, self.target_lang)
+                    final_text = GoogleTranslator.translate(final_text, self.target_lang)
                 else:
-                    text = AIHandler.translate(text, self.target_lang)
-            return text
+                    final_text = AIHandler.translate(final_text, self.target_lang)
+            
+            return final_text
         except Exception as e:
+            if doc: 
+                try: doc.close()
+                except: pass
             log.error(f"Page processing failed: {str(e)}")
             # Translators: Error message for page processing failure
             return _("Error processing page.")
@@ -3537,6 +3616,16 @@ class DocumentViewerDialog(wx.Dialog):
         threading.Thread(target=self.gemini_scan_batch_thread, daemon=True).start()
 
     def gemini_scan_batch_thread(self):
+        engine = config.conf["VisionAssistant"]["ocr_engine"]
+        
+        if engine == 'none':
+            # Translators: Status message for local text extraction
+            msg = _("Extracting text layer...")
+            wx.CallAfter(ui.message, msg)
+            for i in range(self.start_page, self.end_page + 1):
+                self.thread_pool.submit(self.process_page_worker, i)
+            return
+
         # Translators: Message when batch scan starts
         msg = _("Batch Processing Started")
         if _vision_assistant_instance: 
@@ -3576,6 +3665,7 @@ class DocumentViewerDialog(wx.Dialog):
                     # Translators: Message when the entire batch processing fails.
                     wx.CallAfter(ui.message, _("Batch Scan Failed"))
                     for i in range(self.start_page, self.end_page + 1):
+                        # Translators: Error message shown in the document viewer when a specific page scan fails. The {err} placeholder is replaced with the error details.
                         self.page_cache[i] = _("[Scan failed: {err}]").format(err=err_msg)
                     wx.CallAfter(self.update_view)
             finally:
@@ -3856,6 +3946,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 # Translators: Error when PyMuPDF is missing
                 wx.CallAfter(wx.MessageBox, _("PyMuPDF library is missing."), "Error", wx.ICON_ERROR)
                 return
+
+            engine = config.conf["VisionAssistant"]["ocr_engine"]
+            image_extensions = ('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff')
+            has_images = any(p.lower().endswith(image_extensions) for p in paths)
+
+            if engine == 'none' and has_images:
+                # Translators: Error message shown when a user tries to use "None (Extract Text)" engine on image files.
+                msg = _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings.")
+                wx.CallAfter(gui.messageBox, msg, _("OCR Engine Error"), wx.OK | wx.ICON_ERROR)
+                return
+
             v_doc = VirtualDocument(paths)
             v_doc.scan() 
             if v_doc.total_pages == 0:
@@ -4198,7 +4299,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 "Transcribe speech. Use native script. Fix stutters. If there is no speech, "
                 "silence, or background noise only, write exactly: [[[NOSPEECH]]]"
             )
-            p = apply_prompt_template(dictation_template, [("response_lang", config.conf["VisionAssistant"]["ai_response_language"])])
+            p = apply_prompt_template(dictation_template, [("response_lang", get_lang_name("ai_response_language"))])
             
             res = AIHandler.call(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}])
             
@@ -4262,8 +4363,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _thread_translate(self, text):
         try:
             p_name = config.conf["VisionAssistant"]["active_provider"]
-            t = config.conf["VisionAssistant"]["target_language"]
-            s = config.conf["VisionAssistant"]["source_language"]
+            t = get_lang_name("target_language")
+            s = get_lang_name("source_language")
             swap = config.conf["VisionAssistant"]["smart_swap"]
             fallback = "English" if s == "Auto-detect" else s
             
@@ -4451,9 +4552,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 wc = "Audio|*.mp3;*.wav;*.ogg"
             
             if needs_file:
-                # Translators: Standard title for opening a file
                 gui.mainFrame.prePopup()
                 try:
+                    # Translators: Standard title for opening a file
                     dlg = wx.FileDialog(gui.mainFrame, _("Open"), wildcard=wc, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
                     if dlg.ShowModal() == wx.ID_OK:
                         file_paths = dlg.GetPaths()
@@ -4473,10 +4574,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self.refine_menu_dlg = None
 
     def _thread_refine(self, captured_text, custom_content, file_paths=None):
-        target_lang = config.conf["VisionAssistant"]["target_language"]
-        source_lang = config.conf["VisionAssistant"]["source_language"]
+        target_lang = get_lang_name("target_language")
+        source_lang = get_lang_name("source_language")
         smart_swap = config.conf["VisionAssistant"]["smart_swap"]
-        resp_lang = config.conf["VisionAssistant"]["ai_response_language"]
+        resp_lang = get_lang_name("ai_response_language")
         
         if file_paths and isinstance(file_paths, str):
             file_paths = [file_paths]
@@ -4676,6 +4777,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _pre_process_smart_file(self, paths):
         engine = config.conf["VisionAssistant"]["ocr_engine"]
         is_single_image = len(paths) == 1 and paths[0].lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff'))
+        
+        if engine == 'none' and any(p.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff')) for p in paths):
+            # Translators: Error message when "None" engine is used on images via F key.
+            msg = _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings.")
+            wx.CallAfter(gui.messageBox, msg, _("OCR Engine Error"), wx.OK | wx.ICON_ERROR)
+            return
+
         if is_single_image and engine == 'gemini':
             time.sleep(0.5)
             wx.CallAfter(self._ask_file_action, paths[0])
@@ -4703,6 +4811,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         choices = [_("Extract Text (OCR)"), _("Describe Image")]
         gui.mainFrame.prePopup()
         try:
+            # Translators: Instruction prompt and window title for the menu that appears when a user performs an action on a single image file.
             dlg = wx.SingleChoiceDialog(gui.mainFrame, _("Choose action:"), _("Image File"), choices)
             dlg.Raise()
             if dlg.ShowModal() == wx.ID_OK:
@@ -4710,7 +4819,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 if selection == 0:
                     v_doc = VirtualDocument([path])
                     v_doc.scan()
-                    threading.Thread(target=self._process_file_ocr, args=(v_doc, 0, 0), daemon=True).start()
+                    if v_doc.total_pages > 1:
+                        wx.CallAfter(self._show_ocr_range_dialog, v_doc)
+                    else:
+                        threading.Thread(target=self._process_file_ocr, args=(v_doc, 0, 0, False, get_lang_name("target_language")), daemon=True).start()
                 else:
                     # Translators: Status reported when an image file is being analyzed
                     self.report_status(_("Analyzing Image File..."))
@@ -4730,96 +4842,132 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             range_dlg = RangeDialog(gui.mainFrame, v_doc.total_pages)
             if range_dlg.ShowModal() == wx.ID_OK:
                 settings = range_dlg.get_settings()
-                threading.Thread(target=self._process_file_ocr, args=(v_doc, settings['start'], settings['end']), daemon=True).start()
+                threading.Thread(target=self._process_file_ocr, 
+                                 args=(v_doc, settings['start'], settings['end'], settings['translate'], settings['lang']), 
+                                 daemon=True).start()
             range_dlg.Destroy()
         finally:
             gui.mainFrame.postPopup()
 
-    def _process_file_ocr(self, v_doc, start_page, end_page):
+    def _process_file_ocr(self, v_doc, start_page, end_page, do_translate=False, target_lang=None):
+        if target_lang is None:
+            target_lang = get_lang_name("target_language")
         engine = config.conf["VisionAssistant"]["ocr_engine"]
-        target_lang = config.conf["VisionAssistant"]["target_language"]
         p = config.conf["VisionAssistant"]["active_provider"]
         
-        upload_supported = AIHandler.is_gemini()
-        if p == "custom":
-            upload_supported = config.conf["VisionAssistant"]["custom_upload_support"]
-        
+        if engine == 'none':
+            def fast_worker(page_idx):
+                try:
+                    f_path, internal_idx = v_doc.get_page_info(page_idx)
+                    doc = fitz.open(f_path)
+                    page = doc.load_page(internal_idx)
+                    blocks = page.get_text("blocks", sort=True)
+                    processed_blocks = []
+                    
+                    for b in blocks:
+                        lines = [l.strip() for l in b[4].splitlines() if l.strip()]
+                        if not lines:
+                            continue
+                        
+                        if lines[0] == ':' and len(lines) > 1:
+                            lines[1] = lines[1] + ':'
+                            lines.pop(0)
+                        
+                        block_text = " ".join(lines)
+                        
+                        if block_text.startswith(':') and any('\u0600' <= c <= '\u06FF' for c in block_text):
+                            parts = block_text[1:].strip().split(' ', 1)
+                            if len(parts) > 1:
+                                block_text = parts[0] + ': ' + parts[1]
+                            else:
+                                block_text = parts[0] + ':'
+                                
+                        processed_blocks.append(block_text)
+                    
+                    txt = "\n".join(processed_blocks)
+                    doc.close()
+                    return f"--- Page {page_idx + 1} ---\n{txt}\n" if txt else ""
+                except: return ""
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                results = list(executor.map(fast_worker, range(start_page, end_page + 1)))
+                full_text = "\n".join(filter(None, results)).strip()
+            if not full_text:
+                # Translators: Error message shown when the 'None' engine is used on image-based content or scanned PDFs.
+                wx.CallAfter(show_error_dialog, _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings."))
+                return
+            if do_translate:
+                full_text = AIHandler.translate(full_text, target_lang)
+            wx.CallAfter(self._open_doc_chat_dialog, full_text, [], full_text, full_text)
+            return
+
         # Translators: Message reported when extracting text from a file
         msg = _("Extracting Text...")
         wx.CallAfter(self.report_status, msg)
         
-        if p == "mistral" and engine == "gemini":
-            upload_path = v_doc.create_merged_pdf(start_page, end_page)
-            if not upload_path:
-                # Translators: Error message if PDF creation fails
-                wx.CallAfter(self.report_status, _("Error creating PDF."))
-                return
-            try:
-                with open(upload_path, "rb") as f:
-                    b64_data = base64.b64encode(f.read()).decode('utf-8')
-                res = AIHandler.ocr(b64_data, "application/pdf")
-            finally:
-                if os.path.exists(upload_path): os.remove(upload_path)
-            
-            if res:
-                if res.startswith("ERROR:"):
-                    # Translators: Initial status when the add-on is doing nothing
-                    wx.CallAfter(setattr, self, 'current_status', _("Idle"))
-                    wx.CallAfter(show_error_dialog, res[6:])
-                    return
-                wx.CallAfter(self._open_doc_chat_dialog, res,[], res, res)
-            return
+        upload_supported = AIHandler.is_gemini()
+        if p == "custom":
+            upload_supported = config.conf["VisionAssistant"].get("custom_upload_support", False)
 
         if engine == 'chrome' or not upload_supported:
             def page_worker(page_idx):
                 try:
-                    file_path, internal_idx = v_doc.get_page_info(page_idx)
-                    doc = fitz.open(file_path); page = doc.load_page(internal_idx)
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)); img_bytes = pix.tobytes("jpg")
+                    f_path, internal_idx = v_doc.get_page_info(page_idx)
+                    doc = fitz.open(f_path)
+                    page = doc.load_page(internal_idx)
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                    img_bytes = pix.tobytes("jpg")
                     doc.close()
+                    
                     if engine == 'chrome':
                         txt = ChromeOCREngine.recognize(img_bytes)
                     else:
                         img_b64 = base64.b64encode(img_bytes).decode('utf-8')
                         txt = AIHandler.ocr(img_b64, "image/jpeg")
+                        
                     if not txt or txt.startswith("ERROR:"): return ""
-                    if target_lang != "English": txt = AIHandler.translate(txt, target_lang)
+                    
+                    if do_translate:
+                        txt = AIHandler.translate(txt, target_lang)
                     return f"--- Page {page_idx + 1} ---\n{txt}\n"
                 except: return ""
 
             with ThreadPoolExecutor(max_workers=5) as executor:
                 results_gen = executor.map(page_worker, range(start_page, end_page + 1))
-                full_text = "\n".join(results_gen).strip()
+                full_text = "\n".join(filter(None, results_gen)).strip()
             
-            # Translators: Initial status when the add-on is doing nothing
             wx.CallAfter(setattr, self, 'current_status', _("Idle"))
             if not full_text:
-                # Translators: Error shown when OCR finds no text in the selected files
+                # Translators: Error message shown when the OCR process fails to detect any text in the file or an unknown error occurs during extraction.
                 wx.CallAfter(show_error_dialog, _("No text detected or error occurred."))
                 return
-            wx.CallAfter(self._open_doc_chat_dialog, full_text,[], full_text, full_text)
+            wx.CallAfter(self._open_doc_chat_dialog, full_text, [], full_text, full_text)
                 
         else:
             upload_path = v_doc.create_merged_pdf(start_page, end_page)
             if not upload_path:
-                # Translators: Error message if PDF creation fails
+                # Translators: Error message reported when the add-on fails to generate a temporary PDF file for document processing.
                 wx.CallAfter(self.report_status, _("Error creating PDF."))
                 return
             mime_type = "application/pdf"
             file_uri = self._upload_file_to_gemini(upload_path, mime_type)
             if not file_uri:
                 if os.path.exists(upload_path): os.remove(upload_path)
-                # Translators: Initial status when the add-on is doing nothing
                 wx.CallAfter(setattr, self, 'current_status', _("Idle"))
                 return
+
             attachments = [{'mime_type': mime_type, 'file_uri': file_uri}]
-            ocr_translate_template = get_prompt_text("ocr_document_translate")
-            p_text = apply_prompt_template(ocr_translate_template, [("target_lang", target_lang)])
+            
+            if do_translate:
+                ocr_prompt_key = "ocr_document_translate"
+                p_text = apply_prompt_template(get_prompt_text(ocr_prompt_key), [("target_lang", target_lang)])
+            else:
+                p_text = get_prompt_text("ocr_document_extract")
+            
             res = AIHandler.call(p_text, attachments=attachments)
             if os.path.exists(upload_path): os.remove(upload_path)
+            
             if res:
                 if res.startswith("ERROR:"):
-                    # Translators: Initial status when the add-on is doing nothing
                     wx.CallAfter(setattr, self, 'current_status', _("Idle"))
                     wx.CallAfter(show_error_dialog, res[6:])
                     return
@@ -4852,7 +5000,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             tones.beep(1000, 100)
 
         def doc_callback(ctx_atts, q, history, dum2):
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+            lang = get_lang_name("ai_response_language")
             system_template = get_prompt_text("document_chat_system")
             system_instr = apply_prompt_template(system_template, [("response_lang", lang)])
             
@@ -4925,7 +5073,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self.report_status(msg)
 
     def _thread_vision(self, img, w, h, m, full=False):
-        lang = config.conf["VisionAssistant"]["ai_response_language"]
+        lang = get_lang_name("ai_response_language")
         vision_key = "vision_fullscreen" if full else "vision_navigator_object"
         vision_template = get_prompt_text(vision_key)
         p = apply_prompt_template(vision_template,[
@@ -4954,7 +5102,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             with open(path, "rb") as f:
                 img_data = base64.b64encode(f.read()).decode('utf-8')
             
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+            lang = get_lang_name("ai_response_language")
             vision_template = get_prompt_text("vision_navigator_object")
             p = apply_prompt_template(vision_template, [("response_lang", lang)])
             
@@ -4994,7 +5142,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             tones.beep(1000, 100)
 
         def cb(atts, q, history, sz):
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+            lang = get_lang_name("ai_response_language")
             followup_suffix_template = get_prompt_text("vision_followup_suffix") or "Answer strictly in {response_lang}"
             followup_suffix = apply_prompt_template(followup_suffix_template, [("response_lang", lang)])
             
@@ -5070,7 +5218,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             msg = _("Uploading...")
             wx.CallAfter(self.report_status, msg)
             mime_type = get_mime_type(path)
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+            lang = get_lang_name("ai_response_language")
             audio_template = get_prompt_text("audio_transcription")
             p = apply_prompt_template(audio_template, [("response_lang", lang)])
             
@@ -5158,7 +5306,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             # Translators: Message reported when processing video link
             wx.CallAfter(self.report_status, _("Processing Video..."))
             
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+            lang = get_lang_name("ai_response_language")
             video_template = get_prompt_text("video_analysis")
             p = apply_prompt_template(video_template, [("response_lang", lang)])
 
@@ -5322,18 +5470,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             wx.MemoryDC(bmp).Blit(0, 0, w, h, wx.ScreenDC(), x, y)
             s = io.BytesIO()
             p = config.conf["VisionAssistant"]["active_provider"]
-            if p in ["groq", "mistral", "openai"]:
-                img = bmp.ConvertToImage()
-                max_dim = 1024.0
-                if w > max_dim or h > max_dim:
-                    ratio = max_dim / max(w, h)
-                    img = img.Rescale(int(w * ratio), int(h * ratio), wx.IMAGE_QUALITY_HIGH)
-                img.SetOption("quality", 80)
-                img.SaveFile(s, wx.BITMAP_TYPE_JPEG)
-                m = "image/jpeg"
-            else:
-                bmp.ConvertToImage().SaveFile(s, wx.BITMAP_TYPE_PNG)
-                m = "image/png"
+            img = bmp.ConvertToImage()
+            img.SetOption("quality", 90)
+            img.SaveFile(s, wx.BITMAP_TYPE_JPEG)
+            m = "image/jpeg"
             return base64.b64encode(s.getvalue()).decode('utf-8'), w, h, m
         except Exception as e: 
             log.error(f"Screen capture failed: {e}")
@@ -5346,18 +5486,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             wx.MemoryDC(bmp).Blit(0, 0, w, h, wx.ScreenDC(), 0, 0)
             s = io.BytesIO()
             p = config.conf["VisionAssistant"]["active_provider"]
-            if p in ["groq", "mistral", "openai"]:
-                img = bmp.ConvertToImage()
-                max_dim = 1024.0
-                if w > max_dim or h > max_dim:
-                    ratio = max_dim / max(w, h)
-                    img = img.Rescale(int(w * ratio), int(h * ratio), wx.IMAGE_QUALITY_HIGH)
-                img.SetOption("quality", 80)
-                img.SaveFile(s, wx.BITMAP_TYPE_JPEG)
-                m = "image/jpeg"
-            else:
-                bmp.ConvertToImage().SaveFile(s, wx.BITMAP_TYPE_PNG)
-                m = "image/png"
+            img = bmp.ConvertToImage()
+            img.SetOption("quality", 90)
+            img.SaveFile(s, wx.BITMAP_TYPE_JPEG)
+            m = "image/jpeg"
             return base64.b64encode(s.getvalue()).decode('utf-8'), w, h, m
         except: return None, 0, 0, ""
     
@@ -5448,6 +5580,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         except Exception as e:
             show_error_dialog(str(e))
 
+    # Translators: Script description for Input Gestures dialog.
     @scriptHandler.script(description=_("Toggles the interactive UI elements explorer."))
     def script_toggleUIExplorer(self, gesture):
         if self.toggling: self.finish()
@@ -5523,6 +5656,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             # Translators: Status message when UI Explorer stops
             self.report_status(_("UI Explorer Stopped"))
 
+    # Translators: Script description for Input Gestures dialog.
     @scriptHandler.script(description=_("Asks the AI Operator to perform an action or describe the screen."))
     def script_aiOperatorAction(self, gesture):
         if self.toggling: self.finish()
@@ -5552,7 +5686,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             max_turns = 10
             current_command = user_command
             if not self._operator_history: self._operator_history = []
-            resp_lang = config.conf["VisionAssistant"]["ai_response_language"]
+            resp_lang = get_lang_name("ai_response_language")
             fg_app = api.getForegroundObject().appModule.appName
             is_gemini = AIHandler.is_gemini()
             for turn in range(max_turns):
@@ -5563,13 +5697,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 tones.beep(800, 50)
                 system_template = get_prompt_text("ai_operator_system")
                 prompt = apply_prompt_template(system_template, [("user_command", current_command), ("response_lang", resp_lang), ("app_name", fg_app)])
+                
                 messages = []
                 for item in self._operator_history:
-                    role = item["role"]; content = item.get("content") or item.get("parts", [{}])[0].get("text", "")
-                    if is_gemini: messages.append({"role": "user" if role == "user" else "model", "parts": [{"text": content}]})
-                    else: messages.append({"role": role if role != "model" else "assistant", "content": content})
-                if is_gemini: messages.append({"role": "user", "parts": [{"text": prompt}, {"inline_data": {"mime_type": m, "data": img}}]})
-                else: messages.append({"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:{m};base64,{img}"}}]})
+                    role = item["role"]
+                    content = item.get("content") or ""
+                    if "{" in content and "explanation" in content:
+                        try:
+                            exp_match = re.search(r'"explanation":\s*"([^"]*)"', content)
+                            if exp_match:
+                                content = exp_match.group(1)
+                        except: pass
+                    if is_gemini:
+                        messages.append({"role": "user" if role == "user" else "model", "parts": [{"text": content}]})
+                    else:
+                        messages.append({"role": role if role != "model" else "assistant", "content": content})
+                
+                if is_gemini:
+                    messages.append({"role": "user", "parts": [{"text": prompt}, {"inline_data": {"mime_type": m, "data": img}}]})
+                else:
+                    messages.append({"role": "user", "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:{m};base64,{img}"}}
+                    ]})
+
                 res = AIHandler.call(messages, task="operator")
                 if not res or res.startswith("ERROR:"):
                     # Translators: Fallback error message shown in the AI Operator if the server returns an empty or invalid response.
@@ -5584,7 +5735,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 self._operator_history.append({"role": "assistant", "content": res})
                 
                 self._last_result_data = (self._open_operator_chat_dialog, (display_text, {"last_w": w, "last_h": h}))
-                
                 wx.CallAfter(ui.message, clean_markdown(display_text))
                 
                 if action_info:
@@ -5621,8 +5771,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self._operator_history = []
             for h in history:
                 role = "user" if h["role"] == "user" else "assistant"
-                text_val = h.get("content") or h.get("parts", [{}])[0].get("text", "")
-                self._operator_history.append({"role": role, "content": text_val})
+                text_val = h.get("content") or (h.get("parts", [{}])[0].get("text", "") if h.get("parts") else "")
+                if text_val and text_val != q:
+                    self._operator_history.append({"role": role, "content": text_val})
+            
             wx.CallAfter(self.vision_dlg.Close)
             threading.Thread(target=self._thread_ai_computer_use, args=(q,), daemon=True).start()
             return None, None

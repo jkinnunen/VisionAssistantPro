@@ -1,4 +1,5 @@
 # donate_dialog.py
+import os
 import addonHandler
 import gui
 import wx
@@ -9,38 +10,48 @@ class DonationDialog(gui.nvdaControls.MessageDialog):
 	TON_ADDRESS = "UQDoOOOoDYPP8eqWXVsjVyYzulY72JLZK1grPS_O2DbgVNsc"
 	USDT_ADDRESS = "TBCEdrBaYfUKKW8ZXjHxUuHrijFjWcNBsi"
 	SUPPORT_EMAIL = "visionassistantpro@proton.me"
+	GIFT_CARD_URL = "https://www.mygiftcardsupply.com/shop/itunes-gift-cards/"
 
 	def __init__(self, parent, title, message):
 		super().__init__(parent, title, message, dialogType=gui.nvdaControls.MessageDialog.DIALOG_TYPE_WARNING)
 
 	def _addButtons(self, buttonHelper):
+		# Translators: Label for the button to open a website to purchase an Apple Gift Card.
+		buyBtn = buttonHelper.addButton(self, label=_("Buy Apple Gift Card (US Region)"), name="GIFT_CARD_URL")
+		# Translators: Label for the button to copy the support email address for gift cards.
+		emailBtn = buttonHelper.addButton(self, label=_("Copy Support Email"), name="SUPPORT_EMAIL")
 		# Translators: Label for the button to copy the TON cryptocurrency wallet address.
 		tonBtn = buttonHelper.addButton(self, label=_("Copy TON Address"), name="TON_ADDRESS")
 		# Translators: Label for the button to copy the USDT (TRC20 network) wallet address.
 		usdtBtn = buttonHelper.addButton(self, label=_("Copy USDT (TRC20) Address"), name="USDT_ADDRESS")
-		# Translators: Label for the button to copy the support email address for gift cards.
-		emailBtn = buttonHelper.addButton(self, label=_("Copy Support Email"), name="SUPPORT_EMAIL")
 		
-		tonBtn.Bind(wx.EVT_BUTTON, self.onCopyAction)
-		usdtBtn.Bind(wx.EVT_BUTTON, self.onCopyAction)
-		emailBtn.Bind(wx.EVT_BUTTON, self.onCopyAction)
+		buyBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
+		emailBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
+		tonBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
+		usdtBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
 		
 		# Translators: Button to dismiss the donation dialog without taking any action.
 		cancelBtn = buttonHelper.addButton(self, id=wx.ID_CANCEL, label=_("Maybe Later"))
 		cancelBtn.Bind(wx.EVT_BUTTON, lambda evt: self.EndModal(wx.CANCEL))
 
-	def onCopyAction(self, evt):
+	def onDonateAction(self, evt):
 		try:
 			import api
 			donateBtn = evt.GetEventObject()
 			val = getattr(self, donateBtn.Name)
-			api.copyToClip(val)
 			
-			# Translators: Success message shown after an address or email is copied to the clipboard.
-			copy_msg = _("Copied to clipboard! Your support is greatly appreciated!")
-			# Translators: Title for the success message box.
-			copy_title = _("Success")
-			wx.MessageBox(copy_msg, copy_title, wx.OK | wx.ICON_INFORMATION)
+			if val.startswith("http"):
+				os.startfile(val)
+				# Translators: Message shown after the gift card website is opened.
+				msg = _("The website has been opened. Please purchase a 'US Region' card and send the code to: {email}").format(email=self.SUPPORT_EMAIL)
+				wx.MessageBox(msg, _("Information"), wx.OK | wx.ICON_INFORMATION)
+			else:
+				api.copyToClip(val)
+				# Translators: Success message shown after an address or email is copied to the clipboard.
+				copy_msg = _("Copied to clipboard! Your support is greatly appreciated!")
+				# Translators: Title for the success message box.
+				copy_title = _("Success")
+				wx.MessageBox(copy_msg, copy_title, wx.OK | wx.ICON_INFORMATION)
 		except:
 			pass
 		self.EndModal(wx.OK)
