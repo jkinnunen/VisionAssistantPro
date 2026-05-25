@@ -6178,7 +6178,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if not hasattr(self, "labels_cache"):
             return
         
-        if getattr(obj, "treeInterceptor", None):
+        if obj.windowClassName == "Internet Explorer_Server" or obj.appModule.appName.lower() in ["chrome", "msedge", "firefox", "opera", "brave"]:
             return
 
         uniqueId = self._getAppId(obj)

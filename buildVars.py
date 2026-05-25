@@ -29,7 +29,7 @@ Command Layer: Press NVDA+Shift+V, then:
 - Check Update (U)
 - Recall Last Result (Space)
 - Commands Help (H)"""),
-    addon_version="6.0.1",
+    addon_version="6.0.2",
     # Brief changelog for this version
     # Translators: what's new content for the add-on version to be shown in the add-on store
     addon_changelog=_("""## Changes for 6.0
