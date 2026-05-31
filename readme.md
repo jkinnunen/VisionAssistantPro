@@ -9,7 +9,7 @@ _This add-on was released to the community in honor of the International Day of 
 Go to **NVDA Menu > Preferences > Settings > Vision Assistant Pro**.
 
 ### 1.1 Connection Settings
-- **Provider:** Select your preferred AI service. Supported providers include **Google Gemini**, **OpenAI**, **Mistral**, **Groq**, and **Custom** (OpenAI-compatible servers like Ollama/LM Studio).
+- **Provider:** Select your preferred AI service. Supported providers include **Google Gemini**, **OpenAI**, **Mistral**, **Groq**, and **Custom** (OpenAI-compatible servers like Ollama, LM Studio, Jan.ai, or KoboldCPP).
 - **Important Note:** We strongly recommend using **Google Gemini** for the best performance and accuracy (especially for image/file analysis).
 - **API Key:** Required. You can enter multiple keys (separated by commas or new lines) for automatic rotation.
 - **Fetch Models:** After entering your API key, press this button to download the latest list of available models from the provider.
@@ -37,6 +37,21 @@ Check **"Advanced Endpoint Configuration"** to manually input server details. Un
 - **OCR/STT/TTS Endpoint URL:** Full URLs for specific services (e.g., `http://localhost:11434/v1/audio/speech`).
 - **Custom Models:** Manually type the model name (e.g., `llama3:8b`) for each task.
 
+### 1.3.1 Setup Local AI (One-Action Configuration)
+To make local, completely offline AI integration extremely simple, a dedicated **"Setup Local AI"** button is available inside the Custom Provider Settings.
+
+If you are running a local AI model server on your computer:
+1. Select **Custom** as your Provider.
+2. Press the **Setup Local AI** button.
+3. Choose your local AI engine from the accessible dialog:
+   - **Ollama** (defaulting to `http://127.0.0.1:11434`)
+   - **LM Studio** (defaulting to `http://127.0.0.1:1234`)
+   - **Jan.ai** (defaulting to `http://127.0.0.1:1337`)
+   - **KoboldCPP** (defaulting to `http://127.0.0.1:5001`)
+4. The add-on will instantly configure the correct local URL, API type, and automatically fetch your active offline models to populate the **AI Model** selection box.
+
+*Note on Network & Proxies:* This local connection engine features an advanced proxy bypass mechanism. Even if you are running an active system VPN or TUN-mode proxy, your local AI requests will bypass it completely, ensuring stable offline connections without 502 Bad Gateway errors.
+
 ### 1.4 General Preferences
 - **OCR Engine:** Choose between **Chrome (Fast)** for quick results or **AI (Advanced)** for superior layout preservation.
     - *Note:* If you select "AI (Advanced)" but your provider is set to OpenAI/Groq, the addon will intelligently route the image to your active provider's vision model.
@@ -52,7 +67,7 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 
 | Key           | Function                 | Description                                                                 |
 |---------------|--------------------------|-----------------------------------------------------------------------------|
-| **Shift + A** | **AI Operator**         | **Autonomous Operation:** Tell the AI to perform a task on your screen.      |
+| **Shift + A** | **AI Operator**         | **Autonomous Operation:** Tell the AI to perform a task on your screen. Pressing it again instantly aborts active operations. |
 | **E**         | **UI Explorer**          | **Interactive Click:** Identifies and clicks UI elements in any app.        |
 | **T**         | Smart Translator         | Translates text under navigator cursor or selection.                        |
 | **Shift + T** | Clipboard Translator     | Translates content currently in the clipboard.                              |
@@ -114,6 +129,13 @@ A heartfelt thank you to our community members who support the continuous develo
 
 
 ---
+## Changes for 6.1.0
+
+*   **Universal Local AI Integration (Setup Local AI)**: Added a new **"Setup Local AI"** button in Custom Provider Settings. Users can now automatically configure local AI engines, including **Ollama**, **LM Studio**, **Jan.ai**, and **KoboldCPP** instantly.
+*   **Intelligent Local Proxy Bypass**: Rebuilt the connection logic with an advanced proxy bypass mechanism. The add-on is now smart enough to completely bypass Windows system proxies for local loopback connections, ensuring stable local AI connections even when your VPN/TUN-mode is active.
+*   **Ultra-Stable AI Labeling (v2)**: Replaced absolute screen coordinate keys with an advanced, hybrid **Object Signature** system. Labels now rely on programmatic identifiers (UIA **AutomationId** or Win32 **ControlID**) and window-relative coordinates, making your custom labels completely resistant to window resizing, moving, monitor switching, or scaling.
+*   **Seamless Automatic Label Migration**: Upgrading is completely transparent. The add-on will automatically migrate your older legacy coordinate-based labels to the new stable fingerprint format in the background upon first focus, with zero data loss.
+
 ## Changes for 6.0
 
 *   **Introducing Semantic AI Labeling**: Users can now permanently label unnamed buttons and icons using AI. Press **L** to label the current navigator object (supporting both Tab focus and object navigation) or **Shift+L** to scan and label the entire application at once.

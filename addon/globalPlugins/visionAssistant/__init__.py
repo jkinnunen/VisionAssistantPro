@@ -190,7 +190,7 @@ _LANG_CODES = [
     "af", "ar", "bg", "bn", "bs", "ca", "cs", "da", "de", "el", 
     "en", "es", "et", "fa", "fi", "fr", "gu", "he", "hi", "hr", 
     "hu", "id", "is", "it", "ja", "kn", "ko", "lv", "lt", "ml", 
-    "mr", "ms", "nl", "no", "pa", "pl", "pt", "ro", "ru", "sk", 
+    "mr", "ms", "ne", "nl", "no", "pa", "pl", "pt", "ro", "ru", "sk", 
     "sl", "sr", "sv", "ta", "te", "th", "tr", "uk", "ur", "vi", "zh_CN", "zh_TW"
 ]
 
@@ -1029,29 +1029,40 @@ def send_ctrl_v():
     except Exception as e:
         log.debugWarning(f"send_ctrl_v failed: {e}")
 
-def get_proxy_opener():
+def get_proxy_opener(target_url=None):
     proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
-    opener = request.build_opener()
-    if proxy_url:
-        if not (proxy_url.startswith("http://") or proxy_url.startswith("https://")):
-            proxy_url = "http://" + proxy_url
-        try:
-            parsed = urlparse(proxy_url)
-            if parsed.username:
-                proxy_host = parsed.hostname
-                if parsed.port:
-                    proxy_host += f":{parsed.port}"
-                clean_proxy_url = f"{parsed.scheme}://{proxy_host}"
-                auth_str = f"{parsed.username}:{parsed.password or ''}"
-                encoded_auth = base64.b64encode(auth_str.encode()).decode()
-                handler = request.ProxyHandler({'http': clean_proxy_url, 'https': clean_proxy_url})
-                opener = request.build_opener(handler)
-                opener.addheaders.append(('Proxy-Authorization', f'Basic {encoded_auth}'))
-            else:
-                handler = request.ProxyHandler({'http': proxy_url, 'https': proxy_url})
-                opener = request.build_opener(handler)
-        except Exception as e:
-            log.error(f"Proxy Setup Failed: {e}")
+    
+    is_local = False
+    if target_url:
+        parsed_target = urlparse(target_url)
+        hostname = parsed_target.hostname or ""
+        if hostname.lower() in ["localhost", "127.0.0.1"]:
+            is_local = True
+
+    if is_local:
+        opener = request.build_opener(request.ProxyHandler({}))
+    else:
+        opener = request.build_opener()
+        if proxy_url:
+            if not (proxy_url.startswith("http://") or proxy_url.startswith("https://")):
+                proxy_url = "http://" + proxy_url
+            try:
+                parsed = urlparse(proxy_url)
+                if parsed.username:
+                    proxy_host = parsed.hostname
+                    if parsed.port:
+                        proxy_host += f":{parsed.port}"
+                    clean_proxy_url = f"{parsed.scheme}://{proxy_host}"
+                    auth_str = f"{parsed.username}:{parsed.password or ''}"
+                    encoded_auth = base64.b64encode(auth_str.encode()).decode()
+                    handler = request.ProxyHandler({'http': clean_proxy_url, 'https': clean_proxy_url})
+                    opener = request.build_opener(handler)
+                    opener.addheaders.append(('Proxy-Authorization', f'Basic {encoded_auth}'))
+                else:
+                    handler = request.ProxyHandler({'http': proxy_url, 'https': proxy_url})
+                    opener = request.build_opener(handler)
+            except Exception as e:
+                log.error(f"Proxy Setup Failed: {e}")
     opener.addheaders.append(('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'))
     return opener
 
@@ -1156,7 +1167,7 @@ def _download_temp_video(url):
                 log.error(f"Error writing temp video: {e}")
                 if os.path.exists(path):
                     try: os.remove(path)
-                    except: pass
+                    except Exception: pass
                 return None
     except Exception as e:
         log.error(f"Error downloading temp video: {e}")
@@ -1280,9 +1291,9 @@ class GoogleTranslator:
     @staticmethod
     def translate(text, target_lang):
         def _logic(key, txt, lang):
-            url = AIHandler.get_endpoint("chat")
-            if "?" not in url: url += f"?key={key}"
-            else: url += f"&key={key}"
+            base_url = AIHandler.get_base_url("gemini")
+            model = config.conf["VisionAssistant"]["model_name"]
+            url = f"{base_url}/v1beta/models/{model}:generateContent?key={key}"
             
             quick_template = get_prompt_text("translate_quick") or "Translate to {target_lang}. Output ONLY translation."
             quick_prompt = apply_prompt_template(quick_template, [("target_lang", lang)])
@@ -1648,7 +1659,7 @@ class GeminiHandler:
                             return uri
                     time.sleep(2)
                 return None 
-            except: continue 
+            except Exception: continue 
         return None
 
     @staticmethod
@@ -1757,7 +1768,7 @@ class AIHandler:
                     netloc = parsed.hostname
                     if parsed.port: netloc += f":{parsed.port}"
                     proxy_url = f"{parsed.scheme}://{netloc}"
-            except:
+            except Exception:
                 pass
 
         if provider == "gemini":
@@ -1860,7 +1871,7 @@ class AIHandler:
         try:
             import ssl
             ssl_context = ssl.create_default_context()
-            proxy_opener = get_proxy_opener()
+            proxy_opener = get_proxy_opener(url)
             proxy_opener.add_handler(request.HTTPSHandler(context=ssl_context))
             
             req = request.Request(url, method="GET")
@@ -1890,6 +1901,18 @@ class AIHandler:
                         if m_id: models_info.append((m_id, m_id))
 
                 return AIHandler.filter_models(p, models_info, task=task)
+        except error.HTTPError as e:
+            try:
+                raw_err = e.read().decode('utf-8')
+                err_json = json.loads(raw_err)
+                server_msg = err_json.get("error", {}).get("message") or err_json.get("message")
+                if server_msg:
+                    log.error(f"Fetch models failed for {p}: {server_msg}")
+                    return []
+            except Exception:
+                pass
+            log.error(f"Fetch models failed for {p}: {e}")
+            return []
         except Exception as e:
             log.error(f"Fetch models failed for {p}: {e}")
             return []
@@ -1964,7 +1987,29 @@ class AIHandler:
                 req = request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers)
                 with get_proxy_opener().open(req, timeout=180) as r:
                     res = json.loads(r.read().decode('utf-8'))
-                    return res["choices"][0]["message"]["content"]
+                    if isinstance(res, dict):
+                        if "choices" in res and res["choices"]:
+                            return res["choices"][0]["message"]["content"]
+                        elif "error" in res:
+                            err_val = res["error"]
+                            err_msg = err_val.get("message") if isinstance(err_val, dict) else str(err_val)
+                            return f"ERROR: {err_msg}"
+                        elif "message" in res:
+                            return f"ERROR: {res['message']}"
+                    return "ERROR: " + _("AI Error")
+            except error.HTTPError as e:
+
+                try:
+                    raw_err = e.read().decode('utf-8')
+                    err_json = json.loads(raw_err)
+                    server_msg = err_json.get("error", {}).get("message") or err_json.get("message")
+                    if server_msg:
+                        if key == keys[-1]: return f"ERROR: {server_msg}"
+                        continue
+                except Exception:
+                    pass
+                if key == keys[-1]: return f"ERROR: {str(e)}"
+                continue
             except Exception as e:
                 if key == keys[-1]: return f"ERROR: {str(e)}"
                 continue
@@ -2145,8 +2190,13 @@ class UpdateManager:
         try:
             parts1 = [int(x) for x in v1.split('.')]
             parts2 = [int(x) for x in v2.split('.')]
+            
+            max_len = max(len(parts1), len(parts2))
+            parts1.extend([0] * (max_len - len(parts1)))
+            parts2.extend([0] * (max_len - len(parts2)))
+            
             return (parts1 > parts2) - (parts1 < parts2)
-        except: return 0 if v1 == v2 else 1
+        except Exception: return 0 if v1 == v2 else 1
 
     def _prompt_update(self, version, url, changes):
         gui.mainFrame.prePopup()
@@ -2274,7 +2324,7 @@ class VisionQADialog(wx.Dialog):
 
     def process_question(self, question):
         result_tuple = self.callback_fn(self.context_data, question, self.chat_history, self.extra_info)
-        response_text, _ = result_tuple
+        response_text, _unused = result_tuple
         if response_text:
             if response_text.startswith("ERROR:"):
                 wx.CallAfter(show_error_dialog, response_text[6:])
@@ -2394,7 +2444,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         curr_p = config.conf["VisionAssistant"]["active_provider"]
         try:
             self.provider_sel.SetSelection(next(i for i, x in enumerate(providers) if x[1] == curr_p))
-        except: self.provider_sel.SetSelection(0)
+        except Exception: self.provider_sel.SetSelection(0)
         self.provider_sel.Bind(wx.EVT_CHOICE, self.onProviderChange)
 
         # Translators: Label for API Key input
@@ -2417,7 +2467,12 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         # Translators: Static box title for custom AI provider settings
         self.customBox = wx.StaticBox(self.connectionBox, label=_("Custom Provider Settings"))
         self.customSizer = wx.StaticBoxSizer(self.customBox, wx.VERTICAL)
-        
+
+        # Translators: Button label to automatically configure local AI engines (Ollama, LM Studio, etc.)
+        self.btn_setup_local_ai = wx.Button(self.customBox, label=_("Setup Local AI"))
+        self.btn_setup_local_ai.Bind(wx.EVT_BUTTON, self.onSetupLocalAI)
+        self.customSizer.Add(self.btn_setup_local_ai, 0, wx.ALL, 5)
+
         # Translators: Label for Custom API URL input
         self.customSizer.Add(wx.StaticText(self.customBox, label=_("API URL:")), 0, wx.ALL, 2)
         self.customUrl = wx.TextCtrl(self.customBox, value=config.conf["VisionAssistant"]["custom_api_url"])
@@ -2631,7 +2686,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         try:
             o_idx = next(i for i, v in enumerate(OCR_ENGINES) if v[1] == curr_ocr)
             self.ocr_sel.SetSelection(o_idx)
-        except: self.ocr_sel.SetSelection(0)
+        except Exception: self.ocr_sel.SetSelection(0)
 
         # Translators: Label for the OCR batch size setting. Set to 0 to process all pages in a single request.
         batch_label = _("OCR Batch Size (Pages per request, 0 to disable):")
@@ -2830,6 +2885,78 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
     def onCustomTypeChange(self, event):
         self.updateCustomFieldsVisibility("custom")
+
+    def onSetupLocalAI(self, event):
+        # Translators: Title of the local AI setup dialog
+        title = _("Setup Local AI")
+        # Translators: Prompt message to select local AI engine
+        msg = _("Select the local AI engine you are running:")
+        choices = [
+            "Ollama (http://127.0.0.1:11434)",
+            "LM Studio (http://127.0.0.1:1234)",
+            "Jan.ai (http://127.0.0.1:1337)",
+            "KoboldCPP (http://127.0.0.1:5001)"
+        ]
+        
+        gui.mainFrame.prePopup()
+        try:
+            with wx.SingleChoiceDialog(self, msg, title, choices) as dlg:
+                if dlg.ShowModal() != wx.ID_OK:
+                    return
+                idx = dlg.GetSelection()
+        finally:
+            gui.mainFrame.postPopup()
+            
+        ports = ["11434", "1234", "1337", "5001"]
+        url = f"http://127.0.0.1:{ports[idx]}"
+        
+        # Translators: Progress message shown when testing connection to local AI
+        ui.message(_("Connecting to Local AI..."))
+        
+        def worker():
+            try:
+                endpoint = f"{url}/api/tags" if idx == 0 else f"{url}/v1/models"
+                
+                opener = get_proxy_opener(endpoint)
+                req = request.Request(endpoint, method="GET")
+                with opener.open(req, timeout=15) as r:
+                    res_body = r.read().decode('utf-8')
+                    data = json.loads(res_body)
+                    
+                models_info = []
+                if idx == 0:
+                    if "models" in data and isinstance(data["models"], list):
+                        for m in data["models"]:
+                            name = m.get("name")
+                            if name:
+                                models_info.append((name, name))
+                else:
+                    if "data" in data and isinstance(data["data"], list):
+                        for m in data["data"]:
+                            m_id = m.get("id")
+                            if m_id:
+                                models_info.append((m_id, m_id))
+                                
+                wx.CallAfter(self._onSetupLocalAISuccess, url, models_info)
+            except Exception:
+                # Translators: Error message when connection to local AI fails
+                err_msg = _("Could not connect to the selected local AI. Make sure it is running on {url}").format(url=url)
+                wx.CallAfter(self._onSetupLocalAIFail, err_msg)
+                
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _onSetupLocalAISuccess(self, url, models_info):
+        self.customUrl.SetValue(url)
+        self.customType.SetSelection(0)
+        self.customUploadSupport.SetValue(False)
+        
+        self._on_fetch_models_complete("custom", models_info)
+        
+        # Translators: Announcement message when local AI setup succeeds
+        ui.message(_("Local AI configured successfully!"))
+
+    def _onSetupLocalAIFail(self, err_msg):
+        wx.MessageBox(err_msg, _("Error"), wx.OK | wx.ICON_ERROR)
 
     def onFetchModels(self, event):
         p_idx = self.provider_sel.GetSelection()
@@ -3429,13 +3556,13 @@ class DocumentViewerDialog(wx.Dialog):
             try:
                 v_idx = next(i for i, v in enumerate(voices) if v[0] == curr_voice)
                 self.voice_sel.SetSelection(v_idx)
-            except: self.voice_sel.SetSelection(0)
+            except Exception: self.voice_sel.SetSelection(0)
             
             hbox_tts.Add(self.voice_sel, 1, wx.EXPAND)
             vbox.Add(hbox_tts, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         # Translators: Label for a button to close the dialog.
         btn_close = wx.Button(panel, wx.ID_CLOSE, label=_("Close"))
-        btn_close.Bind(wx.EVT_BUTTON, lambda e: self.Destroy())
+        btn_close.Bind(wx.EVT_BUTTON, self.on_close)
         vbox.Add(btn_close, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         
         panel.SetSizer(vbox)
@@ -3452,8 +3579,15 @@ class DocumentViewerDialog(wx.Dialog):
             
         self.SetAcceleratorTable(wx.AcceleratorTable(accel_list))
         self.cmb_pages.SetSelection(0)
+        
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+        
         self.update_view()
         self.txt_content.SetFocus()
+
+    def on_close(self, event):
+        self.thread_pool.shutdown(wait=False)
+        self.Destroy()
 
     def start_auto_processing(self):
         engine = config.conf["VisionAssistant"]["ocr_engine"]
@@ -3462,6 +3596,33 @@ class DocumentViewerDialog(wx.Dialog):
         else:
             for i in range(self.start_page, self.end_page + 1):
                 self.thread_pool.submit(self.process_page_worker, i)
+
+    @staticmethod
+    def _extract_text_layer_from_page(page):
+        blocks = page.get_text("blocks", sort=True)
+        processed_blocks = []
+        
+        for b in blocks:
+            lines = [l.strip() for l in b[4].splitlines() if l.strip()]
+            if not lines:
+                continue
+            
+            if lines[0] == ':' and len(lines) > 1:
+                lines[1] = lines[1] + ':'
+                lines.pop(0)
+            
+            block_text = " ".join(lines)
+            
+            if block_text.startswith(':') and any('\u0600' <= c <= '\u06FF' for c in block_text):
+                parts = block_text[1:].strip().split(' ', 1)
+                if len(parts) > 1:
+                    block_text = parts[0] + ': ' + parts[1]
+                else:
+                    block_text = parts[0] + ':'
+                    
+            processed_blocks.append(block_text)
+        
+        return "\n".join(processed_blocks)
 
     def process_page_worker(self, page_num):
         if page_num in self.page_cache: return
@@ -3484,30 +3645,7 @@ class DocumentViewerDialog(wx.Dialog):
             text = None
             
             if engine == 'none':
-                blocks = page.get_text("blocks", sort=True)
-                processed_blocks = []
-                
-                for b in blocks:
-                    lines = [l.strip() for l in b[4].splitlines() if l.strip()]
-                    if not lines:
-                        continue
-                    
-                    if lines[0] == ':' and len(lines) > 1:
-                        lines[1] = lines[1] + ':'
-                        lines.pop(0)
-                    
-                    block_text = " ".join(lines)
-                    
-                    if block_text.startswith(':') and any('\u0600' <= c <= '\u06FF' for c in block_text):
-                        parts = block_text[1:].strip().split(' ', 1)
-                        if len(parts) > 1:
-                            block_text = parts[0] + ': ' + parts[1]
-                        else:
-                            block_text = parts[0] + ':'
-                            
-                    processed_blocks.append(block_text)
-                
-                text = "\n".join(processed_blocks)
+                text = self._extract_text_layer_from_page(page)
                 if not text:
                     # Translators: Message shown when a PDF has no text layer.
                     text = _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings.")
@@ -3541,7 +3679,7 @@ class DocumentViewerDialog(wx.Dialog):
         except Exception as e:
             if doc: 
                 try: doc.close()
-                except: pass
+                except Exception: pass
             log.error(f"Page processing failed: {str(e)}")
             # Translators: Error message for page processing failure
             return _("Error processing page.")
@@ -3711,7 +3849,7 @@ class DocumentViewerDialog(wx.Dialog):
             finally:
                 if upload_path and os.path.exists(upload_path):
                     try: os.remove(upload_path)
-                    except: pass
+                    except Exception: pass
 
         if _vision_assistant_instance: 
             wx.CallAfter(setattr, _vision_assistant_instance, 'current_status', _("Idle"))
@@ -3757,8 +3895,11 @@ class DocumentViewerDialog(wx.Dialog):
         # Translators: Message while gathering text
         wx.CallAfter(ui.message, _("Gathering text for audio..."))
         for i in range(self.start_page, self.end_page + 1):
-            while i not in self.page_cache: time.sleep(0.1)
-            full_text.append(self.page_cache[i])
+            wait_count = 0
+            while i not in self.page_cache and wait_count < 600:
+                time.sleep(0.1)
+                wait_count += 1
+            full_text.append(self.page_cache.get(i, _("[Processing timeout]")))
         final_text = "\n".join(full_text).strip()
         if not final_text: return
         wx.CallAfter(self._save_tts, final_text)
@@ -3835,7 +3976,7 @@ class DocumentViewerDialog(wx.Dialog):
             ChatDialog.instance.Raise()
             ChatDialog.instance.SetFocus()
             return
-        file_path, _ = self.v_doc.get_page_info(self.current_page)
+        file_path, _unused = self.v_doc.get_page_info(self.current_page)
         if file_path: 
             dlg = ChatDialog(self, file_path)
             dlg.Show()
@@ -3856,8 +3997,14 @@ class DocumentViewerDialog(wx.Dialog):
             for i in range(self.start_page, self.end_page + 1):
                 # Translators: Message showing save progress
                 wx.CallAfter(self.lbl_status.SetLabel, _("Saving Page {num}...").format(num=i+1))
-                while i not in self.page_cache: time.sleep(0.1)
-                txt = self.page_cache[i]
+                
+                wait_count = 0
+                while i not in self.page_cache and wait_count < 600:
+                    time.sleep(0.1)
+                    wait_count += 1
+                    
+                txt = self.page_cache.get(i, _("[Processing timeout]"))
+                
                 if is_html:
                     h = markdown_to_html(txt)
                     if "<body>" in h: h = h.split("<body>")[1].split("</body>")[0]
@@ -3880,17 +4027,72 @@ class DocumentViewerDialog(wx.Dialog):
             wx.CallAfter(wx.MessageBox, _("Save Error: {error}").format(error=e), _("Error"), wx.ICON_ERROR)
         finally: wx.CallAfter(self.btn_save.Enable)
 
+def _generate_object_signature(obj):
+    role_type = int(getattr(obj, "role", 0))
+    unique_signature = ""
+    
+    try:
+        if hasattr(obj, "UIAElement") and obj.UIAElement.currentAutomationId:
+            unique_signature = f"uia_{obj.UIAElement.currentAutomationId}"
+    except Exception:
+        pass
+        
+    if not unique_signature:
+        try:
+            win_ctrl_id = getattr(obj, "windowControlID", None)
+            class_name = getattr(obj, "windowClassName", None)
+            if win_ctrl_id and class_name:
+                unique_signature = f"win_{class_name}_{win_ctrl_id}"
+        except Exception:
+            pass
+            
+    if not unique_signature:
+        loc = getattr(obj, "location", None)
+        if loc:
+            try:
+                handle = getattr(obj, "windowHandle", None)
+                if handle:
+                    rect = winUser.getWindowRect(handle)
+                    w_left, w_top = rect.left, rect.top
+                else:
+                    w_left, w_top = 0, 0
+            except Exception:
+                w_left, w_top = 0, 0
+            rel_x = loc.left - w_left
+            rel_y = loc.top - w_top
+            unique_signature = f"coords_{rel_x},{rel_y}"
+            
+    if not unique_signature:
+        return None
+        
+    try:
+        raw_name = obj._get_name() if hasattr(obj, '_get_name') else getattr(obj, "name", "")
+    except Exception:
+        raw_name = getattr(obj, "name", "")
+    raw_name = raw_name or ""
+    
+    return f"sig_{role_type}_{unique_signature}_{raw_name}"
+
 class CustomLabelOverlay(NVDAObjects.NVDAObject):
     @property
     def name(self):
         instance = _vision_assistant_instance
         uniqueId = instance._getAppId(self) if instance else self.appModule.appName
-        loc = self.location
-        if not loc: return super().name
-        key = f"{int(self.role)}:{loc.left},{loc.top}"
+        
+
+        key = _generate_object_signature(self)
         cache = getattr(instance, "labels_cache", {})
-        if uniqueId in cache and key in cache[uniqueId]:
-            return cache[uniqueId][key]
+        if uniqueId in cache:
+            if key and key in cache[uniqueId]:
+                return cache[uniqueId][key]
+            
+
+            loc = self.location
+            if loc:
+                old_key = f"{int(self.role)}:{loc.left},{loc.top}"
+                if old_key in cache[uniqueId]:
+                    return cache[uniqueId][old_key]
+                    
         return super().name
 
 class LabelManagerDialog(wx.Dialog):
@@ -3926,7 +4128,7 @@ class LabelManagerDialog(wx.Dialog):
             try:
                 role_id = int(k.split(':')[0])
                 role_name = controlTypes.roleLabels.get(role_id, str(role_id))
-            except:
+            except Exception:
                 role_name = "Unknown"
             self.list_ctrl.InsertItem(i, labels_dict[k])
             self.list_ctrl.SetItem(i, 1, role_name)
@@ -4137,7 +4339,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             try:
                 with open(LABELS_FILE, "r", encoding="utf-8") as f:
                     self.labels_cache = json.load(f)
-            except: pass
+            except Exception: pass
 
     def _getFocusedExplorerFile(self):
         try:
@@ -4150,8 +4352,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                         selected = win.Document.SelectedItems()
                         if selected.Count > 0:
                             return selected.Item(0).Path
-                except: continue
-        except: pass
+                except Exception: continue
+        except Exception: pass
         return None
 
     def _browse_and_run(self, worker_fn, wildcard, multiple=False):
@@ -4248,9 +4450,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             
             gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(SettingsPanel)
             
-            if LauncherDialog.instance:
-                LauncherDialog.instance.Destroy()
-        except: pass
+        except Exception: pass
         
         if hasattr(self, 'update_timer') and self.update_timer and self.update_timer.IsRunning():
             self.update_timer.Stop()
@@ -4258,12 +4458,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         for dlg in [self.refine_dlg, self.refine_menu_dlg, self.vision_dlg, self.doc_dlg, self.translation_dlg]:
             if dlg:
                 try: dlg.Destroy()
-                except: pass
+                except Exception: pass
         
         if self.is_recording:
             try:
                 ctypes.windll.winmm.mciSendStringW('close all', None, 0, 0)
-            except: pass
+            except Exception: pass
         
         self.translation_cache = {}
         self._last_source_text = None
@@ -4341,7 +4541,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     with get_proxy_opener().open(req, timeout=120) as r:
                         res = json.loads(r.read().decode())
                         return res.get("id") or res.get("name")
-                except: continue
+                except Exception: continue
             return None
 
         api_key = keys[GeminiHandler._working_key_idx % len(keys)]
@@ -4379,76 +4579,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return None
 
 
-        def _logic(key, p_or_c, atts, j_mode):
-            model = config.conf["VisionAssistant"]["model_name"]
-            proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
-            base_url = proxy_url.rstrip('/') if proxy_url else "https://generativelanguage.googleapis.com"
-            url = f"{base_url}/v1beta/models/{model}:generateContent"
-            headers = {"Content-Type": "application/json; charset=UTF-8", "x-goog-api-key": key}
-            
-            contents = []
-            if isinstance(p_or_c, list):
-                contents = p_or_c
-            else:
-                parts = []
-                for att in atts:
-                    if 'file_uri' in att:
-                        parts.append({"file_data": {"mime_type": att['mime_type'], "file_uri": att['file_uri']}})
-                    else:
-                        parts.append({"inline_data": {"mime_type": att['mime_type'], "data": att['data']}})
-                if p_or_c:
-                    parts.append({"text": p_or_c})
-                contents = [{"parts": parts}]
-                
-            data = {
-                "contents": contents,
-                "generationConfig": {"temperature": 0.0, "topK": 40},
-                "safetySettings": [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-                ]
-            }
-            if j_mode: data["generationConfig"]["response_mime_type"] = "application/json"
 
-            req = request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
-            with get_proxy_opener().open(req, timeout=600) as response:
-                if response.status == 200:
-                    res = json.loads(response.read().decode('utf-8'))
-                    if not res.get('candidates'): return None
-                    candidate = res['candidates'][0]
-                    if candidate.get('finishReason') == 'SAFETY':
-                        # Translators: Error message when AI refuses to answer due to safety guidelines
-                        return "ERROR:" + _("Error: Response blocked by AI safety filters.")
-                    content = candidate.get('content', {})
-                    parts = content.get('parts', [])
-                    if parts and 'text' in parts[0]:
-                        return parts[0]['text'].strip()
-                    return None
-
-        forced_key = None
-        if attachments:
-            for att in attachments:
-                file_uri = att.get("file_uri") if isinstance(att, dict) else None
-                registered_key = GeminiHandler._get_registered_key(file_uri)
-                if registered_key:
-                    forced_key = registered_key
-                    break
-
-        if forced_key:
-            res = GeminiHandler._call_with_key(_logic, forced_key, prompt_or_contents, attachments, json_mode)
-        else:
-            res = GeminiHandler._call_with_rotation(_logic, prompt_or_contents, attachments, json_mode)
-        
-        if isinstance(res, str) and res.startswith("ERROR:"):
-            err_msg = res[6:]
-            # Translators: Status reported when an error occurs
-            self.report_status(_("Error"))
-            show_error_dialog(err_msg)
-            return None
-            
-        return res
 
     # Translators: Script description for Input Gestures dialog
     @scriptHandler.script(description=_("Records voice, transcribes it using AI, and types the result."))
@@ -4514,7 +4645,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     wx.CallAfter(self.report_status, msg)
                     if os.path.exists(self.temp_audio_file):
                         try: os.remove(self.temp_audio_file)
-                        except: pass
+                        except Exception: pass
                     return
             except Exception as e:
                 log.debugWarning(f"Dictation duration check failed: {e}")
@@ -4553,7 +4684,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
             if os.path.exists(self.temp_audio_file):
                 try: os.remove(self.temp_audio_file)
-                except: pass
+                except Exception: pass
         except Exception as e:
             log.error(f"Dictation thread failed: {e}", exc_info=True)
             wx.CallAfter(setattr, self, 'current_status', _("Idle"))
@@ -4644,7 +4775,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             
         if self.translation_dlg:
             try: self.translation_dlg.Destroy()
-            except: pass
+            except Exception: pass
             self.translation_dlg = None
 
         def noop_callback(ctx, q, history, extra):
@@ -4675,26 +4806,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 info = focus_obj.treeInterceptor.makeTextInfo(textInfos.POSITION_SELECTION)
                 if info and info.text and not info.text.isspace():
                     return info.text
-            except: pass
+            except Exception: pass
 
         try:
             info = focus_obj.makeTextInfo(textInfos.POSITION_SELECTION)
             if info and info.text and not info.text.isspace():
                 return info.text
-        except: pass
+        except Exception: pass
 
         if isinstance(focus_obj, NVDAObjects.behaviors.EditableText):
             try:
                 info = focus_obj.makeTextInfo(textInfos.POSITION_ALL)
                 if info and info.text and not info.text.isspace():
                     return info.text
-            except: pass
+            except Exception: pass
         
         if isinstance(focus_obj, NVDAObjects.behaviors.Terminal):
             try:
                 info = focus_obj.makeTextInfo(textInfos.POSITION_ALL)
                 return info.text
-            except: pass
+            except Exception: pass
 
         try:
             obj = api.getNavigatorObject()
@@ -4710,7 +4841,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     ti = obj.makeTextInfo(textInfos.POSITION_ALL)
                     if ti.text and len(ti.text) < 2000: 
                         content.append(ti.text)
-                except: pass
+                except Exception: pass
                 
             final_text = " ".join(list(dict.fromkeys([c for c in content if c and not c.isspace()])))
             return final_text if final_text else None
@@ -4863,7 +4994,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                             if file_uri:
                                 attachments.append({'mime_type': 'application/pdf', 'file_uri': file_uri})
                             try: os.remove(upload_path)
-                            except: pass
+                            except Exception: pass
                 else:
                     for f_path in file_paths:
                         mime_type = get_mime_type(f_path)
@@ -4877,7 +5008,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                                     data = base64.b64encode(pix.tobytes("jpg")).decode('utf-8')
                                     attachments.append({'mime_type': 'image/jpeg', 'data': data})
                                 doc.close()
-                            except: pass
+                            except Exception: pass
                         else:
                             if AIHandler.is_gemini():
                                 file_uri = self._upload_file_to_gemini(f_path, mime_type)
@@ -4886,7 +5017,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                                 try:
                                     with open(f_path, "rb") as f: data = base64.b64encode(f.read()).decode('utf-8')
                                     attachments.append({'mime_type': mime_type, 'data': data})
-                                except: pass
+                                except Exception: pass
                                 
             elif "[file_read]" in prompt_text:
                 for f_path in file_paths:
@@ -4899,7 +5030,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                             with open(f_path, "rb") as f: raw = f.read()
                             txt = raw.decode('utf-8')
                             prompt_text += f"\n\nFile Content ({os.path.basename(f_path)}):\n{txt}\n"
-                        except: pass
+                        except Exception: pass
 
             elif "[file_audio]" in prompt_text:
                 for f_path in file_paths:
@@ -4911,7 +5042,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                         try:
                             with open(f_path, "rb") as f: data = base64.b64encode(f.read()).decode('utf-8')
                             attachments.append({'mime_type': mime_type, 'data': data})
-                        except: pass
+                        except Exception: pass
 
             prompt_text = prompt_text.replace("[file_ocr]", "").replace("[file_read]", "").replace("[file_audio]", "")
             
@@ -4950,7 +5081,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
         if self.refine_dlg:
             try: self.refine_dlg.Destroy()
-            except: pass
+            except Exception: pass
             
         if not is_recall:
             tones.beep(1000, 100)
@@ -5094,33 +5225,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     f_path, internal_idx = v_doc.get_page_info(page_idx)
                     doc = fitz.open(f_path)
                     page = doc.load_page(internal_idx)
-                    blocks = page.get_text("blocks", sort=True)
-                    processed_blocks = []
-                    
-                    for b in blocks:
-                        lines = [l.strip() for l in b[4].splitlines() if l.strip()]
-                        if not lines:
-                            continue
-                        
-                        if lines[0] == ':' and len(lines) > 1:
-                            lines[1] = lines[1] + ':'
-                            lines.pop(0)
-                        
-                        block_text = " ".join(lines)
-                        
-                        if block_text.startswith(':') and any('\u0600' <= c <= '\u06FF' for c in block_text):
-                            parts = block_text[1:].strip().split(' ', 1)
-                            if len(parts) > 1:
-                                block_text = parts[0] + ': ' + parts[1]
-                            else:
-                                block_text = parts[0] + ':'
-                                
-                        processed_blocks.append(block_text)
-                    
-                    txt = "\n".join(processed_blocks)
+                    txt = DocumentViewerDialog._extract_text_layer_from_page(page)
                     doc.close()
                     return f"--- Page {page_idx + 1} ---\n{txt}\n" if txt else ""
-                except: return ""
+                except Exception: return ""
             with ThreadPoolExecutor(max_workers=4) as executor:
                 results = list(executor.map(fast_worker, range(start_page, end_page + 1)))
                 full_text = "\n".join(filter(None, results)).strip()
@@ -5162,7 +5270,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     if do_translate:
                         txt = AIHandler.translate(txt, target_lang)
                     return f"--- Page {page_idx + 1} ---\n{txt}\n"
-                except: return ""
+                except Exception: return ""
 
             with ThreadPoolExecutor(max_workers=5) as executor:
                 results_gen = executor.map(page_worker, range(start_page, end_page + 1))
@@ -5235,7 +5343,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if self.doc_dlg:
             try: 
                 self.doc_dlg.Destroy()
-            except: pass
+            except Exception: pass
             self.doc_dlg = None
             
         if not is_recall:
@@ -5377,7 +5485,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
         if self.vision_dlg:
             try: self.vision_dlg.Destroy()
-            except: pass
+            except Exception: pass
             self.vision_dlg = None
             
         if not is_recall:
@@ -5605,7 +5713,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 finally:
                     if os.path.exists(temp_path):
                         try: os.remove(temp_path)
-                        except: pass
+                        except Exception: pass
 
             elif is_youtube:
                 # Translators: Message reported when analyzing YouTube video
@@ -5641,7 +5749,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         try:
             if api.getForegroundObject() and "پنجره ملی خدمات دولت هوشمند" in api.getForegroundObject().name: 
                 is_gov = True
-        except: pass
+        except Exception: pass
 
         if d:
             # Translators: Message reported by NVDA when the user triggers the CAPTCHA solving command.
@@ -5682,7 +5790,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         for char in clean_text:
             try:
                 keyboardHandler.KeyboardInputGesture.fromName(char).send()
-            except:
+            except Exception:
                 vk = winUser.user32.VkKeyScanW(ord(char)) & 0xFF
                 winUser.keybd_event(vk, 0, 0, 0)
                 winUser.keybd_event(vk, 0, 2, 0)
@@ -5733,7 +5841,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             img.SaveFile(s, wx.BITMAP_TYPE_JPEG)
             m = "image/jpeg"
             return base64.b64encode(s.getvalue()).decode('utf-8'), w, h, m
-        except: return None, 0, 0, ""
+        except Exception: return None, 0, 0, ""
     
     # Translators: Script description for Input Gestures dialog
     @scriptHandler.script(description=_("Translates the text currently in the clipboard."))
@@ -5787,7 +5895,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 gui.settingsDialogs.NVDASettingsDialog.instance = None
                 try:
                     gui.mainFrame.postPopup()
-                except:
+                except Exception:
                     pass
 
         wx.CallLater(100, _force_open)
@@ -5902,6 +6010,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @scriptHandler.script(description=_("Asks the AI Operator to perform an action or describe the screen."))
     def script_aiOperatorAction(self, gesture):
         if self.toggling: self.finish()
+        
+        if getattr(self, "_is_operator_running", False):
+            self._abort_operator = True
+            self._is_operator_running = False
+            # Translators: Announcement when the AI Operator is manually stopped
+            ui.message(_("AI Operator stopped."))
+            tones.beep(300, 150)
+            return
+
         def show_cmd_dialog():
             gui.mainFrame.prePopup()
             # Translators: Title and message for AI Operator command dialog
@@ -5924,6 +6041,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         wx.CallAfter(show_cmd_dialog)
 
     def _thread_ai_computer_use(self, user_command):
+        self._abort_operator = False
+        self._is_operator_running = True
         try:
             max_turns = 10
             current_command = user_command
@@ -5932,10 +6051,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             fg_app = api.getForegroundObject().appModule.appName
             is_gemini = AIHandler.is_gemini()
             for turn in range(max_turns):
-                if turn > 0: time.sleep(3.5)
+                if getattr(self, "_abort_operator", False):
+                    break
+                
+                if turn > 0:
+                    for i in range(35):
+                        if getattr(self, "_abort_operator", False):
+                            break
+                        time.sleep(0.1)
+                    if getattr(self, "_abort_operator", False):
+                        break
+
                 time.sleep(0.5)
+                if getattr(self, "_abort_operator", False):
+                    break
+                
                 img, w, h, m = self._capture_fullscreen()
                 if not img: break
+                if getattr(self, "_abort_operator", False):
+                    break
+                
                 tones.beep(800, 50)
                 system_template = get_prompt_text("ai_operator_system")
                 prompt = apply_prompt_template(system_template, [("user_command", current_command), ("response_lang", resp_lang), ("app_name", fg_app)])
@@ -5949,7 +6084,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                             exp_match = re.search(r'"explanation":\s*"([^"]*)"', content)
                             if exp_match:
                                 content = exp_match.group(1)
-                        except: pass
+                        except Exception: pass
                     if is_gemini:
                         messages.append({"role": "user" if role == "user" else "model", "parts": [{"text": content}]})
                     else:
@@ -5969,6 +6104,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     wx.CallAfter(show_error_dialog, res[6:] if res else _("AI Error"))
                     break
                 
+                if getattr(self, "_abort_operator", False):
+                    break
+                    
                 display_text, is_finished, action_info = self._process_ai_action_logic(res, w, h)
                 
                 # Translators: Internal history label for user actions in operator sessions
@@ -5980,7 +6118,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 wx.CallAfter(ui.message, clean_markdown(display_text))
                 
                 if action_info:
-                    time.sleep(2.0)
+                    if getattr(self, "_abort_operator", False):
+                        break
+                    for i in range(20):
+                        if getattr(self, "_abort_operator", False):
+                            break
+                        time.sleep(0.1)
+                    if getattr(self, "_abort_operator", False):
+                        break
+                        
                     act, rx, ry, txt_val, p_ent = action_info
                     if act == "type" and txt_val:
                         self._do_type(rx, ry, txt_val, p_ent)
@@ -5994,9 +6140,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     if not config.conf["VisionAssistant"]["skip_chat_dialog"]:
                         wx.CallAfter(self._open_operator_chat_dialog, display_text, {"last_w": w, "last_h": h})
                     break
+                
+                if getattr(self, "_abort_operator", False):
+                    break
                 time.sleep(2.5)             
                 current_command = "The action was initiated. Continue if necessary."
         finally:
+            self._is_operator_running = False
+            self._abort_operator = False
             # Translators: Initial status when the add-on is doing nothing
             self.current_status = _("Idle")
 
@@ -6006,7 +6157,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         if self.vision_dlg:
             try: self.vision_dlg.Destroy()
-            except: pass
+            except Exception: pass
             self.vision_dlg = None
 
         def operator_callback(ctx, q, history, extra):
@@ -6044,7 +6195,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                         if json_match:
                             data = json.loads(json_match.group(0))
                             content_only = data.get("explanation", "")
-                except: pass
+                except Exception: pass
                 if not content_only: 
                     content_only = re.sub(r'\{.*\}', '', content, flags=re.DOTALL).strip()
                 if "Windows operator" not in content and content_only:
@@ -6077,7 +6228,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     is_finished = data.get("finished", False)
                     explanation = data.get("explanation", clean_text)
                     t_val = data.get("text", "")
-                except:
+                except Exception:
                     x_m = re.search(r'"x":\s*(\d+)', json_str)
                     y_m = re.search(r'"y":\s*(\d+)', json_str) or re.search(r'"x":\s*\d+,\s*(\d+)', json_str)
                     x = int(x_m.group(1)) if x_m else None
@@ -6098,7 +6249,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 return explanation, is_finished, action_info
             else:
                 return clean_text, True, None
-        except:
+        except Exception:
             return clean_text, True, None
 
     def _do_mouse_action(self, x, y, action_type):
@@ -6124,7 +6275,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         time.sleep(0.05)
         winUser.keybd_event(0x23, 0, 1 | 2, 0)
         time.sleep(0.1)
-        for _ in range(30):
+        for _unused in range(30):
             winUser.keybd_event(0x08, 0, 0, 0)
             winUser.keybd_event(0x08, 0, 2, 0)
             time.sleep(0.01)
@@ -6132,7 +6283,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         old_clip_data = None
         try:
             old_clip_data = api.getClipData()
-        except: pass
+        except Exception: pass
 
         clean_text = text.replace('\n', '').strip()
         
@@ -6157,7 +6308,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         if old_clip_data:
             try:
                 api.copyToClip(old_clip_data)
-            except: pass
+            except Exception: pass
         
         if press_enter:
             time.sleep(0.5)
@@ -6171,25 +6322,47 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 fg = api.getForegroundObject()
                 if fg and fg.name:
                     return f"{appName}_{fg.name}"
-            except: pass
+            except Exception: pass
         return appName
+
+
 
     def chooseNVDAObjectOverlayClasses(self, obj, clsList):
         if not hasattr(self, "labels_cache"):
             return
         
-        if obj.windowClassName == "Internet Explorer_Server" or obj.appModule.appName.lower() in ["chrome", "msedge", "firefox", "opera", "brave"]:
+        app_module = getattr(obj, "appModule", None)
+        if not app_module:
+            return
+            
+        app_name = app_module.appName.lower()
+        if app_name in ["chrome", "msedge", "firefox", "opera", "brave"]:
+            return
+
+        class_name = getattr(obj, "windowClassName", None)
+        if class_name == "Internet Explorer_Server":
             return
 
         uniqueId = self._getAppId(obj)
-        loc = obj.location
-        if not loc:
+        if uniqueId not in self.labels_cache:
             return
-        
-        key = f"{int(obj.role)}:{loc.left},{loc.top}"
-        
-        if uniqueId in self.labels_cache and key in self.labels_cache[uniqueId]:
+
+        key = _generate_object_signature(obj)
+        if key and key in self.labels_cache[uniqueId]:
             clsList.insert(0, CustomLabelOverlay)
+            return
+
+        loc = getattr(obj, "location", None)
+        if loc:
+            old_key = f"{int(getattr(obj, 'role', 0))}:{loc.left},{loc.top}"
+            if old_key in self.labels_cache[uniqueId]:
+                if key:
+                    label_text = self.labels_cache[uniqueId][old_key]
+                    self.labels_cache[uniqueId][key] = label_text
+                    del self.labels_cache[uniqueId][old_key]
+                    self._save_all_labels()
+                clsList.insert(0, CustomLabelOverlay)
+                return
 
     @scriptHandler.script(
         # Translators: Script description for labeling.
@@ -6240,15 +6413,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             if res and not res.startswith("ERROR:"):
                 clean_name = clean_markdown(res)
                 if uniqueId not in self.labels_cache: self.labels_cache[uniqueId] = {}
-                self.labels_cache[uniqueId][key] = clean_name
-                self._save_all_labels()
-                tones.beep(1000, 100)
-                # Translators: Success message.
-                wx.CallAfter(ui.message, _("Labeled as: {name}").format(name=clean_name))
+                
+
+                key = _generate_object_signature(obj)
+                if key:
+                    self.labels_cache[uniqueId][key] = clean_name
+                    self._save_all_labels()
+                    tones.beep(1000, 100)
+                    # Translators: Success message.
+                    wx.CallAfter(ui.message, _("Labeled as: {name}").format(name=clean_name))
             elif res and res.startswith("ERROR:"):
                 wx.CallAfter(show_error_dialog, res[6:])
-        
-        wx.CallLater(400, lambda: threading.Thread(target=worker, daemon=True).start())
 
     @scriptHandler.script(
         # Translators: Script description for managing existing labels or starting a full app scan.
@@ -6290,7 +6465,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         try:
             with open(LABELS_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.labels_cache, f, ensure_ascii=False, indent=4)
-        except: pass
+        except Exception: pass
 
     def _batchLabelApp(self, unique_id):
         tones.beep(800, 100)
@@ -6326,7 +6501,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                     while child:
                         stack.append((child, depth + 1))
                         child = child.next
-                except: continue
+                except Exception: continue
 
             if not candidates:
                 self.current_status = _("Idle")
@@ -6377,8 +6552,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                                 best_match = cand
                         
                         if best_match:
-                            key = f"{int(best_match.role)}:{best_match.location.left},{best_match.location.top}"
-                            self.labels_cache[unique_id][key] = item['label']
+
+                            key = _generate_object_signature(best_match)
+                            if key:
+                                self.labels_cache[unique_id][key] = item['label']
                     
                     self._save_all_labels()
                     tones.beep(1000, 100)
