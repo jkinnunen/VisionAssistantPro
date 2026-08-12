@@ -5,10 +5,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 'VisionAssistant' '6.5.0'\n"
+"Project-Id-Version: 'VisionAssistant' '2026.08.06'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-"POT-Creation-Date: 2026-06-12 01:26+0330\n"
-"PO-Revision-Date: 2026-06-12 06:00+0300\n"
+"POT-Creation-Date: 2026-08-11 14:33+0330\n"
+"PO-Revision-Date: 2026-08-11 18:00+0330\n"
 "Last-Translator: Hassan AlBarshoumy <hassanalbarshoumy@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
 "Language: ar\n"
@@ -2848,3 +2848,1491 @@ msgstr ""
 "*   **إعادة محاولة المسح المجمع PDF**: تم تنفيذ منطق إعادة محاولة منفصل وصامت وعالي التحسين لمسح دفعات مستندات PDF لمنع الرفع المكرر وتجنب النوافذ المنبثقة المزعجة أثناء إعادة المحاولة.\n"
 "*   **حالة عارض المستندات**: تم إصلاح خطأ حيث كانت حالة الإضافة الإجمالية (التي يتم التحقق منها عبر `I`) تبقى عالقة على \"بدأت المعالجة المجمعة\" أثناء مسح المستندات الطويلة.\n"
 "*   **إصلاح تعطل الخيوط**: تم إصلاح تعطل حاد في تأكيد الخيط `IsMain() failed in wxTimerImpl` عند فتح المستندات من خيط خلفي عن طريق تحويل قائمة انتظار ردود GUI إلى `wx.CallAfter`."
+
+#. Translators: Log retention option: 1 hour
+#: addon\globalPlugins\visionAssistant\vision_config.py:283
+msgid "1 Hour"
+msgstr "ساعة واحدة"
+
+#. Translators: Log retention option: 3 hours
+#: addon\globalPlugins\visionAssistant\vision_config.py:285
+msgid "3 Hours"
+msgstr "3 ساعات"
+
+#. Translators: Log retention option: 6 hours
+#: addon\globalPlugins\visionAssistant\vision_config.py:287
+msgid "6 Hours"
+msgstr "6 ساعات"
+
+#. Translators: Log retention option: 12 hours
+#: addon\globalPlugins\visionAssistant\vision_config.py:289
+msgid "12 Hours"
+msgstr "12 ساعة"
+
+#. Translators: Log retention option: 24 hours (1 day)
+#: addon\globalPlugins\visionAssistant\vision_config.py:291
+msgid "24 Hours (1 Day)"
+msgstr "24 ساعة (يوم واحد)"
+
+#. Translators: Log retention option: 3 days
+#: addon\globalPlugins\visionAssistant\vision_config.py:293
+msgid "3 Days"
+msgstr "3 أيام"
+
+#. Translators: Log retention option: 7 days
+#: addon\globalPlugins\visionAssistant\vision_config.py:295
+msgid "7 Days"
+msgstr "7 أيام"
+
+#. Translators: Log retention option: 14 days
+#: addon\globalPlugins\visionAssistant\vision_config.py:297
+msgid "14 Days"
+msgstr "14 يومًا"
+
+#. Translators: Log retention option: 30 days
+#: addon\globalPlugins\visionAssistant\vision_config.py:299
+msgid "30 Days"
+msgstr "30 يومًا"
+
+#. Translators: Log retention option: 90 days
+#: addon\globalPlugins\visionAssistant\vision_config.py:301
+msgid "90 Days"
+msgstr "90 يومًا"
+
+#. Translators: Label for the general video content analysis prompt.
+#. Translators: Option to generate an Audio Description SRT file.
+#. Translators: Option for general video analysis without timestamps.
+#: addon\globalPlugins\visionAssistant\vision_config.py:417
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:258
+#: addon\globalPlugins\visionAssistant\features\video.py:84
+msgid "General Video Analysis"
+msgstr "تحليل الفيديو العام"
+
+#. Translators: Label for the Audio Description (SRT) generation prompt.
+#: addon\globalPlugins\visionAssistant\vision_config.py:485
+msgid "Audio Description Generation (SRT)"
+msgstr "توليد الوصف الصوتي (SRT)"
+
+#. Translators: Label for the local video recording analysis prompt.
+#: addon\globalPlugins\visionAssistant\vision_config.py:529
+msgid "Local Video Recording Analysis"
+msgstr "تحليل تسجيل الفيديو المحلي"
+
+#: addon\globalPlugins\visionAssistant\vision_config.py:549
+#: addon\globalPlugins\visionAssistant\vision_config.py:551
+msgid "Audio Translation"
+msgstr "ترجمة الصوت"
+
+#. Translators: Prompt Manager label for voice translation feature
+#: addon\globalPlugins\visionAssistant\vision_config.py:572
+#: addon\globalPlugins\visionAssistant\vision_config.py:574
+msgid "Voice Translation"
+msgstr "الترجمة الصوتية"
+
+#. Translators: Title for the sub-prompt that instructs the AI to describe
+#. images inline.
+#: addon\globalPlugins\visionAssistant\vision_config.py:637
+msgid "Image Description Instruction (Sub-prompt)"
+msgstr "تعليمات وصف الصورة (موجه فرعي)"
+
+#. Translators: Section header for advanced prompts in Prompt Manager.
+#. --- Advanced Group ---
+#. Translators: Title of the advanced settings tab
+#: addon\globalPlugins\visionAssistant\vision_config.py:757
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:427
+msgid "Advanced"
+msgstr "متقدم"
+
+#. Translators: Label for the advanced visual CAPTCHA solver prompt.
+#: addon\globalPlugins\visionAssistant\vision_config.py:759
+msgid "Visual CAPTCHA Solver"
+msgstr "حل الكابتشا المرئية"
+
+#. Translators: Description for the [clipboard_image] variable in the
+#. Variables Guide.
+#: addon\globalPlugins\visionAssistant\vision_config.py:807
+msgid "Image currently in clipboard"
+msgstr "صورة موجودة حاليًا في الحافظة"
+
+#: addon\globalPlugins\visionAssistant\vision_config.py:810
+msgid "Screenshot of the active foreground window"
+msgstr "لقطة شاشة للنافذة النشطة في المقدمة"
+
+#: addon\globalPlugins\visionAssistant\vision_config.py:817
+msgid "Current target language"
+msgstr "اللغة الهدف الحالية"
+
+#: addon\globalPlugins\visionAssistant\vision_config.py:818
+msgid "Current source language"
+msgstr "لغة المصدر الحالية"
+
+#: addon\globalPlugins\visionAssistant\vision_config.py:819
+msgid "Current AI response language"
+msgstr "اللغة الحالية لردود الذكاء الاصطناعي"
+
+#: addon\globalPlugins\visionAssistant\vision_config.py:820
+msgid "Fallback language for translation"
+msgstr "اللغة الاحتياطية للترجمة"
+
+#. Translators: Description for the {swap_instruction} variable in the
+#. Variables Guide.
+#: addon\globalPlugins\visionAssistant\vision_config.py:822
+msgid "Smart swap translation instruction"
+msgstr "تعليمات الترجمة الذكية للتبديل"
+
+#. Translators: Menu item for media transcription and dubbing
+#: addon\globalPlugins\visionAssistant\__init__.py:174
+msgid "Media Transcription and &Dubbing..."
+msgstr "تفريغ الوسائط و&الدبلجة..."
+
+#. Translators: Menu item for Video Analysis
+#: addon\globalPlugins\visionAssistant\__init__.py:178
+msgid "Analyze &Video..."
+msgstr "تحليل ال&فيديو..."
+
+#. Translators: Announcement when an in-progress OCR extraction is stopped by
+#. the user.
+#: addon\globalPlugins\visionAssistant\__init__.py:268
+#: addon\globalPlugins\visionAssistant\features\vision.py:1053
+msgid "OCR operation stopped."
+msgstr "تم إيقاف عملية التعرف على النص (OCR)."
+
+#. Translators: Title of the dialog asking whether to resume an OCR operation
+#. Translators: Title of the dialog asking whether to resume an OCR operation
+#. that did not finish (for example after NVDA closed unexpectedly).
+#: addon\globalPlugins\visionAssistant\__init__.py:282
+#: addon\globalPlugins\visionAssistant\features\vision.py:157
+msgid "Unfinished Operation"
+msgstr "عملية غير مكتملة"
+
+#. Translators: Message asking whether to continue an interrupted OCR
+#. extraction.
+#. Translators: Message asking whether to continue an interrupted OCR
+#. extraction. {done} is the number of pages already processed, {total} is the
+#. total number of pages, and {files} is the number of files involved.
+#: addon\globalPlugins\visionAssistant\__init__.py:284
+#: addon\globalPlugins\visionAssistant\features\vision.py:159
+msgid ""
+"You have an unfinished operation: {done} of {total} pages processed across "
+"{files} file(s). Would you like to continue from where it stopped?"
+msgstr ""
+"لديك عملية غير مكتملة: تمت معالجة {done} من {total} صفحة عبر {files} ملفًا. "
+"هل تريد المتابعة من حيث توقفت؟"
+
+#. Translators: Script description for 'Shows a list of available commands in
+#. the layer.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:394
+#: addon\globalPlugins\visionAssistant\features\audio.py:143
+msgid ""
+"Records voice, transcribes and translates it using AI, and types the result."
+msgstr ""
+"يسجل الصوت ويقوم بتفريغه وترجمته باستخدام الذكاء الاصطناعي، ثم يكتب النتيجة."
+
+#. Translators: Script description for 'Transcribes or dubs a selected media
+#. file.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:406
+#: addon\globalPlugins\visionAssistant\features\audio.py:266
+msgid "Transcribes or dubs a selected media file."
+msgstr "يفرّغ أو يدبلج ملف وسائط محدد."
+
+#. Translators: Script description for 'Analyzes a local video file or an
+#. online video URL.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:408
+#: addon\globalPlugins\visionAssistant\features\video.py:45
+msgid "Analyzes a local video file or an online video URL."
+msgstr "يحلل ملف فيديو محليًا أو رابط فيديو عبر الإنترنت."
+
+#. Translators: Script description for 'Starts or stops local video recording
+#. of the screen.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:410
+#: addon\globalPlugins\visionAssistant\features\video.py:659
+msgid "Starts or stops local video recording of the screen."
+msgstr "يبدأ أو يوقف تسجيل الفيديو المحلي للشاشة."
+
+#. Translators: Script description for 'Opens a chat dialog to directly prompt
+#. the AI with text or files.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:413
+#: addon\globalPlugins\visionAssistant\__init__.py:886
+#: addon\globalPlugins\visionAssistant\features\vision.py:1356
+msgid "Opens a chat dialog to directly prompt the AI with text or files."
+msgstr ""
+"يفتح نافذة دردشة للتواصل المباشر مع الذكاء الاصطناعي باستخدام نص أو ملفات."
+
+#. Translators: Script description for 'Opens the Vision Assistant settings
+#. dialog.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:426
+#: addon\globalPlugins\visionAssistant\__init__.py:454
+msgid "Opens the Vision Assistant settings dialog."
+msgstr "يفتح نافذة إعدادات Vision Assistant."
+
+#. Translators: Script description for 'Reports the number of Gemini API keys
+#. that have exceeded their daily quota and their reset time.' in Input
+#. Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:428
+#: addon\globalPlugins\visionAssistant\__init__.py:468
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:159
+msgid ""
+"Reports the number of Gemini API keys that have exceeded their daily quota "
+"and their reset time."
+msgstr ""
+"يُعلن عن عدد مفاتيح Gemini API التي تجاوزت حصتها اليومية ووقت إعادة تعيينها."
+
+#. Translators: Script description for 'Reports the AI models selected in
+#. advanced routing.' in Input Gestures dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:430
+#: addon\globalPlugins\visionAssistant\__init__.py:535
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:225
+msgid "Reports the AI models selected in advanced routing."
+msgstr "يُعلن عن نماذج الذكاء الاصطناعي المحددة في التوجيه المتقدم."
+
+#. Translators: Message shown when a user tries to check Gemini API quotas but
+#. another provider is active.
+#: addon\globalPlugins\visionAssistant\__init__.py:473
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:164
+msgid "This feature is only available for Google Gemini."
+msgstr "هذه الميزة متاحة فقط لـ Google Gemini."
+
+#. Translators: Message when no API keys are out of quota
+#: addon\globalPlugins\visionAssistant\__init__.py:501
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:192
+msgid "No API keys have exceeded their daily quota."
+msgstr "لا توجد مفاتيح API تجاوزت حصتها اليومية."
+
+#. Translators: Prefix for time when the daily quota resets on the next day
+#: addon\globalPlugins\visionAssistant\__init__.py:514
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:204
+msgid "tomorrow at {time}"
+msgstr "غدًا في {time}"
+
+#. Translators: Shows detailed information for a banned API key. {key} is the
+#. API key, {model} is the model name, {time_str} is the reset time.
+#: addon\globalPlugins\visionAssistant\__init__.py:516
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:206
+msgid ""
+"Key: {key}\n"
+"Model: {model}\n"
+"Resets around: {time_str}\n"
+msgstr ""
+"المفتاح: {key}\n"
+"النموذج: {model}\n"
+"يُعاد التعيين حوالي: {time_str}\n"
+
+#. Translators: Shows how many API keys have exceeded their quota for a
+#. specific model. {count} is the number of keys, {model} is the model name.
+#: addon\globalPlugins\visionAssistant\__init__.py:527
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:216
+msgid "{count} keys for model {model}"
+msgstr "{count} مفاتيح للنموذج {model}"
+
+#. Translators: Message shown when API keys run out of quota.
+#: addon\globalPlugins\visionAssistant\__init__.py:530
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:219
+msgid "have exceeded their daily quota."
+msgstr "تجاوزت حصتها اليومية."
+
+#. Translators: Title of the browseable message dialog showing exhausted API
+#. keys
+#: addon\globalPlugins\visionAssistant\__init__.py:533
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:222
+msgid "Exhausted API Keys"
+msgstr "مفاتيح API المستنفدة"
+
+#. Translators: Prefix for main model status
+#: addon\globalPlugins\visionAssistant\__init__.py:546
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:235
+msgid "Main: {model}"
+msgstr "الرئيسي: {model}"
+
+#. Translators: Abbreviation for Speech-to-Text.
+#: addon\globalPlugins\visionAssistant\__init__.py:555
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:243
+msgid "STT"
+msgstr "STT"
+
+#. Translators: Abbreviation for Text-to-Speech.
+#: addon\globalPlugins\visionAssistant\__init__.py:557
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:245
+msgid "TTS"
+msgstr "TTS"
+
+#. Translators: Message when no specific AI models are selected in advanced
+#. routing
+#: addon\globalPlugins\visionAssistant\__init__.py:565
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:252
+msgid "No specific models selected."
+msgstr "لم يتم تحديد نماذج محددة."
+
+#. Translators: Initial greeting message for the Direct Chat dialog.
+#: addon\globalPlugins\visionAssistant\__init__.py:868
+#: addon\globalPlugins\visionAssistant\features\vision.py:276
+msgid "Hello! I am Vision Assistant Pro. How can I help you today?"
+msgstr "مرحبًا! أنا Vision Assistant Pro. كيف يمكنني مساعدتك اليوم؟"
+
+#. Translators: Dialog title for Direct Chat
+#: addon\globalPlugins\visionAssistant\__init__.py:873
+#: addon\globalPlugins\visionAssistant\features\vision.py:281
+msgid "{name} - Direct Chat"
+msgstr "{name} - دردشة مباشرة"
+
+#. Translators: Status message showing the file upload progress percentage.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:150
+msgid "Uploading: {percent}%"
+msgstr "جارٍ الرفع: {percent}%"
+
+#. Translators: Note appended to the API error message when the daily
+#. RequestsPerDay quota limit is reached.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:286
+msgid " (RequestsPerDay quota exceeded)"
+msgstr " (تم تجاوز حصة RequestsPerDay اليومية)"
+
+#. Translators: Error when no API keys are found in settings
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:518
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:781
+msgid "No valid API key available or daily quota exhausted for all keys."
+msgstr ""
+"لا يوجد مفتاح API صالح متاح أو تم استنفاد الحصة اليومية لجميع المفاتيح."
+
+#. Translators: Message reported when an upload fails and the system
+#. automatically switches to the next available API key.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:664
+msgid "Upload failed. Rotating key..."
+msgstr "فشل الرفع. جارٍ تبديل المفتاح..."
+
+#. Translators: Message shown when an API rate limit is reached. {sec} is the
+#. number of seconds to wait.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:705
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:963
+msgid "Rate limit reached. Waiting {sec}s before retry..."
+msgstr "تم بلوغ حد المعدل. انتظار {sec} ثانية قبل إعادة المحاولة..."
+
+#. Translators: Status message indicating an API request retry due to a
+#. temporary error for specific pages. {error} is replaced with details,
+#. {range} is the page range, {current} and {total} are attempts.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:717
+msgid ""
+"Temporary error ({error}). Retrying API request for pages {range} (Attempt "
+"{current}/{total})..."
+msgstr ""
+"خطأ مؤقت ({error}). إعادة محاولة طلب API للصفحات {range} (المحاولة "
+"{current}/{total})..."
+
+#. Translators: Status message indicating an API request retry due to a
+#. temporary error. {error} is replaced with details, {current} and {total}
+#. are attempts.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:719
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:971
+msgid ""
+"Temporary error ({error}). Retrying on current key (Attempt "
+"{current}/{total})..."
+msgstr ""
+"خطأ مؤقت ({error}). إعادة المحاولة على المفتاح الحالي (المحاولة "
+"{current}/{total})..."
+
+#. Translators: Message reported when API quota is exhausted and the system
+#. rotates key.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:738
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:985
+msgid ""
+"Daily quota exhausted or retries failed. Rotating key and re-uploading..."
+msgstr ""
+"تم استنفاد الحصة اليومية أو فشلت إعادة المحاولة. جارٍ تبديل المفتاح وإعادة "
+"الرفع..."
+
+#. Translators: Status message indicating video upload progress with file size
+#. in MB.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:870
+msgid "Uploading to AI ({size:.1f} MB)..."
+msgstr "جارٍ الرفع إلى الذكاء الاصطناعي ({size:.1f} ميغابايت)..."
+
+#. Translators: Status message indicating video upload progress with file size
+#. in MB and retry attempt numbers.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:903
+msgid "Uploading to AI ({size:.1f} MB) (Key {current}/{total})..."
+msgstr ""
+"جارٍ الرفع إلى الذكاء الاصطناعي ({size:.1f} ميغابايت) (المفتاح "
+"{current}/{total})..."
+
+#. Translators: Message reported when a file upload fails and the system is
+#. retrying.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:909
+msgid "Upload failed. Retrying..."
+msgstr "فشل الرفع. جارٍ إعادة المحاولة..."
+
+#. Translators: Error shown internally when AI stops early
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:940
+msgid "Incomplete description. AI stopped early."
+msgstr "وصف غير مكتمل. توقف الذكاء الاصطناعي مبكرًا."
+
+#. Translators: Message reported when all available API keys have reached
+#. their usage limits.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:989
+msgid "All API keys exhausted or server unavailable."
+msgstr "تم استنفاد جميع مفاتيح API أو أن الخادم غير متاح."
+
+#. Translators: Error message shown when all API keys run out of quota or
+#. fail.
+#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:999
+msgid "All API keys failed or daily quota exhausted."
+msgstr "فشلت جميع مفاتيح API أو تم استنفاد الحصة اليومية."
+
+#. Translators: Button to attach files in a chat dialog
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:89
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:202
+msgid "&Attach File"
+msgstr "&إرفاق ملف"
+
+#. Translators: Text appended to the chat window while waiting for the AI to
+#. respond.
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:152
+msgid ""
+"\n"
+"Processing...\n"
+msgstr ""
+"\n"
+"جارٍ المعالجة...\n"
+
+#. Translators: Status when the AI is thinking in chat dialog
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:160
+msgid "Processing response..."
+msgstr "جارٍ معالجة الاستجابة..."
+
+#. Translators: Title of the file selection dialog when attaching a file to a
+#. chat.
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:166
+msgid "Select a file to attach"
+msgstr "حدد ملفًا لإرفاقه"
+
+#. Translators: Label for attach button when files are attached
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:171
+msgid "Attach File ({count})"
+msgstr "إرفاق ملف ({count})"
+
+#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:172
+msgid "File attached: {name}"
+msgstr "تم إرفاق الملف: {name}"
+
+#. Translators: Placeholder text used in document chat when the text is still
+#. being extracted or is empty.
+#: addon\globalPlugins\visionAssistant\dialogs\document.py:180
+msgid "[Text extraction in progress or empty]"
+msgstr "[جارٍ استخراج النص أو أن النص فارغ]"
+
+#. Translators: Label for the checkbox that enables image descriptions during
+#. OCR in the extraction dialog
+#: addon\globalPlugins\visionAssistant\dialogs\document.py:280
+msgid "Describe images inline during OCR"
+msgstr "وصف الصور ضمن النص أثناء التعرف على النص (OCR)"
+
+#. Translators: Error shown in the document reader when the AI returns an
+#. empty response for a batch of pages.
+#: addon\globalPlugins\visionAssistant\dialogs\document.py:823
+msgid ""
+"[Error: Empty response received from AI. Try reducing the batch size in "
+"settings or scanning page-by-page.]"
+msgstr ""
+"[خطأ: تم استلام استجابة فارغة من الذكاء الاصطناعي. جرّب تقليل حجم الدفعة في "
+"الإعدادات أو المسح صفحة بصفحة.]"
+
+#: addon\globalPlugins\visionAssistant\dialogs\document.py:830
+msgid ""
+"[Error: Page skipped during batch processing due to model output limits. Try"
+" a smaller batch size in settings.]"
+msgstr ""
+"[خطأ: تم تخطي الصفحة أثناء المعالجة المجمعة بسبب حدود إخراج النموذج. جرّب "
+"حجم دفعة أصغر في الإعدادات.]"
+
+#. Translators: Label for the button to copy the TRON cryptocurrency wallet
+#. address.
+#: addon\globalPlugins\visionAssistant\dialogs\donate.py:27
+msgid "Copy TRON Address"
+msgstr "نسخ عنوان TRON"
+
+#. Translators: Title of the dubbing options dialog
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:187
+msgid "Dubbing Options"
+msgstr "خيارات الدبلجة"
+
+#. Translators: Title of the translation options dialog
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:190
+msgid "Translation Options"
+msgstr "خيارات الترجمة"
+
+#. Translators: Title of the video analysis dialog
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:237
+msgid "{name} - Analyze Video"
+msgstr "{name} - تحليل الفيديو"
+
+#. Translators: Label instructing the user to enter a URL or browse for a
+#. local video
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:243
+msgid ""
+"Enter Video URL (YouTube, Instagram, Twitter, TikTok) or Browse for a local "
+"video:"
+msgstr ""
+"أدخل رابط الفيديو (YouTube أو Instagram أو Twitter أو TikTok) أو تصفح "
+"لاختيار فيديو محلي:"
+
+#. Translators: Button to browse for a local video file
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:251
+msgid "&Browse..."
+msgstr "ت&صفح..."
+
+#. Translators: Option to generate an Audio Description SRT file.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:258
+#: addon\globalPlugins\visionAssistant\features\video.py:86
+msgid "Generate Audio Description (SRT File)"
+msgstr "توليد الوصف الصوتي (ملف SRT)"
+
+#. Translators: Label for the video action radio box
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:262
+msgid "Action"
+msgstr "الإجراء"
+
+#. Translators: Checkbox label to add character list as the first subtitle in
+#. video SRT output.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:272
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:371
+msgid "Add character list as first subtitle"
+msgstr "إضافة قائمة الشخصيات كأول ترجمة"
+
+#. Translators: Checkbox label to add an AI warning disclaimer at the
+#. beginning of the video SRT output.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:278
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:376
+msgid "Add AI disclaimer at the beginning"
+msgstr "إضافة إخلاء مسؤولية عن الذكاء الاصطناعي في البداية"
+
+#. Translators: Filter for video files in the file dialog
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:291
+msgid "Video Files"
+msgstr "ملفات الفيديو"
+
+#. Translators: Title of the file dialog for selecting a video
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:293
+msgid "Select Local Video"
+msgstr "اختر فيديو محلي"
+
+#. Translators: Title of the progress dialog when generating SRT
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:308
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:810
+msgid "{name} - Generating Audio Description"
+msgstr "{name} - جارٍ توليد الوصف الصوتي"
+
+#. Translators: Label for the status log text box
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:322
+msgid "Process Status / Subtitle Content:"
+msgstr "حالة المعالجة / محتوى الترجمة:"
+
+#. Translators: Label for selecting the Windows TTS voice
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:329
+msgid "Narration Voice:"
+msgstr "صوت السرد:"
+
+#. Translators: Label for selecting the eSpeak voice variant
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:339
+msgid "eSpeak Voice Variant:"
+msgstr "نوع صوت eSpeak:"
+
+#. Translators: Button to download missing eSpeak-NG
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:352
+msgid "Download eSpeak-NG"
+msgstr "تنزيل eSpeak-NG"
+
+#. Translators: Label for selecting the Gemini Live TTS voice
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:366
+msgid "Gemini Voice:"
+msgstr "صوت Gemini:"
+
+#. Translators: Button to save the generated SRT file
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:386
+msgid "&Save SRT"
+msgstr "ح&فظ SRT"
+
+#. Translators: Button to generate a synced MP3 narration using offline TTS
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:391
+msgid "&Generate Synced Narration (MP3)"
+msgstr "توليد سرد &متزامن (MP3)"
+
+#. Translators: Button to regenerate the audio description
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:396
+msgid "&Regenerate"
+msgstr "إ&عادة التوليد"
+
+#. Translators: Button to close the dialog
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:401
+msgid "&Close / Cancel"
+msgstr "إ&غلاق / إلغاء"
+
+#. Translators: Status message when downloading eSpeak-NG
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:648
+msgid "Downloading eSpeak-NG, please wait..."
+msgstr "جارٍ تنزيل eSpeak-NG، يرجى الانتظار..."
+
+#. Translators: Progress message during eSpeak-NG download
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:668
+msgid "Downloading eSpeak-NG: {percent}%"
+msgstr "جارٍ تنزيل eSpeak-NG: {percent}%"
+
+#. Translators: Status message when extracting eSpeak-NG
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:674
+msgid "Extracting eSpeak-NG..."
+msgstr "جارٍ استخراج eSpeak-NG..."
+
+#. Translators: Success message after eSpeak-NG download completes
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:683
+msgid "eSpeak-NG downloaded successfully!"
+msgstr "تم تنزيل eSpeak-NG بنجاح!"
+
+#. Translators: Error message when eSpeak-NG download fails
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:690
+msgid "Failed to download eSpeak-NG: {error}"
+msgstr "فشل تنزيل eSpeak-NG: {error}"
+
+#. Translators: Option for eSpeak voice matching the user's current NVDA voice
+#. settings
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:710
+msgid "eSpeak (Current NVDA Language)"
+msgstr "eSpeak (لغة NVDA الحالية)"
+
+#. Translators: Option to use Gemini Live API for highly realistic text-to-
+#. speech
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:734
+msgid "Gemini Live TTS (Online, High Quality)"
+msgstr "Gemini Live TTS (عبر الإنترنت، جودة عالية)"
+
+#. Translators: Option for default English eSpeak voice
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:738
+msgid "eSpeak (English Default)"
+msgstr "eSpeak (الإنجليزية الافتراضية)"
+
+#. Translators: Title of the dialog when generation is successfully finished
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:783
+msgid "{name} - Audio Description Ready"
+msgstr "{name} - الوصف الصوتي جاهز"
+
+#. Translators: Success announcement when generation is complete
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:794
+msgid ""
+"Audio description generated successfully! You can read the subtitle content "
+"in the text box."
+msgstr "تم توليد الوصف الصوتي بنجاح! يمكنك قراءة محتوى الترجمة في مربع النص."
+
+#. Translators: Status message when an error occurs during SRT generation
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:800
+msgid "Error: {err}"
+msgstr "خطأ: {err}"
+
+#. Translators: Status message when restarting generation
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:819
+msgid "Re-initializing..."
+msgstr "جارٍ إعادة التهيئة..."
+
+#. Translators: File dialog title for saving the generated SRT file
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:836
+msgid "Save Audio Description"
+msgstr "حفظ الوصف الصوتي"
+
+#. Translators: Success message when SRT file is saved
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:848
+msgid "SRT file saved successfully."
+msgstr "تم حفظ ملف SRT بنجاح."
+
+#. Translators: Error when SRT parsing finds no valid subtitle blocks
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:909
+msgid "No valid subtitle blocks found in the SRT content."
+msgstr "لم يتم العثور على كتل ترجمة صالحة في محتوى SRT."
+
+#. Translators: Error when no voice is selected
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:919
+msgid "Please select an offline voice from the list."
+msgstr "يرجى تحديد صوت غير متصل من القائمة."
+
+#. Translators: Warning prompt for online videos indicating that the output
+#. will only contain narration.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:964
+msgid ""
+"Because the source is an online video, the final file will ONLY contain the "
+"AI voice narration (synced to the timestamps) and will NOT include the "
+"original background audio of the video. Do you want to proceed?"
+msgstr ""
+"نظرًا لأن المصدر فيديو عبر الإنترنت، فإن الملف النهائي سيحتوي فقط على السرد "
+"الصوتي للذكاء الاصطناعي (متزامنًا مع الطوابع الزمنية) ولن يتضمن الصوت الخلفي"
+" الأصلي للفيديو. هل تريد المتابعة؟"
+
+#. Translators: Title of the warning dialog when opening an online video link.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:966
+msgid "Online Video Mode"
+msgstr "وضع الفيديو عبر الإنترنت"
+
+#. Translators: Title of the narration mode selection dialog.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:973
+msgid "Select Narration Mode"
+msgstr "اختر وضع السرد"
+
+#. Translators: Instruction prompt for narration mode selection.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:975
+msgid "Choose how the narration should be mixed with the video audio:"
+msgstr "اختر كيفية مزج السرد مع صوت الفيديو:"
+
+#. Translators: Option for mixing voice directly over the video without
+#. pausing.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:978
+msgid "Standard AD (Mix voice directly over audio - No Pausing)"
+msgstr "الوصف الصوتي القياسي (مزج الصوت مباشرة فوق الصوت - بدون إيقاف مؤقت)"
+
+#. Translators: Option for pausing the background video audio during
+#. descriptions.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:980
+msgid "Extended AD (Pause background audio during descriptions)"
+msgstr "الوصف الصوتي الموسع (إيقاف الصوت الخلفي مؤقتًا أثناء الأوصاف)"
+
+#. Translators: Prompt asking whether to lower the background video audio
+#. during the descriptions.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:996
+msgid ""
+"Do you want to fade/duck the background video audio during the descriptions?"
+msgstr "هل تريد خفض صوت الفيديو الخلفي أثناء الأوصاف؟"
+
+#. Translators: Title for the audio ducking prompt.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:998
+msgid "Audio Ducking"
+msgstr "خفض الصوت الخلفي"
+
+#. Translators: Button label or menu item to save the generated AI audio
+#. narration synced to the video.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1010
+msgid "Save Synced Narration"
+msgstr "حفظ السرد المتزامن"
+
+#. Translators: Status message when narration generation starts
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1035
+msgid "Generating offline synced narration. This may take a few moments..."
+msgstr "جارٍ توليد السرد المتزامن دون اتصال. قد يستغرق ذلك بضع لحظات..."
+
+#. Translators: Status message shown when extracting the original video audio
+#. tracks.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1147
+msgid "Extracting original video audio..."
+msgstr "جارٍ استخراج الصوت الأصلي للفيديو..."
+
+#. Translators: Error message shown when extraction of the video's original
+#. audio fails.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1165
+msgid "Failed to extract video audio."
+msgstr "فشل استخراج صوت الفيديو."
+
+#. Translators: Status message shown when analyzing the video's audio to
+#. detect periods of silence.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1174
+msgid "Analyzing video for natural silences..."
+msgstr "جارٍ تحليل الفيديو بحثًا عن فترات الصمت الطبيعية..."
+
+#. Translators: Status message shown when starting connection to Gemini Live
+#. API
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1288
+msgid "Connecting to Gemini Live API..."
+msgstr "جارٍ الاتصال بـ Gemini Live API..."
+
+#. Translators: Error message shown when connection to Gemini Live API fails
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1291
+msgid "Failed to connect to Gemini Live API."
+msgstr "فشل الاتصال بـ Gemini Live API."
+
+#. Translators: Progress message during narration generation. {current} is the
+#. current block number, {total} is total blocks.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1310
+msgid "Generating narration: part {current} of {total}..."
+msgstr "جارٍ توليد السرد: الجزء {current} من {total}..."
+
+#. Translators: Status message when combining audio blocks
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1435
+msgid "Arranging audio track... Please wait."
+msgstr "جارٍ ترتيب المسار الصوتي... يرجى الانتظار."
+
+#. Translators: Status message when mixing generated narration with original
+#. video audio
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1492
+msgid "Mixing narration with original video audio..."
+msgstr "جارٍ مزج السرد مع الصوت الأصلي للفيديو..."
+
+#. Translators: Status message when slicing and splicing the audio file with
+#. natural pauses.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1515
+msgid "Splicing audio based on natural pauses..."
+msgstr "جارٍ تركيب الصوت بناءً على فترات التوقف الطبيعية..."
+
+#. Translators: Status message shown when converting the final raw WAV mix to
+#. MP3 format.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1561
+msgid "Converting final audio to MP3..."
+msgstr "جارٍ تحويل الصوت النهائي إلى MP3..."
+
+#. Translators: Message spoken on successful save of the synced narration.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1578
+msgid "Synced extended narration with silence detection saved successfully."
+msgstr "تم حفظ السرد الموسع المتزامن مع اكتشاف الصمت بنجاح."
+
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1579
+msgid ""
+"Synced extended audio narration file generated successfully with smart "
+"silence matching."
+msgstr "تم توليد ملف السرد الصوتي الموسع المتزامن بنجاح مع مطابقة ذكية للصمت."
+
+#. Translators: Error message shown when the final MP3 conversion fails.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1582
+msgid "Failed to generate the final MP3 file."
+msgstr "فشل توليد ملف MP3 النهائي."
+
+#. Translators: Error message shown when narration generation fails.
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1587
+msgid "Narration Error: {error}"
+msgstr "خطأ في السرد: {error}"
+
+#. Translators: Message announced when user cancels the process
+#: addon\globalPlugins\visionAssistant\dialogs\media.py:1612
+msgid "Process cancelled."
+msgstr "تم إلغاء العملية."
+
+#. Translators: Label for a dropdown menu in the "Advanced Model Routing"
+#. section of settings to choose a specific model for AI Operator tasks.
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:232
+msgid "AI Operator / CAPTCHA Model:"
+msgstr "نموذج مُشغّل الذكاء الاصطناعي / الكابتشا:"
+
+#. Translators: Label for the Video Analysis model selection in the Advanced
+#. Model Routing section.
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:238
+msgid "Video Analysis Model (Gemini only):"
+msgstr "نموذج تحليل الفيديو (Gemini فقط):"
+
+#. Translators: Label for the checkbox that enables image descriptions during
+#. OCR
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:340
+msgid "Describe images inline during document OCR"
+msgstr "وصف الصور ضمن النص أثناء التعرف على النص (OCR) للمستندات"
+
+#. Translators: Label for the checkbox that enables page numbers when
+#. exporting documents
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:345
+msgid "Include page numbers when exporting documents"
+msgstr "تضمين أرقام الصفحات عند تصدير المستندات"
+
+#. Translators: Label for Video Chunk Size setting. Explains the trade-off
+#. between chunk size, API requests, and description quality.
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:365
+msgid ""
+"Video Chunk Size for Audio Description (Minutes, 0 to disable):\n"
+"Tip: Higher values use fewer API requests but rely on luck to succeed. Lower values guarantee highly detailed and precise descriptions."
+msgstr ""
+"حجم شريحة الفيديو للوصف الصوتي (بالدقائق، 0 للتعطيل):\n"
+"نصيحة: القيم الأعلى تستخدم طلبات API أقل لكنها تعتمد على الحظ في النجاح. القيم الأقل تضمن أوصافًا مفصلة ودقيقة للغاية."
+
+#. Translators: Label for the checkbox that enables or disables the automated
+#. CAPTCHA solver feature.
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:389
+msgid "Enable Visual CAPTCHA Solver"
+msgstr "تفعيل حل الكابتشا المرئية"
+
+#. Translators: Label for CAPTCHA capture method selection.
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:393
+msgid "Text CAPTCHA Method:"
+msgstr "طريقة كابتشا النص:"
+
+#. Translators: Checkbox label to enable dedicated add-on logging to file
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:433
+msgid "Enable dedicated log file"
+msgstr "تفعيل ملف سجل مخصص"
+
+#. Translators: Log level choice: Debug (Logs all detailed technical events,
+#. API calls, and raw responses)
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:438
+msgid "Debug (All Details)"
+msgstr "تصحيح (كل التفاصيل)"
+
+#. Translators: Log level choice: Info (Logs general operational events and
+#. task completions)
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:440
+msgid "Info (General Information)"
+msgstr "معلومات (معلومات عامة)"
+
+#. Translators: Log level choice: Warning (Logs warnings and non-fatal
+#. retries)
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:442
+msgid "Warning (Warnings Only)"
+msgstr "تحذير (التحذيرات فقط)"
+
+#. Translators: Log level choice: Error (Logs errors and critical exceptions
+#. only)
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:444
+msgid "Error (Errors Only)"
+msgstr "خطأ (الأخطاء فقط)"
+
+#. Translators: Label for Log Level selection
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:447
+msgid "Log Level:"
+msgstr "مستوى التسجيل:"
+
+#. Translators: Label for Log Retention Duration selection
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:457
+msgid "Keep Logs For:"
+msgstr "الاحتفاظ بالسجلات لمدة:"
+
+#. Log management buttons
+#. Translators: Group box title for log management buttons
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:467
+msgid "Log Management"
+msgstr "إدارة السجلات"
+
+#. Translators: Button to open log file
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:471
+msgid "Open Log File"
+msgstr "فتح ملف السجل"
+
+#. Translators: Button to open log folder
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:476
+msgid "Open Log Folder"
+msgstr "فتح مجلد السجل"
+
+#. Translators: Button to clear log file
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:481
+msgid "Clear Log File"
+msgstr "مسح ملف السجل"
+
+#. Translators: Message reported when log file is cleared.
+#: addon\globalPlugins\visionAssistant\dialogs\settings.py:1163
+msgid "Log file cleared."
+msgstr "تم مسح ملف السجل."
+
+#. Translators: Instruction for the elements list dialog
+#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:211
+msgid "Select an element:"
+msgstr "حدد عنصرًا:"
+
+#. Translators: Button to click the selected element
+#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:221
+msgid "&Click"
+msgstr "ن&قر"
+
+#. Translators: Button to add a label for the selected element
+#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:227
+msgid "&Add Label"
+msgstr "إ&ضافة تسمية"
+
+#. Translators: Error message shown when a screen object cannot be located.
+#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:264
+msgid "Could not find object at coordinates."
+msgstr "تعذر العثور على كائن في الإحداثيات."
+
+#. Translators: Error message shown when a unique signature cannot be created
+#. for a screen object.
+#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:273
+msgid "Could not generate signature for this object."
+msgstr "تعذر إنشاء توقيع لهذا الكائن."
+
+#. Translators: Success message when a label is added to a UI element.
+#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:280
+msgid "Label added successfully: {name}"
+msgstr "تمت إضافة التسمية بنجاح: {name}"
+
+#. Translators: Options for the media file action menu
+#: addon\globalPlugins\visionAssistant\features\audio.py:290
+msgid "Transcribe (Original Language)"
+msgstr "تفريغ (اللغة الأصلية)"
+
+#: addon\globalPlugins\visionAssistant\features\audio.py:290
+msgid "Transcribe and Translate (Target Language)"
+msgstr "تفريغ وترجمة (اللغة الهدف)"
+
+#. Translators: Option in media action menu to live translate/dub audio
+#: addon\globalPlugins\visionAssistant\features\audio.py:292
+msgid "Dub and Translate (Target Language)"
+msgstr "دبلجة وترجمة (اللغة الهدف)"
+
+#: addon\globalPlugins\visionAssistant\features\audio.py:298
+msgid "Media File"
+msgstr "ملف الوسائط"
+
+#. Translators: Status message when extracting audio and connecting to Gemini
+#. for dubbing
+#: addon\globalPlugins\visionAssistant\features\audio.py:372
+msgid "Extracting audio and connecting to Gemini..."
+msgstr "جارٍ استخراج الصوت والاتصال بـ Gemini..."
+
+#. Translators: Error message shown when Live Translate cannot connect to the
+#. server.
+#: addon\globalPlugins\visionAssistant\features\audio.py:458
+msgid "WebSocket connection failed for all available API keys."
+msgstr "فشل اتصال WebSocket لجميع مفاتيح API المتاحة."
+
+#. Translators: Error message shown when the Live translation setup fails.
+#: addon\globalPlugins\visionAssistant\features\audio.py:489
+msgid "Failed to setup Live translation session. Error: {error}"
+msgstr "فشل إعداد جلسة الترجمة المباشرة. الخطأ: {error}"
+
+#. Translators: Status message part showing estimated time remaining and
+#. completion time.
+#: addon\globalPlugins\visionAssistant\features\audio.py:502
+msgid " (approx. {mins} min {secs} sec, finishing around {time})"
+msgstr " (تقريبًا {mins} دقيقة {secs} ثانية، ينتهي حوالي {time})"
+
+#. Translators: Status message part showing estimated seconds remaining and
+#. completion time.
+#: addon\globalPlugins\visionAssistant\features\audio.py:504
+msgid " (approx. {secs} sec, finishing around {time})"
+msgstr " (تقريبًا {secs} ثانية، ينتهي حوالي {time})"
+
+#. Translators: Status message when live dubbing is actively streaming
+#: addon\globalPlugins\visionAssistant\features\audio.py:507
+msgid "Dubbing in progress..."
+msgstr "جارٍ الدبلجة..."
+
+#. Translators: Error message shown when live dubbing fails to return any
+#. audio
+#: addon\globalPlugins\visionAssistant\features\audio.py:598
+msgid "Dubbing failed. No audio returned. Check NVDA log for details."
+msgstr ""
+"فشلت الدبلجة. لم يتم إرجاع أي صوت. تحقق من سجل NVDA للحصول على التفاصيل."
+
+#. Translators: Dialog title when saving a dubbed media file
+#: addon\globalPlugins\visionAssistant\features\audio.py:631
+msgid "Save dubbed audio as"
+msgstr "حفظ الصوت المدبلج باسم"
+
+#. Translators: Message reported when dubbed file is successfully saved
+#: addon\globalPlugins\visionAssistant\features\audio.py:643
+msgid "Dubbed file saved: {path}"
+msgstr "تم حفظ الملف المدبلج: {path}"
+
+#. Translators: Status message when dubbing process finishes
+#: addon\globalPlugins\visionAssistant\features\audio.py:651
+msgid "Dubbing finished."
+msgstr "اكتملت الدبلجة."
+
+#. Translators: Error message when live translate fails
+#: addon\globalPlugins\visionAssistant\features\audio.py:656
+msgid "Dubbing failed."
+msgstr "فشلت الدبلجة."
+
+#. Translators: Announcement when the visual CAPTCHA solver is manually
+#. aborted
+#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:659
+msgid "Visual CAPTCHA solver aborted."
+msgstr "تم إلغاء حل الكابتشا المرئية."
+
+#. Translators: Message reported when a visual CAPTCHA (like reCAPTCHA) is
+#. detected.
+#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:707
+msgid ""
+"Visual CAPTCHA detected. Entering solving mode... This may take a little "
+"while."
+msgstr ""
+"تم اكتشاف كابتشا مرئية. جارٍ الدخول في وضع الحل... قد يستغرق ذلك بعض الوقت."
+
+#. Translators: Message reported when a visual CAPTCHA is detected but the
+#. solver is disabled.
+#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:711
+msgid "Visual CAPTCHA detected, but the solver is disabled in settings."
+msgstr "تم اكتشاف كابتشا مرئية، لكن أداة الحل معطلة في الإعدادات."
+
+#. Translators: Message reported when image capture fails or AI returns empty.
+#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:714
+msgid "Capture failed or AI returned empty response."
+msgstr "فشل الالتقاط أو أعاد الذكاء الاصطناعي استجابة فارغة."
+
+#. Translators: Message reported when a visual CAPTCHA is successfully solved.
+#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:780
+msgid "Visual CAPTCHA solved!"
+msgstr "تم حل الكابتشا المرئية!"
+
+#. Translators: Message reported when AI fails to solve the visual CAPTCHA
+#. after max attempts.
+#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:835
+msgid "Failed to solve CAPTCHA after maximum attempts."
+msgstr "فشل حل الكابتشا بعد الحد الأقصى من المحاولات."
+
+#. Translators: Value representing the ON state for a toggle setting (e.g., in
+#. quick settings).
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:50
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:52
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:53
+msgid "On"
+msgstr "مفعّل"
+
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:50
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:52
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:53
+msgid "Off"
+msgstr "معطّل"
+
+#. Translators: Announced when navigating to AI Model quick settings
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:68
+msgid "{setting}, Current: {val}. Use left and right arrows to change."
+msgstr "{setting}، الحالي: {val}. استخدم السهمين الأيسر والأيمن للتغيير."
+
+#. Translators: Warning when models list is not fetched
+#: addon\globalPlugins\visionAssistant\features\quick_settings.py:128
+msgid ""
+"No models fetched for {provider}. Please update models list from settings."
+msgstr ""
+"لم يتم جلب أي نماذج لـ {provider}. يرجى تحديث قائمة النماذج من الإعدادات."
+
+#: addon\globalPlugins\visionAssistant\features\video.py:91
+msgid "Video Action"
+msgstr "إجراء الفيديو"
+
+#. Translators: Prompt asking the user to manually input YouTube video
+#. duration.
+#: addon\globalPlugins\visionAssistant\features\video.py:107
+#: addon\globalPlugins\visionAssistant\features\video.py:196
+msgid ""
+"Please enter the YouTube video duration in minutes (e.g., 10 or 10.5).\n"
+"If you enter an incorrect duration, the audio description may not be complete."
+msgstr ""
+"يرجى إدخال مدة فيديو YouTube بالدقائق (مثل 10 أو 10.5).\n"
+"إذا أدخلت مدة غير صحيحة، فقد لا يكون الوصف الصوتي مكتملاً."
+
+#. Translators: Title for the YouTube duration input dialog.
+#: addon\globalPlugins\visionAssistant\features\video.py:109
+#: addon\globalPlugins\visionAssistant\features\video.py:197
+msgid "YouTube Video Duration"
+msgstr "مدة فيديو YouTube"
+
+#. Translators: Error message shown when the entered YouTube duration is
+#. invalid.
+#: addon\globalPlugins\visionAssistant\features\video.py:126
+#: addon\globalPlugins\visionAssistant\features\video.py:213
+msgid "Invalid duration entered. Video analysis cancelled."
+msgstr "تم إدخال مدة غير صالحة. تم إلغاء تحليل الفيديو."
+
+#. Translators: Disclaimer added at the beginning of AI-generated SRT files.
+#: addon\globalPlugins\visionAssistant\features\video.py:345
+msgid ""
+"Disclaimer: This audio description was generated by AI. Some details, "
+"including character identities or events, may not be entirely accurate."
+msgstr ""
+"إخلاء مسؤولية: تم توليد هذا الوصف الصوتي بواسطة الذكاء الاصطناعي. قد لا تكون"
+" بعض التفاصيل، بما في ذلك هويات الشخصيات أو الأحداث، دقيقة تمامًا."
+
+#. Translators: Status message when the AI is analyzing the whole video to
+#. extract character names and appearances.
+#: addon\globalPlugins\visionAssistant\features\video.py:445
+msgid "Extracting characters (First pass)..."
+msgstr "جارٍ استخراج الشخصيات (المرور الأول)..."
+
+#. Translators: Header for the list of extracted characters in the generated
+#. subtitle.
+#: addon\globalPlugins\visionAssistant\features\video.py:495
+msgid "GLOBAL CHARACTER DICTIONARY:"
+msgstr "قاموس الشخصيات العام:"
+
+#. Translators: Status message shown when the add-on pauses briefly between
+#. API requests to prevent hitting server rate limits.
+#: addon\globalPlugins\visionAssistant\features\video.py:512
+msgid "Cooling down to prevent rate limits ({seconds} seconds)..."
+msgstr "جارٍ التبريد لمنع حدود المعدل ({seconds} ثانية)..."
+
+#. Translators: Header for the list of characters introduced up to the current
+#. video scene.
+#: addon\globalPlugins\visionAssistant\features\video.py:546
+msgid "GLOBAL CHARACTER DICTIONARY (Active characters in this scene):"
+msgstr "قاموس الشخصيات العام (الشخصيات النشطة في هذا المشهد):"
+
+#. Translators: Status message reporting which segment of the video is
+#. currently being analyzed. {current} is the current segment number and
+#. {total} is the total segment count.
+#: addon\globalPlugins\visionAssistant\features\video.py:562
+msgid "Analyzing video segment {current} of {total}..."
+msgstr "جارٍ تحليل مقطع الفيديو {current} من {total}..."
+
+#. Translators: Message reported when AI is analyzing the video
+#: addon\globalPlugins\visionAssistant\features\video.py:564
+#: addon\globalPlugins\visionAssistant\features\video.py:786
+msgid "Analyzing video..."
+msgstr "جارٍ تحليل الفيديو..."
+
+#. Translators: Status message shown when a video segment finishes processing
+#. and the system is moving to the next one. {current} is the completed
+#. segment number.
+#: addon\globalPlugins\visionAssistant\features\video.py:613
+msgid "Segment {current} finished. Preparing next..."
+msgstr "اكتمل المقطع {current}. جارٍ تحضير التالي..."
+
+#. Translators: Status message when all segments are done and it is
+#. finalizing.
+#: addon\globalPlugins\visionAssistant\features\video.py:616
+msgid "Finalizing..."
+msgstr "جارٍ الإنهاء..."
+
+#. Translators: Error message shown when the AI output cannot be converted
+#. into a valid SRT subtitle file.
+#: addon\globalPlugins\visionAssistant\features\video.py:634
+msgid "Failed to parse AI output into SRT."
+msgstr "فشل تحويل مخرجات الذكاء الاصطناعي إلى SRT."
+
+#. Translators: Error message reported when video segment analysis fails after
+#. multiple retries due to network issues.
+#: addon\globalPlugins\visionAssistant\features\video.py:645
+msgid "Connection failed after retries."
+msgstr "فشل الاتصال بعد إعادة المحاولة."
+
+#. Translators: Error message when video recording is attempted with a non-
+#. Gemini provider
+#: addon\globalPlugins\visionAssistant\features\video.py:668
+msgid "Video recording is only supported by Gemini providers."
+msgstr "تسجيل الفيديو مدعوم فقط من قبل مزودي Gemini."
+
+#. Translators: Status message reported when starting video recording
+#: addon\globalPlugins\visionAssistant\features\video.py:680
+msgid "Starting recording..."
+msgstr "جارٍ بدء التسجيل..."
+
+#. Translators: Message when window capture fails and switches to full screen
+#. capture
+#: addon\globalPlugins\visionAssistant\features\video.py:722
+msgid "Window capture failed. Trying full screen..."
+msgstr "فشل التقاط النافذة. جارٍ المحاولة بملء الشاشة..."
+
+#. Translators: Error message when ffmpeg fails completely
+#: addon\globalPlugins\visionAssistant\features\video.py:726
+msgid "Recording failed to start. FFmpeg encountered a fatal error."
+msgstr "فشل بدء التسجيل. واجه FFmpeg خطأً فادحًا."
+
+#. Translators: Message when video recording starts
+#: addon\globalPlugins\visionAssistant\features\video.py:731
+msgid "Recording started. Press the same shortcut again to stop."
+msgstr "بدأ التسجيل. اضغط نفس الاختصار مرة أخرى للإيقاف."
+
+#. Translators: Error message when recording fails to start
+#: addon\globalPlugins\visionAssistant\features\video.py:742
+msgid "Failed to start recording: {error}"
+msgstr "فشل بدء التسجيل: {error}"
+
+#. Translators: Error when recorded video file is not found
+#: addon\globalPlugins\visionAssistant\features\video.py:758
+msgid "Recording file not found."
+msgstr "لم يتم العثور على ملف التسجيل."
+
+#. Translators: Error when recorded video file is too small/corrupted
+#: addon\globalPlugins\visionAssistant\features\video.py:766
+msgid ""
+"The recording was too short or the video file is corrupted. Please try "
+"recording for at least a few seconds."
+msgstr ""
+"كان التسجيل قصيرًا جدًا أو أن ملف الفيديو تالف. يرجى المحاولة بتسجيل لا يقل "
+"عن بضع ثوانٍ."
+
+#. Translators: Status message showing recording info, {duration} is seconds,
+#. {size} is MB
+#: addon\globalPlugins\visionAssistant\features\video.py:770
+msgid "Recording stopped ({duration:.0f} seconds, {size:.1f} MB)"
+msgstr "تم إيقاف التسجيل ({duration:.0f} ثانية، {size:.1f} ميغابايت)"
+
+#. Translators: Error message when processing recorded video fails
+#: addon\globalPlugins\visionAssistant\features\video.py:800
+msgid "Failed to process recording: {error}"
+msgstr "فشل معالجة التسجيل: {error}"
+
+#. Translators: Error message shown when the upload fails.
+#: addon\globalPlugins\visionAssistant\features\vision.py:902
+msgid ""
+"Failed to process document batch {start}-{end} after multiple attempts."
+msgstr "فشلت معالجة دفعة المستند {start}-{end} بعد عدة محاولات."
+
+#. Translators: Title of dialog asking user to download ffmpeg
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:106
+msgid "Download ffmpeg?"
+msgstr "تنزيل ffmpeg؟"
+
+#. Translators: Message in dialog asking user to download ffmpeg for video
+#. processing
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:108
+msgid ""
+"Video processing requires ffmpeg (approximately 70MB download).\n"
+"\n"
+"Download ffmpeg now to the addon's lib folder?\n"
+"\n"
+"This is a one-time download."
+msgstr ""
+"تتطلب معالجة الفيديو ffmpeg (تنزيل بحوالي 70 ميجابايت).\n"
+"\n"
+"هل تريد تنزيل ffmpeg الآن إلى مجلد lib الخاص بالإضافة؟\n"
+"\n"
+"هذا تنزيل لمرة واحدة."
+
+#. Translators: Message reported when user cancels downloading ffmpeg required
+#. for video processing
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:122
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:156
+msgid "Operation cancelled. ffmpeg is required for video processing."
+msgstr "تم إلغاء العملية. ffmpeg مطلوب لمعالجة الفيديو."
+
+#. Translators: Status message when downloading ffmpeg
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:164
+msgid "Downloading ffmpeg, please wait..."
+msgstr "جارٍ تنزيل ffmpeg، يرجى الانتظار..."
+
+#. Translators: Progress message during ffmpeg download, {percent} is download
+#. percentage
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:183
+msgid "Downloading ffmpeg: {percent}%"
+msgstr "جارٍ تنزيل ffmpeg: {percent}%"
+
+#. Translators: Status message when extracting ffmpeg
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:186
+msgid "Extracting ffmpeg..."
+msgstr "جارٍ استخراج ffmpeg..."
+
+#. Translators: Success message after ffmpeg download completes
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:203
+msgid "ffmpeg downloaded successfully!"
+msgstr "تم تنزيل ffmpeg بنجاح!"
+
+#. Translators: Error message when ffmpeg download fails
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:211
+msgid "Failed to download ffmpeg: {error}"
+msgstr "فشل تنزيل ffmpeg: {error}"
+
+#. Translators: Error message shown when processing a local video file fails.
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:389
+msgid "Error processing local video."
+msgstr "خطأ في معالجة الفيديو المحلي."
+
+#. Translators: Status message when compressing a local video file before
+#. uploading.
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:400
+msgid "Compressing video (this may take a moment)..."
+msgstr "جارٍ ضغط الفيديو (قد يستغرق ذلك لحظة)..."
+
+#. Translators: Error message shown when video compression fails or was
+#. cancelled by the user.
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:404
+msgid "Error: Video compression failed or was cancelled."
+msgstr "خطأ: فشل ضغط الفيديو أو تم إلغاؤه."
+
+#. Translators: Error message displayed when access to the Live voice service
+#. is blocked or forbidden (HTTP 403 Forbidden).
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1109
+msgid ""
+"Access denied (HTTP 403 Forbidden). Please check your Proxy/VPN or API key."
+msgstr ""
+"تم رفض الوصول (HTTP 403 Forbidden). يرجى التحقق من الوكيل/VPN أو مفتاح API."
+
+#. Translators: Error message announced when connecting to the Live service
+#. fails. {error} is replaced with the technical connection error details.
+#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1118
+msgid "Could not connect to the Live service: {error}"
+msgstr "تعذر الاتصال بخدمة Live: {error}"
+
+#. Translators: Message shown while downloading update
+#: addon\globalPlugins\visionAssistant\utils\updater.py:134
+msgid "Downloading update, please wait..."
+msgstr "جارٍ تنزيل التحديث، يرجى الانتظار..."
+
+#. Translators: Progress message during update download
+#: addon\globalPlugins\visionAssistant\utils\updater.py:153
+msgid "Downloading update: {percent}%"
+msgstr "جارٍ تنزيل التحديث: {percent}%"
+
+#. Add-on description
+#. Translators: Long description to be shown for this add-on on add-on
+#. information from add-on store
+#: buildVars.py:13
+msgid ""
+"An advanced AI assistant for NVDA using Gemini models.\n"
+"Command Layer: Press NVDA+Shift+V, then:\n"
+"- Smart Translator (T) / Clipboard (Shift+T)\n"
+"- Text Refiner (R)\n"
+"- Describe Object (V) / Full Screen (O)\n"
+"- Video Analysis (Shift+V)\n"
+"- Local Video Recording (Control+V)\n"
+"- Document Reader (D)\n"
+"- File OCR (F)\n"
+"- CAPTCHA Solver (C)\n"
+"- Direct Chat (Shift+C)\n"
+"- Media Transcription & Dubbing (M)\n"
+"- Smart Dictation (S)\n"
+"        - Voice Translation (Control+T)\n"
+"- Announce Status (I)\n"
+"- Label Object (L)\n"
+"- Manage/Scan Labels (Shift+L)\n"
+"- UI Explorer (E)\n"
+"- AI Operator (Shift+A)\n"
+"- Check Update (U)\n"
+"- Recall Last Result (Space)\n"
+"- Commands Help (H)\n"
+"- Open Settings (Alt+S)\n"
+"- Report Quota Exhausted Keys (Alt+Q)\n"
+"- Report Advanced Routing (Alt+M)\n"
+"- Quick Settings (Up/Down/Left/Right)"
+msgstr ""
+"مساعد ذكاء اصطناعي متقدم لـ NVDA باستخدام نماذج Gemini.\n"
+"طبقة الأوامر: اضغط NVDA+Shift+V، ثم:\n"
+"- المترجم الذكي (T) / الحافظة (Shift+T)\n"
+"- محسّن النص (R)\n"
+"- وصف الكائن (V) / الشاشة الكاملة (O)\n"
+"- تحليل الفيديو (Shift+V)\n"
+"- تسجيل الفيديو المحلي (Control+V)\n"
+"- قارئ المستندات (D)\n"
+"- التعرف على النص من الملفات (F)\n"
+"- حل الكابتشا (C)\n"
+"- دردشة مباشرة (Shift+C)\n"
+"- تفريغ الوسائط والدبلجة (M)\n"
+"- الإملاء الذكي (S)\n"
+"        - الترجمة الصوتية (Control+T)\n"
+"- الإعلان عن الحالة (I)\n"
+"- تسمية الكائن (L)\n"
+"- إدارة/مسح التسميات (Shift+L)\n"
+"- مستكشف واجهة المستخدم (E)\n"
+"- مُشغّل الذكاء الاصطناعي (Shift+A)\n"
+"- التحقق من التحديث (U)\n"
+"- استدعاء آخر نتيجة (Space)\n"
+"- تعليمات الأوامر (H)\n"
+"- فتح الإعدادات (Alt+S)\n"
+"- الإبلاغ عن المفاتيح المستنفدة (Alt+Q)\n"
+"- الإبلاغ عن التوجيه المتقدم (Alt+M)\n"
+"- الإعدادات السريعة (أعلى/أسفل/يسار/يمين)"
+
+#. Brief changelog for this version
+#. Translators: what's new content for the add-on version to be shown in the
+#. add-on store
+#: buildVars.py:42
+msgid ""
+"## Changes for 2026.08.06\n"
+"\n"
+"*   **UI Explorer Labeling**: You can now add labels directly to found elements inside the UI Explorer! A new \"Add Label\" button has been added, and the interface smartly stays open and preserves focus so you can rapidly label multiple objects without interruption.\n"
+"*   **Quick Settings Layer Enhancement**: The Vision Assistant layer (`Insert+Shift+V`) is now persistent and highly interactive! You can use `Up/Down` arrows to navigate between quick settings (Provider, Model, AI Response Language, TTS Model) and `Left/Right` arrows to instantly change their values with smart, concise voice feedback. Your selections take effect immediately (including auto-enabling advanced routing when necessary), and the layer stays alive while you configure.\n"
+"*   **Direct Chat (`Shift+C`)**: Added a new command to the layer! Press `Shift+C` to instantly open a \"Direct Chat\" window. This provides a clean, text-based conversational interface with the AI right away, without needing an image or document as a starting point.\n"
+"*   **Flawless Chat History Recall**: Fixed a major bug where pressing `Space` to recall the last result would lose your subsequent chat history. Now, the add-on globally tracks your conversation. If you chat, close the dialog, and press `Space` to recall it, your entire back-and-forth history is perfectly restored! Works for Direct Chat, Vision Analysis, Document Chat, and Translation.\n"
+"*   **Inline Image Descriptions in OCR**: Added an optional feature to describe images inline during document OCR. You can toggle this setting in the add-on's OCR settings, within the Document Reader options before extraction, and quickly on-the-fly via the Quick Settings layer.\n"
+"*   **Voice Translation (`Control+T`)**: Added a powerful new feature! Dictate speech and instantly translate and type it using AI based on your configured source and target languages.\n"
+"*   **Update Downloader Improvements**: The update download dialog now correctly displays download progress in percentages, and a bug where a phantom \"Downloading update\" message appeared upon canceling the installation has been fixed.\n"
+"*   **eSpeak-NG Downloader Improvements**: Added percentage progress tracking for eSpeak-NG downloads.\n"
+"*   **Batch OCR Resilience**: Fixed an issue in batch PDF OCR where the process would halt if the active API key reached its quota midway; it now automatically switches to the next available key and resumes the process.\n"
+"*   **Visual Captcha Support**: Added robust support for visual captcha solving. It attempts to automatically solve complex image challenges like hCaptcha and reCAPTCHA, significantly enhancing accessibility on challenging web forms.\n"
+"*   **Audio Transcriber Overhaul**: The Audio Transcriber module has been completely rebuilt and now supports both audio and video files. It features 3 distinct operation modes: \"Transcribe (Original Language)\", \"Transcribe and Translate (Target Language)\", and a new powerful \"Dub and Translate (Target Language)\" option (exclusive to Gemini) that generates a translated audio dub of the original speech.\n"
+"*   **Optional Page Numbers in Document Reader**: Added a new setting to toggle the inclusion of page numbers and separators in multi-page document outputs. You can easily manage this option from the main settings or toggle it on-the-fly via the Quick Settings layer. This feature applies to both text/HTML file exports and the inline \"View Formatted\" window, allowing you to read combined documents seamlessly.\n"
+"*   **Unlimited Gemini Live TTS for Video Descriptions**: You can now select \"Gemini Live TTS\" as the voice engine when generating Synchronized Audio Narration (MP3) for videos. This utilizes the Gemini Live API to synthesize high-quality audio descriptions without any character limits or length restrictions.\n"
+"*   **Codebase Modularization**: Refactored the add-on structure from a single file to a multi-file modular architecture for improved maintainability.\n"
+"*   **Settings UI Redesign**: Completely redesigned the Settings dialog to use a modern, tab-based interface instead of a grouped layout, providing better organization and easier navigation while keeping all existing options.\n"
+"*   **Global & Dedicated File Logging**: Added an optional global file logging system under the new \"Advanced\" settings tab. Automatically captures operational events, API traffic, and errors across all add-on modules into a dedicated file (`vision_assistant.log`). Supports configurable log verbosity levels (Debug, Info, Warning, Error), automated retention periods (1 hour to 90 days), and direct log opening or clearing from settings with zero performance impact or NVDA log interference.\n"
+"*   **Gemini Upload Progress Tracking**: Added real-time percentage progress announcements when uploading large files (video, audio, documents) to the Google Gemini API."
+msgstr ""
+"## التغييرات في 2026.08.06\n"
+"\n"
+"*   **تسمية مستكشف واجهة المستخدم**: يمكنك الآن إضافة تسميات مباشرة إلى العناصر التي تم العثور عليها داخل مستكشف واجهة المستخدم! تمت إضافة زر \"إضافة تسمية\" جديد، وتظل الواجهة مفتوحة بذكاء وتحافظ على التركيز بحيث يمكنك تسمية كائنات متعددة بسرعة دون انقطاع.\n"
+"*   **تحسين طبقة الإعدادات السريعة**: أصبحت طبقة Vision Assistant (`Insert+Shift+V`) دائمة وتفاعلية للغاية! يمكنك استخدام الأسهم `أعلى/أسفل` للتنقل بين الإعدادات السريعة (المزود، النموذج، لغة رد الذكاء الاصطناعي، نموذج TTS) والأسهم `يسار/يمين` لتغيير قيمها فورًا مع ردود صوتية ذكية وموجزة. يتم تطبيق اختياراتك على الفور (بما في ذلك التفعيل التلقائي للتوجيه المتقدم عند الحاجة)، وتبقى الطبقة نشطة أثناء التكوين.\n"
+"*   **الدردشة المباشرة (`Shift+C`)**: تمت إضافة أمر جديد إلى الطبقة! اضغط `Shift+C` لفتح نافذة \"دردشة مباشرة\" فورًا. يوفر هذا واجهة محادثة نصية نظيفة مع الذكاء الاصطناعي مباشرة، دون الحاجة إلى صورة أو مستند كنقطة بداية.\n"
+"*   **استدعاء سجل المحادثة بشكل مثالي**: تم إصلاح خطأ رئيسي حيث كان الضغط على مفتاح `المسافة` لاستدعاء آخر نتيجة يفقد سجل المحادثة اللاحق. الآن، تتتبع الإضافة محادثتك عالميًا. إذا تحدثت وأغلقت النافذة وضغطت مفتاح `المسافة` لاستدعائها، فسيتم استعادة سجل المحادثة الكامل بشكل مثالي! يعمل للدردشة المباشرة وتحليل الرؤية ودردشة المستندات والترجمة.\n"
+"*   **وصف الصور ضمن النص أثناء OCR**: تمت إضافة ميزة اختيارية لوصف الصور ضمن النص أثناء التعرف على النص (OCR) للمستندات. يمكنك تبديل هذا الإعداد في إعدادات OCR للإضافة، ضمن خيارات قارئ المستندات قبل الاستخراج، وبسرعة أثناء العمل عبر طبقة الإعدادات السريعة.\n"
+"*   **الترجمة الصوتية (`Control+T`)**: تمت إضافة ميزة قوية جديدة! أمِل صوتك وترجم فورًا واكتب باستخدام الذكاء الاصطناعي بناءً على لغتي المصدر والهدف اللتين قمت بتكوينهما.\n"
+"*   **تحسينات منزّل التحديثات**: تعرض نافذة تنزيل التحديث الآن تقدم التنزيل بالنسبة المئوية بشكل صحيح، وتم إصلاح خطأ ظهور رسالة \"جارٍ تنزيل التحديث\" الوهمية عند إلغاء التثبيت.\n"
+"*   **تحسينات منزّل eSpeak-NG**: تمت إضافة تتبع التقدم بالنسبة المئوية لتنزيلات eSpeak-NG.\n"
+"*   **مرونة OCR الدفعي**: تم إصلاح مشكلة في OCR الدفعي لملفات PDF حيث تتوقف العملية إذا بلغ مفتاح API النشط حصته في منتصف العمل؛ الآن يتحول تلقائيًا إلى المفتاح التالي المتاح ويستأنف العملية.\n"
+"*   **دعم الكابتشا المرئية**: تمت إضافة دعم قوي لحل الكابتشا المرئية. يحاول حل تحديات الصور المعقدة مثل hCaptcha وreCAPTCHA تلقائيًا، مما يعزز بشكل كبير إمكانية الوصول في نماذج الويب الصعبة.\n"
+"*   **إعادة بناء التفريغ الصوتي**: تمت إعادة بناء وحدة التفريغ الصوتي بالكامل وهي تدعم الآن ملفات الصوت والفيديو. تتميز بثلاثة أوضاع تشغيل متميزة: \"تفريغ (اللغة الأصلية)\"، \"تفريغ وترجمة (اللغة الهدف)\"، وخيار \"دبلجة وترجمة (اللغة الهدف)\" الجديد القوي (حصري لـ Gemini) الذي يولّد دبلجة صوتية مترجمة للكلام الأصلي.\n"
+"*   **أرقام صفحات اختيارية في قارئ المستندات**: تمت إضافة إعداد جديد لتبديل تضمين أرقام الصفحات والفواصل في مخرجات المستندات متعددة الصفحات. يمكنك إدارة هذا الخيار بسهولة من الإعدادات الرئيسية أو تبديله أثناء العمل عبر طبقة الإعدادات السريعة. تنطبق هذه الميزة على تصدير ملفات النص/HTML ونافذة \"عرض منسق\" المضمنة، مما يسمح لك بقراءة المستندات المجمعة بسلاسة.\n"
+"*   **Gemini Live TTS غير محدود لأوصاف الفيديو**: يمكنك الآن تحديد \"Gemini Live TTS\" كمحرك صوتي عند توليد السرد الصوتي المتزامن (MP3) للفيديوهات. يستخدم هذا Gemini Live API لتوليف أوصاف صوتية عالية الجودة دون أي حدود للأحرف أو قيود على الطول.\n"
+"*   **نمذجة الكود**: تمت إعادة هيكلة بنية الإضافة من ملف واحد إلى بنية معيارية متعددة الملفات لتحسين قابلية الصيانة.\n"
+"*   **إعادة تصميم واجهة الإعدادات**: تمت إعادة تصميم نافذة الإعدادات بالكامل لاستخدام واجهة حديثة قائمة على التبويبات بدلاً من التخطيط المجمع، مما يوفر تنظيمًا أفضل وتنقلاً أسهل مع الحفاظ على جميع الخيارات الحالية.\n"
+"*   **تسجيل الملفات العام والمخصص**: تمت إضافة نظام تسجيل ملفات عام اختياري ضمن تبويب الإعدادات \"المتقدم\" الجديد. يلتقط تلقائيًا الأحداث التشغيلية وحركة مرور API والأخطاء عبر جميع وحدات الإضافة في ملف مخصص (`vision_assistant.log`). يدعم مستويات تفصيل قابلة للتكوين (تصحيح، معلومات، تحذير، خطأ)، وفترات احتفاظ تلقائية (من ساعة واحدة إلى 90 يومًا)، وفتح السجل أو مسحه مباشرة من الإعدادات دون أي تأثير على الأداء أو تداخل مع سجل NVDA.\n"
+"*   **تتبع تقدم رفع Gemini**: تمت إضافة إعلانات تقدم بالنسبة المئوية في الوقت الفعلي عند رفع الملفات الكبيرة (الفيديو والصوت والمستندات) إلى Google Gemini API."

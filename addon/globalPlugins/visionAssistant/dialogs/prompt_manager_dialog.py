@@ -70,7 +70,6 @@ class PromptItemDialog(wx.Dialog):
         if not prompt_text.strip():
             # Translators: Validation error for empty prompt text.
             msg = _("Prompt text cannot be empty.")
-            # Translators: Title of validation warning dialog.
             title = _("Validation Error")
             wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             self.prompt_ctrl.SetFocus()
@@ -107,6 +106,7 @@ class PromptVariablesGuideDialog(wx.Dialog):
         content.SetValue("\n".join(lines))
         main_sizer.Add(content, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
+        # Translators: Button to close chat dialog
         close_btn = wx.Button(self, wx.ID_OK, label=_("Close"))
         close_btn.SetDefault()
         main_sizer.Add(close_btn, 0, wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
@@ -138,7 +138,6 @@ class PromptManagerDialog(wx.Dialog):
         self._build_custom_tab()
 
         footer_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # Translators: Button label to open the variables help dialog.
         self.variables_btn = wx.Button(self, label=_("Variables Guide"))
         self.variables_btn.Bind(wx.EVT_BUTTON, self.on_open_variables)
         footer_sizer.Add(self.variables_btn, 0, wx.RIGHT, 10)
@@ -162,7 +161,6 @@ class PromptManagerDialog(wx.Dialog):
         tab_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         left_sizer = wx.BoxSizer(wx.VERTICAL)
-        # Translators: Label above the list of default prompt entries.
         default_list_label = wx.StaticText(self.default_panel, label=_("Default Prompts"))
         left_sizer.Add(default_list_label, 0, wx.BOTTOM, 5)
         self.default_list = wx.ListBox(
@@ -185,7 +183,6 @@ class PromptManagerDialog(wx.Dialog):
         left_sizer.Add(self.reset_all_btn, 0, wx.EXPAND)
 
         right_sizer = wx.BoxSizer(wx.VERTICAL)
-        # Translators: Label above the prompt editor textarea.
         default_prompt_label = wx.StaticText(self.default_panel, label=_("Prompt Text:"))
         right_sizer.Add(default_prompt_label, 0, wx.BOTTOM, 5)
         self.default_prompt_ctrl = wx.TextCtrl(
@@ -217,7 +214,6 @@ class PromptManagerDialog(wx.Dialog):
         tab_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         left_sizer = wx.BoxSizer(wx.VERTICAL)
-        # Translators: Label above the list of custom prompts.
         custom_list_label = wx.StaticText(self.custom_panel, label=_("Custom Prompts"))
         left_sizer.Add(custom_list_label, 0, wx.BOTTOM, 5)
         self.custom_list = wx.ListBox(self.custom_panel, style=wx.LB_SINGLE)
@@ -355,9 +351,7 @@ class PromptManagerDialog(wx.Dialog):
 
         prompt_text = self.default_prompt_ctrl.GetValue()
         if not prompt_text.strip():
-            # Translators: Validation error for empty prompt text.
             msg = _("Prompt text cannot be empty.")
-            # Translators: Title of validation warning dialog.
             title = _("Validation Error")
             wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             self.default_prompt_ctrl.SetFocus()
@@ -468,7 +462,6 @@ class PromptManagerDialog(wx.Dialog):
             if self._name_exists(item["name"]):
                 # Translators: Validation error for duplicate custom prompt name.
                 msg = _("A custom prompt with this name already exists.")
-                # Translators: Title of validation warning dialog.
                 title = _("Validation Error")
                 wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             else:
@@ -494,9 +487,7 @@ class PromptManagerDialog(wx.Dialog):
         if dlg.ShowModal() == wx.ID_OK:
             item = dlg.get_item()
             if self._name_exists(item["name"], skip_index=idx):
-                # Translators: Validation error for duplicate custom prompt name.
                 msg = _("A custom prompt with this name already exists.")
-                # Translators: Title of validation warning dialog.
                 title = _("Validation Error")
                 wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             else:
@@ -511,7 +502,6 @@ class PromptManagerDialog(wx.Dialog):
         name = self.custom_items[idx].get("name", "")
         # Translators: Confirmation text before deleting a custom prompt.
         msg = _("Remove custom prompt '{name}'?").format(name=name)
-        # Translators: Title of confirmation dialog.
         title = _("Confirm Remove")
         if wx.MessageBox(msg, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION) != wx.YES:
             return

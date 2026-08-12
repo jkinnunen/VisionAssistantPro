@@ -1,3 +1,4 @@
+
 _wxcolors = [
         ("ALICEBLUE", 240, 248, 255),
         ("ANTIQUEWHITE", 250, 235, 215),

@@ -1,3 +1,4 @@
+
 # pylint: disable=wildcard-import,unused-import,unused-wildcard-import
 from pymupdf import *
 from pymupdf import _as_fz_document

@@ -1,3 +1,4 @@
+
 # ------------------------------------------------------------------------
 # Copyright 2020-2022, Harald Lieder, mailto:harald.lieder@outlook.com
 # License: GNU AFFERO GPL 3.0, https://www.gnu.org/licenses/agpl-3.0.html

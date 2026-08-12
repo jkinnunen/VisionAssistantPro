@@ -1,3 +1,4 @@
+
 # Smarty extension for Python-Markdown
 # ====================================
 

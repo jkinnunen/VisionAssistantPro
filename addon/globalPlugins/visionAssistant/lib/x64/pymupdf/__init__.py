@@ -1,3 +1,4 @@
+
 '''
 PyMuPDF implemented on top of MuPDF Python bindings.
 

@@ -8,6 +8,7 @@ addonHandler.initTranslation()
 
 class DonationDialog(gui.nvdaControls.MessageDialog):
 	TON_ADDRESS = "UQDoOOOoDYPP8eqWXVsjVyYzulY72JLZK1grPS_O2DbgVNsc"
+	TRON_ADDRESS = "TBCEdrBaYfUKKW8ZXjHxUuHrijFjWcNBsi"
 
 	SUPPORT_EMAIL = "visionassistantpro@proton.me"
 	GIFT_CARD_URL = "https://www.mygiftcardsupply.com/shop/itunes-gift-cards/"
@@ -22,11 +23,13 @@ class DonationDialog(gui.nvdaControls.MessageDialog):
 		emailBtn = buttonHelper.addButton(self, label=_("Copy Support Email"), name="SUPPORT_EMAIL")
 		# Translators: Label for the button to copy the TON cryptocurrency wallet address.
 		tonBtn = buttonHelper.addButton(self, label=_("Copy TON Address"), name="TON_ADDRESS")
-		
+		# Translators: Label for the button to copy the TRON cryptocurrency wallet address.
+		tronBtn = buttonHelper.addButton(self, label=_("Copy TRON Address"), name="TRON_ADDRESS")
 		
 		buyBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
 		emailBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
 		tonBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
+		tronBtn.Bind(wx.EVT_BUTTON, self.onDonateAction)
 
 		
 		# Translators: Button to dismiss the donation dialog without taking any action.

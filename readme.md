@@ -8,61 +8,51 @@ _This add-on was released to the community in honor of the International Day of 
 
 ## 1. Setup & Configuration
 
-Go to **NVDA Menu > Preferences > Settings > Vision Assistant Pro**.
+Go to **NVDA Menu > Preferences > Settings > Vision Assistant Pro**. The settings dialog is organized into 8 accessible tabs: **Connection**, **AI Behavior**, **Translation Languages**, **Document Reader**, **Video**, **CAPTCHA**, **Prompts**, and **Advanced**.
 
-### 1.1 Connection Settings
+### 1.1 Connection Tab
 - **Provider:** Select your preferred AI service. Supported providers include **Google Gemini**, **OpenAI**, **Mistral**, **Groq**, **MiniMax**, and **Custom** (OpenAI-compatible servers like Ollama, LM Studio, Jan.ai, or KoboldCPP).
-- **Important Note:** We strongly recommend using **Google Gemini** for the best performance and accuracy (especially for image/file analysis).
-- **API Key:** Required. You can enter multiple keys (separated by commas or new lines) for automatic rotation.
-- **Fetch Models:** After entering your API key, press this button to download the latest list of available models from the provider.
+- **API Key:** Enter single or multiple API keys (separated by commas or newlines) for automatic rotation.
+- **Fetch Models:** Press this button after entering your API key to download the latest available model list from the provider.
 - **AI Model:** Select the main model used for general chat and analysis.
+- **Custom Provider Settings:** Configure local or custom endpoints. Includes **Setup Local AI** (one-click setup for Ollama, LM Studio, Jan.ai, or KoboldCPP) and **Advanced Endpoint Configuration**.
+- **Advanced Model Routing (Task-specific):** Optionally select dedicated models from dropdowns for OCR, STT, TTS, AI Operator, Video, and Live Assistant tasks.
+- **Connection & Output Options:** Configure Proxy URL, startup update checks, Clean Markdown in Chat, Copy AI responses to clipboard, Direct Output (No Chat Window), and Live Assistant Direct Output.
 
-### 1.2 Advanced Model Routing
-*Available for all providers including Gemini, OpenAI, Groq, Mistral, and Custom.*
+### 1.2 AI Behavior Tab
+- **Creativity (Temperature):** Controls AI randomness and creativity (from 0.0 to 2.0). Lower values produce more deterministic and accurate translation/OCR results.
 
-> **⚠️ Warning:** These settings are intended for **advanced users only**. If you are unsure what a specific model does, please leave this **unchecked**. Selecting an incompatible model for a task (e.g., a text-only model for Vision) will cause errors and stop the add-on from working.
+### 1.3 Translation Languages Tab
+- **Source Language:** Select your default input language.
+- **Target Language:** Select your primary target translation language.
+- **AI Response Language:** Select the language for general AI responses.
+- **Smart Swap:** Automatically swaps source and target languages based on detected input.
 
-Check **"Advanced Model Routing (Task-specific)"** to unlock detailed control. This allows you to select specific models from the dropdown list for different tasks:
-- **OCR / Vision Model:** Choose a specialized model for analyzing images.
-- **Speech-to-Text (STT):** Choose a specific model for dictation.
-- **Text-to-Speech (TTS):** Choose a model for generating audio.
-- **AI Operator Model:** Select a specific model for autonomous computer operation tasks.
-- **Video Model:** Select a specific model for video analysis and audio description generation.
-*Note: Unsupported features (e.g., TTS for Groq) will be automatically hidden.*
-
-### 1.3 Advanced Endpoint Configuration (Custom Provider)
-*Available only when "Custom" is selected.*
-
-> **⚠️ Warning:** This section allows for manual API configuration and is designed for **power users** running local servers or proxies. Incorrect URLs or model names will break connectivity. If you don't know exactly what these endpoints are, keep this **unchecked**.
-
-Check **"Advanced Endpoint Configuration"** to manually input server details. Unlike native providers, here you must **type** the specific URLs and Model Names:
-- **Models List URL:** The endpoint to fetch available models.
-- **OCR/STT/TTS Endpoint URL:** Full URLs for specific services (e.g., `http://localhost:11434/v1/audio/speech`).
-- **Custom Models:** Manually type the model name (e.g., `llama3:8b`) for each task.
-
-### 1.3.1 Setup Local AI (One-Action Configuration)
-To make local, completely offline AI integration extremely simple, a dedicated **"Setup Local AI"** button is available inside the Custom Provider Settings.
-
-If you are running a local AI model server on your computer:
-1. Select **Custom** as your Provider.
-2. Press the **Setup Local AI** button.
-3. Choose your local AI engine from the accessible dialog:
-   - **Ollama** (defaulting to `http://127.0.0.1:11434`)
-   - **LM Studio** (defaulting to `http://127.0.0.1:1234`)
-   - **Jan.ai** (defaulting to `http://127.0.0.1:1337`)
-   - **KoboldCPP** (defaulting to `http://127.0.0.1:5001`)
-4. The add-on will instantly configure the correct local URL, API type, and automatically fetch your active offline models to populate the **AI Model** selection box.
-
-*Note on Network & Proxies:* This local connection engine features an advanced proxy bypass mechanism. Even if you are running an active system VPN or TUN-mode proxy, your local AI requests will bypass it completely, ensuring stable offline connections without 502 Bad Gateway errors.
-
-### 1.4 General Preferences
+### 1.4 Document Reader Tab
 - **OCR Engine:** Choose between **Chrome (Fast)** for quick results or **AI (Advanced)** for superior layout preservation.
-- **TTS Voice:** Select your preferred voice style. This list updates dynamically based on your active provider.
-- **Creativity (Temperature):** Controls the randomness of the AI. Lower values are better for accurate translation/OCR.
-- **Proxy URL:** Configure this if AI services are restricted in your region (supports local proxies like `127.0.0.1` or bridge URLs).
-- **Direct Output (No Chat Window):** Check this if you want the AI to simply read the result aloud without opening an interactive chat window.
-- **Copy AI responses to clipboard:** Automatically copies every AI answer to your system clipboard for easy pasting.
-- **Clean Markdown in Chat:** Uncheck this if you prefer to see raw formatting symbols instead of a clean, formatted text view.
+- **OCR Batch Size:** Specify pages per request (set to 0 for single-request processing).
+- **Describe Images Inline:** Toggle inline image descriptions during document text extraction.
+- **Export Page Numbers:** Toggle page numbers and separators in multi-page document outputs.
+- **TTS Voice:** Select default voice style for audio generation.
+
+### 1.5 Video Tab
+- **Video Chunk Size:** Segment duration in minutes for Audio Description generation (set to 0 to process whole file).
+- **Add Character List:** Option to add character dictionary as the first subtitle entry.
+- **Add AI Disclaimer:** Option to insert an AI disclaimer at the beginning of video SRT subtitles.
+
+### 1.6 CAPTCHA Tab
+- **Enable Visual CAPTCHA Solver:** Toggle automated visual challenge solving (hCaptcha, reCAPTCHA).
+- **Text CAPTCHA Method:** Choose between capturing the **Navigator Object** or **Full Screen**.
+
+### 1.7 Prompts Tab
+- **Manage Prompts:** Opens a dedicated dialog to customize default system prompts or create, edit, reorder, and preview custom user-defined prompts with dynamic variables (e.g., `[selection]`, `[screen_fg_obj]`).
+
+### 1.8 Advanced Tab & Global Logging
+Navigate to the **Advanced** tab to configure global add-on logging:
+- **Enable dedicated log file:** Toggles logging of all operational events, API traffic, and errors across all add-on modules into a separate file (`vision_assistant.log`).
+- **Log Level:** Select verbosity between **Debug (All Details)**, **Info (General Information)**, **Warning (Warnings Only)**, and **Error (Errors Only)**.
+- **Keep Logs For:** Set automatic retention periods to automatically clean up older log entries (ranging from 1 hour to 90 days).
+- **Log Management Controls:** Use **Open Log File**, **Open Log Folder**, or **Clear Log File** to inspect or clear log data directly without restarting NVDA or interfering with standard NVDA logs.
 
 ## 2. Command Layer & Shortcuts
 
@@ -83,9 +73,11 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 | **Control + V** | Local Video Recording  | Records a silent video of your screen and analyzes the actions and layout.  |
 | **D**         | Document Reader          | Advanced reader for PDF and images with page range selection.               |
 | **F**         | **Smart File Action**    | Context-aware recognition from selected image, PDF, or TIFF files.          |
-| **A**         | Audio Transcription      | Transcribe MP3, WAV, or OGG files into text.                                |
-| **C**         | CAPTCHA Solver           | Captures and solves CAPTCHAs (Supports Gov portals).                        |
+| **M**         | Media Transcription & Dubbing | Transcribe or Dub audio/video files (MP3, WAV, MP4, etc.) into your target language. |
+| **C**         | CAPTCHA Solver           | Captures and solves CAPTCHAs.                        |
+| **Shift + C** | Direct Chat              | Opens a direct text-based chat interface with the AI.                       |
 | **S**         | Smart Dictation          | Converts speech to text. Press to start recording, again to stop/type.      |
+| **Control+T** | Voice Translation        | Transcribes, translates, and types the result based on your language settings. |
 | **Control+L** | **Live Assistant**       | **Real-time Copilot (Gemini only):** Starts or ends a live voice and screen conversation with the AI assistant. |
 | **I**         | Status Reporting         | Announces current progress (e.g., "Scanning...", "Idle").                   |
 | **L**         | **Label Object**         | **Semantic AI Labeling:** Permanently labels the current focused element/icon. |
@@ -96,6 +88,8 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 | **Alt + S**   | Settings                 | Opens the Vision Assistant Pro settings dialog.                             |
 | **Alt + Q**   | Quota Exhausted Keys Report | Reports the number of Gemini API keys that have exceeded their daily quota and their reset time. |
 | **Alt + M**   | Routing Audit            | Reports the AI models currently selected in advanced routing.               |
+| **Up / Down** | Quick Settings Nav       | Navigates between quick settings categories (Provider, Model, etc.) in the layer. |
+| **Left / Right**| Change Quick Setting   | Changes the value of the currently selected quick setting.                  |
 
 ## 3. AI Operator - Autonomous Computer Control
 
@@ -152,22 +146,28 @@ For a more structured experience, the add-on can generate professional Audio Des
 - **How to Use:** To listen to the generated subtitle, simply place the `.srt` file in the same folder as your video file and give it the exact same name. Then, configure your media player (e.g., VLC or PotPlayer) to route the subtitle text directly to your screen reader or TTS engine during playback.
 
 ### 4.4 Synchronized Audio Narration (MP3 Export)
-Beyond just creating text-based SRT files, the add-on functions as a complete Audio Description production tool by synthesizing the descriptions into speech and mixing them with the video. When generating an MP3 for local video files, you have multiple mixing modes:
+Beyond just creating text-based SRT files, the add-on functions as a complete Audio Description production tool by synthesizing the descriptions into speech and mixing them with the video. You can now choose **Gemini Live TTS** as the voice engine, which utilizes the Gemini Live API to generate highly realistic, unlimited voice narration. When generating an MP3 for local video files, you have multiple mixing modes:
 - **Standard AD (Mix Voice):** The narration is overlaid directly on top of the video's audio. You will be prompted if you want to apply **Audio Ducking** (lowering the background volume during descriptions) to ensure the narration is clear.
 - **Extended AD (Pause Audio):** The engine pauses the original video audio during descriptions, ensuring you never miss a single word of the original dialogue or the AI narration.
 - **YouTube Videos:** For YouTube sources (which are not downloaded locally), the MP3 export will strictly contain the synchronized AI voice track without the background video audio.
 
-## 5. Advanced Document & Image Reader
+## 5. Media Transcription & Dubbing (M)
+The Audio Transcriber has been completely rebuilt to support both audio and video files (MP3, WAV, MP4, MKV, etc.). Press **M** in the Command Layer to select a media file and choose one of 3 distinct operation modes:
+1. **Transcribe (Original Language)**: Accurately transcribes the spoken speech in its original language.
+2. **Transcribe and Translate (Target Language)**: Transcribes the speech and translates it into your configured target language.
+3. **Dub and Translate (Target Language)** *(Gemini Only)*: A powerful new feature that transcribes the speech, translates it into your target language, and synthesizes a spoken audio dub using the add-on's TTS engine.
+
+## 6. Advanced Document & Image Reader
 
 Vision Assistant Pro includes a highly optimized Document Reader designed for multi-page PDFs, complex images, and even iPhone HEIC formats.
 
-### 5.1 Batch Processing & Resume
+### 6.1 Batch Processing & Resume
 You don't need to read a massive document all at once. Enter a page range (e.g., `1-20`), and the AI will process all pages in the background. If NVDA crashes or you interrupt the scan, the add-on will remember your progress and offer to **Resume** exactly where it left off!
 
-### 5.2 Smart File Action
+### 6.2 Smart File Action
 You don't always need to open the document first. In Windows File Explorer, simply highlight a PDF or image and press **D** (Document Reader) or **F** (Smart File Action) inside the Command Layer. The add-on will instantly bypass the file dialog and begin processing the highlighted file.
 
-### 5.3 Document Viewer Shortcuts
+### 6.3 Document Viewer Shortcuts
 When the Document Reader window is open, you can use the following shortcuts:
 - **Ctrl + PageDown:** Move to the next page.
 - **Ctrl + PageUp:** Move to the previous page.
@@ -176,21 +176,21 @@ When the Document Reader window is open, you can use the following shortcuts:
 - **Alt + G:** Generate and save a high-quality audio file (WAV/MP3). *(Hidden if provider doesn't support TTS).*
 - **Alt + S / Ctrl + S:** Save the extracted text as a TXT or HTML file.
 
-## 6. Semantic AI Labeling & UI Explorer
+## 7. Semantic AI Labeling & UI Explorer
 
 Stuck in an application with "unlabeled button" everywhere? The Semantic AI Labeling engine solves this permanently.
 
-### 6.1 Permanent Object Labeling (L)
+### 7.1 Permanent Object Labeling (L)
 Focus your screen reader on an unlabeled graphic or button and press **L** in the Command Layer. The AI will look at the button visually, determine its function, and apply a permanent label. 
 *Unlike older screen reader labeling tools, this add-on uses an advanced hybrid "Object Signature" system (AutomationId/ControlID). Your custom labels will survive window resizing, monitor switching, and application updates!*
 
-### 6.2 Full Application Scan (Shift + L)
+### 7.2 Full Application Scan (Shift + L)
 Press **Shift + L** to scan the entire active window at once. The AI will find all unlabeled elements and intelligently name them in one go. You can later manage, rename, or batch-delete these labels from the built-in Label Manager.
 
-### 6.3 UI Explorer (E)
+### 7.3 UI Explorer (E)
 Need to interact with an element without navigating to it manually? Press **E** to activate the UI Explorer. The AI will scan the screen and generate an accessible list of every clickable element (ignoring system noise like taskbars). Pick an item from the list, and the add-on will instantly click it for you.
 
-## 7. Live Voice Assistant
+## 8. Live Voice Assistant
 
 The Live Assistant turns Vision Assistant Pro into a real-time, interactive copilot.
 *(Note: This feature is exclusive to Google Gemini and Gemini-compatible Custom providers).*
@@ -199,7 +199,7 @@ The Live Assistant turns Vision Assistant Pro into a real-time, interactive copi
 - **Real-time Interaction:** Talk naturally through your microphone. The AI will simultaneously listen to your voice and look at your active screen. You can ask questions like "What am I looking at?" or "Read the third paragraph to me."
 - **Customization:** Inside the dialog, you can change the AI's Voice Style (e.g., Professional, Friendly, Upbeat) and adjust its "Thinking Depth" to control how deeply it reasons before answering.
 
-## 8. Custom Prompts & Variables
+## 9. Custom Prompts & Variables
 
 You can manage prompts in **Settings > Prompts > Manage Prompts...**.
 
@@ -219,7 +219,7 @@ You can manage prompts in **Settings > Prompts > Manage Prompts...**.
 - `{swap_target}`: Fallback language for smart swap translation.
 - `{swap_instruction}`: Smart swap translation instruction block.
 
-## 9. Real-World Use Cases (Which feature should I use?)
+## 10. Real-World Use Cases (Which feature should I use?)
 
 Vision Assistant Pro is packed with advanced tools. Here are some common scenarios to help you choose the right one:
 
@@ -244,31 +244,57 @@ Vision Assistant Pro is packed with advanced tools. Here are some common scenari
 - **Scenario: You are watching a silent video tutorial or animation on your screen.**
   *Solution:* Press **Control + V** to start recording the screen. Let the tutorial play, then press **Control + V** again. The AI will explain exactly what was demonstrated.
 
+- **Scenario: You encounter an unexpected error, API connection failure, or want to diagnose issues with custom local servers.**
+  *Solution:* Go to **Settings > Advanced**, check **"Enable dedicated log file"**, and set the **Log Level** to **"Debug"**. Perform the action again, then click **"Open Log File"** to inspect technical details or attach `vision_assistant.log` to a support ticket.
+
 ***
 **Note:** An active internet connection is required for all AI features. Multi-page documents are processed automatically.
 
-## 10. Support & Community
+## 11. Support & Community
 
 Stay updated with the latest news, features, and releases:
 - **Telegram Channel:** [t.me/VisionAssistantPro](https://t.me/VisionAssistantPro)
 - **GitHub Issues:** For bug reports and feature requests.
 
-## 11. Project Supporters
+### Reporting Bugs & Logs
+When opening a GitHub issue or asking for support, please include details about your active AI provider, model, and NVDA version. If you are experiencing connection issues or unexpected crashes, enable the dedicated log file in **Settings > Advanced**, recreate the issue, and attach your `vision_assistant.log` file to help us resolve the problem faster.
+
+## 12. Project Supporters
 
 A heartfelt thank you to our community members who support the continuous development and maintenance of this project through their generous financial contributions:
 
 *   **@Alyabani94**
 *   **Ali Alamri**
 *   **Ilya**
-*   **Arne Siebert**
+*   **Anonymous Supporter** (`UQDd...CnMY`)
 *   **leonardo0216**
 *   **Sergei Fleytin**
-*   **Anonymous Supporter**
+*   **Suman Gayen**
 
 *If you wish to support the project financially and see your name here, you can find the **Donate** option in the NVDA Tools menu (Vision Assistant submenu) or during the setup process after installation.*
 
 
 ---
+## Changes for 2026.08.06
+
+*   **UI Explorer Labeling**: You can now add labels directly to found elements inside the UI Explorer! A new "Add Label" button has been added, and the interface smartly stays open and preserves focus so you can rapidly label multiple objects without interruption.
+*   **Quick Settings Layer Enhancement**: The Vision Assistant layer (`Insert+Shift+V`) is now persistent and highly interactive! You can use `Up/Down` arrows to navigate between quick settings (Provider, Model, AI Response Language, TTS Model) and `Left/Right` arrows to instantly change their values with smart, concise voice feedback. Your selections take effect immediately (including auto-enabling advanced routing when necessary), and the layer stays alive while you configure.
+*   **Direct Chat (`Shift+C`)**: Added a new command to the layer! Press `Shift+C` to instantly open a "Direct Chat" window. This provides a clean, text-based conversational interface with the AI right away, without needing an image or document as a starting point.
+*   **Flawless Chat History Recall**: Fixed a major bug where pressing `Space` to recall the last result would lose your subsequent chat history. Now, the add-on globally tracks your conversation. If you chat, close the dialog, and press `Space` to recall it, your entire back-and-forth history is perfectly restored! Works for Direct Chat, Vision Analysis, Document Chat, and Translation.
+*   **Inline Image Descriptions in OCR**: Added an optional feature to describe images inline during document OCR. You can toggle this setting in the add-on's OCR settings, within the Document Reader options before extraction, and quickly on-the-fly via the Quick Settings layer.
+*   **Voice Translation (`Control+T`)**: Added a powerful new feature! Dictate speech and instantly translate and type it using AI based on your configured source and target languages.
+*   **Update Downloader Improvements**: The update download dialog now correctly displays download progress in percentages, and a bug where a phantom "Downloading update" message appeared upon canceling the installation has been fixed.
+*   **eSpeak-NG Downloader Improvements**: Added percentage progress tracking for eSpeak-NG downloads.
+*   **Batch OCR Resilience**: Fixed an issue in batch PDF OCR where the process would halt if the active API key reached its quota midway; it now automatically switches to the next available key and resumes the process.
+*   **Visual Captcha Support**: Added robust support for visual captcha solving. It attempts to automatically solve complex image challenges like hCaptcha and reCAPTCHA, significantly enhancing accessibility on challenging web forms.
+*   **Audio Transcriber Overhaul**: The Audio Transcriber module has been completely rebuilt and now supports both audio and video files. It features 3 distinct operation modes: "Transcribe (Original Language)", "Transcribe and Translate (Target Language)", and a new powerful "Dub and Translate (Target Language)" option (exclusive to Gemini) that generates a translated audio dub of the original speech.
+*   **Optional Page Numbers in Document Reader**: Added a new setting to toggle the inclusion of page numbers and separators in multi-page document outputs. You can easily manage this option from the main settings or toggle it on-the-fly via the Quick Settings layer. This feature applies to both text/HTML file exports and the inline "View Formatted" window, allowing you to read combined documents seamlessly.
+*   **Unlimited Gemini Live TTS for Video Descriptions**: You can now select "Gemini Live TTS" as the voice engine when generating Synchronized Audio Narration (MP3) for videos. This utilizes the Gemini Live API to synthesize high-quality audio descriptions without any character limits or length restrictions.
+*   **Codebase Modularization**: Refactored the add-on structure from a single file to a multi-file modular architecture for improved maintainability.
+*   **Settings UI Redesign**: Completely redesigned the Settings dialog to use a modern, tab-based interface instead of a grouped layout, providing better organization and easier navigation while keeping all existing options.
+*   **Global & Dedicated File Logging**: Added an optional global file logging system under the new "Advanced" settings tab. Automatically captures operational events, API traffic, and errors across all add-on modules into a dedicated file (`vision_assistant.log`). Supports configurable log verbosity levels (Debug, Info, Warning, Error), automated retention periods (1 hour to 90 days), and direct log opening or clearing from settings with zero performance impact or NVDA log interference.
+*   **Gemini Upload Progress Tracking**: Added real-time percentage progress announcements when uploading large files (video, audio, documents) to the Google Gemini API.
+
 ## Changes for 2026.07.15
 
 *   **Intelligent API Model Filtering**: Complete overhaul of the model filtering system to use a pure blacklist approach instead of whitelists. Added stronger filtering keywords (`embedding`, `bison`, `gecko`, `audio`, `realtime`, `babbage`, `moderation`, `deep`, `antigravity`, `computer`) to ensure the main chat model dropdown remains perfectly clean and future-proof, while keeping all specialized models accessible in the Advanced Routing section.

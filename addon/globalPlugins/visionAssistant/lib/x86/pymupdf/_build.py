@@ -1,3 +1,4 @@
+
 mupdf_location = 'https://mupdf.com/downloads/archive/mupdf-1.26.11-source.tar.gz'
 pymupdf_version = '1.26.6'
 pymupdf_version_tuple = (1, 26, 6)
