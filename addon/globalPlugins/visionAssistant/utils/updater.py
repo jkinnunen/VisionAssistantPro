@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 from .media_capture import get_proxy_opener
 from .system import clean_markdown, show_error_dialog
 from ..vision_config import ADDON_NAME
+from .. import plugin_state
 
 class UpdateDialog(wx.Dialog):
     def __init__(self, parent, version, name, changes):
@@ -131,8 +132,7 @@ class UpdateManager:
     def _download_install_worker(self, url):
         try:
             # Translators: Message shown while downloading update
-            msg = _("Downloading update, please wait...")
-            core.callLater(0, ui.message, msg)
+            plugin_state.speak_status(_("Downloading update, please wait..."))
             temp_dir = tempfile.gettempdir()
             file_path = os.path.join(temp_dir, "VisionAssistant_Update.nvda-addon")
             
@@ -152,7 +152,7 @@ class UpdateManager:
                             # Translators: Progress message during update download
                             status_msg = _("Downloading update: {percent}%").format(percent=percent)
                             if downloaded % (5 * 1024 * 1024) < 1024 * 1024:
-                                core.callLater(0, ui.message, status_msg)
+                                plugin_state.speak_status(status_msg)
             
             wx.CallAfter(os.startfile, file_path)
         except Exception as e:

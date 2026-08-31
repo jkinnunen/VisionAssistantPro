@@ -63,6 +63,9 @@ class UploadMixin:
             uri, _dur = GeminiHandler._upload_file_common(file_path, mime_type, api_key, abort_checker=abort_checker)
             return uri
         except Exception as e:
+            if abort_checker and abort_checker():
+                log.debug("File upload aborted by user")
+                return None
             err_msg = GeminiHandler._handle_error(e) if hasattr(GeminiHandler, '_handle_error') else str(e)
             # Translators: Message of a dialog which may pop up while performing an AI call
             msg = _("File Upload Error: {error}").format(error=err_msg)
@@ -70,3 +73,22 @@ class UploadMixin:
             if not silent:
                 wx.CallAfter(show_error_dialog, msg)
             return None
+
+    def _get_gemini_file_uri(self, file_path, mime_type, api_key=None):
+        if not api_key:
+            g_keys = GeminiHandler._get_api_keys()
+            if not g_keys:
+                return None
+            api_key = g_keys[GeminiHandler._working_key_idx % len(g_keys)]
+        cache = getattr(self, "_gemini_file_cache", None)
+        if cache is None:
+            from .. import vision_config
+            from ..utils.storage import GeminiFileCache
+            cache = self._gemini_file_cache = GeminiFileCache(vision_config.GEMINI_FILE_CACHE_FILE)
+        uri = cache.get(file_path, api_key)
+        if uri:
+            return uri
+        uri = self._upload_file_to_gemini(file_path, mime_type, api_key=api_key)
+        if uri and "files/" in uri:
+            cache.put(file_path, api_key, uri)
+        return uri

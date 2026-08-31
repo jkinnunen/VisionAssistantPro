@@ -4,9 +4,9 @@ import sys
 import logging
 import threading
 import globalVars
-import config
+import config as nvda_config
 
-_LOG_DIR = os.path.join(globalVars.appArgs.configPath, "VisionAssistant_logs")
+_LOG_DIR = os.path.join(globalVars.appArgs.configPath, "VisionAssistant", "logs")
 _LOG_FILE = os.path.join(_LOG_DIR, "vision_assistant.log")
 
 _file_handler = None
@@ -24,7 +24,7 @@ def get_log_dir_path():
 def cleanup_old_logs(hours=None):
     if hours is None:
         try:
-            hours = int(config.conf["VisionAssistant"].get("log_retention_hours", 168))
+            hours = int(nvda_config.conf["VisionAssistant"].get("log_retention_hours", 168))
         except Exception:
             hours = 168
     if hours <= 0:
@@ -67,16 +67,14 @@ def cleanup_old_logs(hours=None):
 def setup_file_logging():
     global _file_handler
     try:
-        enabled = config.conf["VisionAssistant"].get("enable_file_logging", False)
-        level_str = config.conf["VisionAssistant"].get("log_level", "DEBUG").upper()
+        enabled = nvda_config.conf["VisionAssistant"].get("enable_file_logging", False)
+        level_str = nvda_config.conf["VisionAssistant"].get("log_level", "DEBUG").upper()
         level = getattr(logging, level_str, logging.DEBUG)
-
         target_logger = logging.getLogger("globalPlugins.visionAssistant")
         target_logger.setLevel(level)
-        target_logger.propagate = True
 
         for name, logger_obj in list(logging.Logger.manager.loggerDict.items()):
-            if name.startswith("globalPlugins.visionAssistant") and isinstance(logger_obj, logging.Logger):
+            if name.startswith("globalPlugins.visionAssistant.") and isinstance(logger_obj, logging.Logger):
                 logger_obj.setLevel(level)
                 logger_obj.propagate = True
 
@@ -96,6 +94,7 @@ def setup_file_logging():
             _file_handler = None
 
         if enabled:
+            target_logger.propagate = False
             if not os.path.exists(_LOG_DIR):
                 os.makedirs(_LOG_DIR, exist_ok=True)
 
@@ -118,6 +117,8 @@ def setup_file_logging():
             target_logger.info(
                 "Vision Assistant dedicated logging initialized. Enabled=%s, Level=%s", enabled, level_str
             )
+        else:
+            target_logger.propagate = True
     except Exception as e:
         logging.getLogger(__name__).warning("Failed to setup file logging: %s", e)
 

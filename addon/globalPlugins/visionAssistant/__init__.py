@@ -2,8 +2,6 @@
 import sys
 import os
 import json
-import ast
-import base64
 import threading
 import logging
 import tempfile
@@ -17,14 +15,13 @@ import wx
 import addonHandler
 import globalPluginHandler
 import globalVars
-import config
+import config as nvda_config
 import gui
 import ui
 import core
 import api
 import tones
 import scriptHandler
-import controlTypes
 import NVDAObjects
 
 lib_dir = os.path.join(os.path.dirname(__file__), "lib")
@@ -39,13 +36,11 @@ log = logging.getLogger(__name__)
 addonHandler.initTranslation()
 
 from . import plugin_state
-from . import vision_config
 from .ai.core import AIHandler
-from .utils.system import show_error_dialog, _generate_object_signature, get_file_path, OCRProgressStore, get_mime_type, check_screen_curtain_active, clean_markdown, VirtualDocument
-from .utils.media_capture import LiveSession, get_proxy_opener
-from .vision_config import LABELS_FILE, ADDON_NAME, GITHUB_REPO, get_lang_name, TARGET_NAMES
+from .utils.system import show_error_dialog, _generate_object_signature
+from .vision_config import LABELS_FILE, ADDON_NAME, GITHUB_REPO, HISTORY_FILE, _migrate_data_dir
+_migrate_data_dir()
 from .utils.updater import UpdateManager
-from .dialogs.ui_elements import LabelManagerDialog, UIExplorerDialog
 from .features.vision import VisionMixin
 from .features.screen_capture import ScreenCaptureMixin
 from .features.audio import AudioMixin
@@ -54,18 +49,9 @@ from .features.operator_captcha import OperatorCaptchaMixin
 from .features.quick_settings import QuickSettingsMixin
 from .features.upload import UploadMixin
 from .dialogs.settings import SettingsPanel
-from .prompt_utils import get_prompt_text, apply_prompt_template, finally_
+from .prompt_utils import finally_, load_configured_custom_prompts, _format_hotkey_display
 
-try:
-    import fitz
-except ImportError:
-    fitz = None
-from .dialogs.media import LiveAssistantDialog
-from .dialogs.chat_dialog import VisionQADialog
-from .dialogs.document import DocumentViewerDialog, RangeDialog
 from .dialogs import donate
-
-from urllib import request, error
 
 
 def check_and_restore_lib_backup():
@@ -80,23 +66,29 @@ def check_and_restore_lib_backup():
             target_lib_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
             os.makedirs(target_lib_dir, exist_ok=True)
 
+            failed = False
             for item in os.listdir(backup_dir):
                 if item == "backup_manifest.json":
                     continue
                 src = os.path.join(backup_dir, item)
                 dst = os.path.join(target_lib_dir, item)
-                if not os.path.exists(dst):
-                    try:
-                        if os.path.isdir(src):
-                            shutil.copytree(src, dst, dirs_exist_ok=True)
-                        else:
-                            shutil.copy2(src, dst)
-                    except Exception:
-                        pass
+                if os.path.exists(dst):
+                    continue
+                try:
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(src, dst)
+                except Exception as e:
+                    failed = True
+                    log.warning(f"Lib backup restore failed for {item}: {e}")
 
+            if failed:
+                log.warning("Lib backup restore incomplete; keeping backup for retry on next start.")
+                return
             shutil.rmtree(backup_dir, ignore_errors=True)
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning(f"Lib backup restore failed: {e}")
 
     def _start():
         threading.Thread(target=_restore_worker, daemon=True).start()
@@ -144,6 +136,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         super(GlobalPlugin, self).__init__()
 
         plugin_state.plugin_instance = self
+        log.info("Vision Assistant loaded")
         
         try:
             check_and_restore_lib_backup()
@@ -204,7 +197,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             # Translators: The name of the addon's sub-menu in the NVDA Tools menu.
             self.va_submenu_item = self.tools_menu.AppendSubMenu(self.va_menu, _("Vision Assistant"))
 
-            if config.conf["VisionAssistant"]["check_update_startup"]:
+            if nvda_config.conf["VisionAssistant"]["check_update_startup"]:
                 self.update_timer = wx.CallLater(10000, self.updater.check_for_updates, True)
 
         self.refine_dlg = None
@@ -217,6 +210,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         self._last_result_data = None
         self.live_session = None
         self.live_dlg = None
+        self._live_history = ""
 
         self.is_video_recording = False
         self.recording_process = None
@@ -228,139 +222,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             try:
                 with open(LABELS_FILE, "r", encoding="utf-8") as f:
                     self.labels_cache = json.load(f)
-            except Exception: pass
+            except Exception as e: log.debug(f"Labels cache load failed: {e}")
 
         self._ocr_task_running = {"smartfile": False, "document": False}
         self._ocr_abort = {"smartfile": False, "document": False}
 
-    def _capture_fullscreen_sync(self):
-        res = [None, 0, 0, ""]
-        evt = threading.Event()
-        def do_cap():
-            try:
-                res[0], res[1], res[2], res[3] = self._capture_fullscreen()
-            except Exception: pass
-            finally: evt.set()
-        core.callLater(0, do_cap)
-        evt.wait()
-        return res[0], res[1], res[2], res[3]
-
-    def _get_fg_app_name_sync(self):
-        res = [""]
-        evt = threading.Event()
-        def do_get():
-            try: res[0] = api.getForegroundObject().appModule.appName
-            except Exception: pass
-            finally: evt.set()
-        core.callLater(0, do_get)
-        evt.wait()
-        return res[0]
-
-    @staticmethod
-    def _ocr_progress_key(context, paths):
-        return context + "|" + "|".join(sorted(paths))
-
-    def _stop_ocr_task(self, context):
-        self._ocr_abort[context] = True
-        self._ocr_task_running[context] = False
-        self.current_status = _("Idle")
-        # Translators: Announcement when an in-progress OCR extraction is stopped by the user.
-        ui.message(_("OCR operation stopped."))
-        tones.beep(300, 150)
-
-    def _maybe_resume_ocr(self, context, paths):
-        key = self._ocr_progress_key(context, paths)
-        record = OCRProgressStore.load(key)
-        if not record:
-            return None
-
-        total_pages = record.get("end", 0) - record.get("start", 0) + 1
-        done_pages = min(len(record.get("pages", {})), total_pages)
-        file_count = len(record.get("paths", paths))
-
-        # Translators: Title of the dialog asking whether to resume an OCR operation
-        title = _("Unfinished Operation")
-        # Translators: Message asking whether to continue an interrupted OCR extraction.
-        msg = _("You have an unfinished operation: {done} of {total} pages processed across {files} file(s). Would you like to continue from where it stopped?").format(done=done_pages, total=total_pages, files=file_count)
-
-        result = {}
-        done = threading.Event()
-
-        def ask():
-            try:
-                result["yes"] = (gui.messageBox(msg, title, wx.YES_NO | wx.ICON_QUESTION) == wx.YES)
-            finally:
-                done.set()
-
-        if wx.IsMainThread():
-            ask()
-        else:
-            wx.CallAfter(ask)
-            done.wait()
-
-        if result.get("yes"):
-            return record
-        OCRProgressStore.clear(key)
-        return None
-
-    def _open_document_reader(self):
-        self._dialog_open = True
-        # Translators: File dialog filter for supported files
-        wc = _("Supported Files") + "|*.pdf;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.heic;*.heif"
-        self._browse_and_run(self._scan_and_open, wc, multiple=True)
-        self._dialog_open = False
-
-    def _scan_and_open(self, paths, resume=None):
-        try:
-            if not fitz:
-                # Translators: Error when PyMuPDF is missing
-                wx.CallAfter(wx.MessageBox, _("PyMuPDF library is missing."), "Error", wx.ICON_ERROR)
-                return
-
-            engine = config.conf["VisionAssistant"]["ocr_engine"]
-            image_extensions = ('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif')
-            has_images = any(p.lower().endswith(image_extensions) for p in paths)
-
-            if engine == 'none' and has_images:
-                # Translators: Message shown when a PDF has no text layer.
-                msg = _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings.")
-                # Translators: Title of the error dialog shown when the selected OCR engine cannot process the chosen image-based files.
-                wx.CallAfter(gui.messageBox, msg, _("OCR Engine Error"), wx.OK | wx.ICON_ERROR)
-                return
-
-            v_doc = VirtualDocument(paths)
-            v_doc.scan()
-            if v_doc.total_pages == 0:
-                 # Translators: Error when no pages found
-                 wx.CallAfter(wx.MessageBox, _("No readable pages found."), "Error", wx.ICON_ERROR)
-                 return
-            if resume is None:
-                resume = self._maybe_resume_ocr("document", list(paths))
-            if resume:
-                settings = {'start': resume['start'], 'end': resume['end'], 'translate': resume['do_translate'], 'lang': resume['target_lang']}
-                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings, resume))
-            elif v_doc.total_pages == 1:
-                settings = {'start': 0, 'end': 0, 'translate': False, 'lang': TARGET_NAMES[0]}
-                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings))
-            else:
-                wx.CallAfter(self._show_range_dialog, v_doc)
-        except Exception as e:
-            log.error(f"Error opening files: {e}", exc_info=True)
-
-    def _open_document_viewer(self, v_doc, settings, resume=None):
-        self.doc_viewer_dlg = DocumentViewerDialog(gui.mainFrame, v_doc, settings, resume=resume)
-        self.doc_viewer_dlg.Show()
-
-    def _show_range_dialog(self, v_doc):
-        gui.mainFrame.prePopup()
-        try:
-            range_dlg = RangeDialog(gui.mainFrame, v_doc.total_pages)
-            if range_dlg.ShowModal() == wx.ID_OK:
-                settings = range_dlg.get_settings()
-                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings))
-            range_dlg.Destroy()
-        finally:
-            gui.mainFrame.postPopup()
+        self._register_custom_prompt_scripts()
+        self.bindGestures(self._custom_prompt_normal_gestures)
 
     def getScript(self, gesture):
         if not self.toggling:
@@ -378,6 +246,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         self._quick_settings_idx = 0
         self.clearGestureBindings()
         self.bindGestures(self.__gestures)
+        self.bindGestures(getattr(self, "_custom_prompt_normal_gestures", {}))
 
     def script_error(self, gesture):
         tones.beep(120, 100)
@@ -420,6 +289,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             # Translators: Script description for 'Shows the last AI response in a chat dialog for review or follow-up questions.' in Input Gestures dialog.
             "Space: " + _("Shows the last AI response in a chat dialog for review or follow-up questions.") + "\n" +
             "H: " + _("Shows a list of available commands in the layer.") + "\n" +
+            # Translators: Script description for 'Opens the History dialog to review past chats and documents.' in Input Gestures dialog.
+            "Control+H: " + _("Opens the History dialog to review past chats and documents.") + "\n" +
             # Translators: Script description for 'Starts or ends a live voice conversation with the AI assistant.' in Input Gestures dialog.
             "Control+L: " + _("Starts or ends a live voice conversation with the AI assistant.") + "\n" +
             # Translators: Script description for 'Opens the Vision Assistant settings dialog.' in Input Gestures dialog.
@@ -429,6 +300,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             # Translators: Script description for 'Reports the AI models selected in advanced routing.' in Input Gestures dialog.
             "Alt+M: " + _("Reports the AI models selected in advanced routing.")
         )
+        custom_prompt_shortcuts = getattr(self, "_custom_prompt_layer_info", [])
+        if custom_prompt_shortcuts:
+            # Translators: Section header in the command layer help listing custom prompt shortcuts.
+            help_msg += "\n\n" + _("Custom Prompts:") + "\n"
+            for hotkey, prompt_name in custom_prompt_shortcuts:
+                help_msg += "%s: %s\n" % (_format_hotkey_display(hotkey), prompt_name)
         # Translators: Title of the help dialog
         ui.browseableMessage(help_msg, _("{name} Help").format(name=ADDON_NAME))
 
@@ -456,6 +333,48 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         if self.toggling: self.finish()
         wx.CallAfter(self.on_settings_click, None)
 
+    # Translators: Script description for 'Opens the History dialog to review past chats and documents.' in Input Gestures dialog.
+    @scriptHandler.script(description=_("Opens the History dialog to review past chats and documents."), category=ADDON_NAME)
+    def script_openHistory(self, gesture):
+        if self.toggling: self.finish()
+        wx.CallAfter(self._open_history_dialog)
+
+    def _open_history_dialog(self):
+        dlg = getattr(self, "_history_dlg", None)
+        if dlg:
+            try:
+                dlg.Raise()
+                dlg.SetFocus()
+                return
+            except Exception:
+                pass
+        from .dialogs.history_dialog import HistoryDialog
+        from .utils.storage import HistoryStore
+        store = HistoryStore(HISTORY_FILE)
+        self._history_dlg = HistoryDialog(
+            gui.mainFrame,
+            store,
+            on_open_chat=self._open_chat_from_history,
+            on_open_document=self._open_document_from_history,
+        )
+        self._history_dlg.Show()
+        self._history_dlg.Raise()
+
+    def _open_chat_from_history(self, item):
+        data = item.get("data") or {}
+        self._last_chat_history = data.get("history", [])
+        self._last_chat_attachments = data.get("attachments", [])
+        self._last_chat_id = item.get("id")
+        self._open_direct_chat_dialog(is_recall=True)
+
+    def _open_document_from_history(self, item):
+        data = item.get("data") or {}
+        paths = data.get("paths") or []
+        if not paths:
+            return
+        start_at = data.get("current_page")
+        threading.Thread(target=self._scan_and_open, args=(paths,), kwargs={"start_at": start_at}, daemon=True).start()
+
     # Translators: Script description for 'Checks for updates manually.' in Input Gestures dialog.
     @scriptHandler.script(description=_("Checks for updates manually."), category=ADDON_NAME)
     def script_checkUpdate(self, gesture):
@@ -465,42 +384,39 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         self.report_status(msg)
         self.updater.check_for_updates(silent=False)
 
+
+    # Translators: Script description for 'Reports the number of Gemini API keys that have exceeded their daily quota and their reset time.' in Input Gestures dialog.
     @scriptHandler.script(description=_("Reports the number of Gemini API keys that have exceeded their daily quota and their reset time."), category=ADDON_NAME)
     def script_reportQuotaExhaustedKeys(self, gesture):
-        if self.toggling: self.finish()
+        if getattr(self, "toggling", False): self.finish()
         if not AIHandler.is_gemini():
             # Translators: Message shown when a user tries to check Gemini API quotas but another provider is active.
             core.callLater(0, ui.message, _("This feature is only available for Google Gemini."))
             return
         try:
-            banned_str = config.conf["VisionAssistant"].get("banned_gemini_keys", "{}")
+            banned_str = nvda_config.conf["VisionAssistant"].get("banned_gemini_keys", "{}")
             banned = json.loads(banned_str)
-        except Exception:
+        except Exception as e:
+            log.warning(f"Parse banned keys failed: {e}")
             banned = {}
-
         now = time.time()
         unique_keys = {}
         max_time_per_key = {}
-
         for k_m, ban_time in list(banned.items()):
             if now < ban_time:
                 parts = k_m.split("::")
                 k = parts[0]
                 m = parts[1] if len(parts) > 1 else "Unknown"
-                if k not in unique_keys:
-                    unique_keys[k] = []
+                if k not in unique_keys: unique_keys[k] = []
                 unique_keys[k].append(m)
                 max_time_per_key[k] = max(max_time_per_key.get(k, 0), ban_time)
             else:
                 del banned[k_m]
-
-        config.conf["VisionAssistant"]["banned_gemini_keys"] = json.dumps(banned)
-
+        nvda_config.conf["VisionAssistant"]["banned_gemini_keys"] = json.dumps(banned)
         if not unique_keys:
             # Translators: Message when no API keys are out of quota
             ui.message(_("No API keys have exceeded their daily quota."))
             return
-
         today = datetime.date.today()
         msg_parts = []
         for k, models in unique_keys.items():
@@ -509,47 +425,38 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             model_str = ", ".join(models)
             ban_date = datetime.datetime.fromtimestamp(max_time).date()
             time_str = time.strftime("%H:%M", time.localtime(max_time))
-            if ban_date > today:
-                # Translators: Prefix for time when the daily quota resets on the next day
-                time_str = _("tomorrow at {time}").format(time=time_str)
+            # Translators: Prefix for time when the daily quota resets on the next day
+            if ban_date > today: time_str = _("tomorrow at {time}").format(time=time_str)
             # Translators: Shows detailed information for a banned API key. {key} is the API key, {model} is the model name, {time_str} is the reset time.
             key_info = _("Key: {key}\nModel: {model}\nResets around: {time_str}\n").format(key=k, model=model_str, time_str=time_str)
             msg_parts.append(key_info)
-
         model_counts = {}
         for models in unique_keys.values():
-            for m in models:
-                model_counts[m] = model_counts.get(m, 0) + 1
-
+            for m in models: model_counts[m] = model_counts.get(m, 0) + 1
         summary_parts = []
         for m, count in model_counts.items():
             # Translators: Shows how many API keys have exceeded their quota for a specific model. {count} is the number of keys, {model} is the model name.
             summary_parts.append(_("{count} keys for model {model}").format(count=count, model=m))
-
         # Translators: Message shown when API keys run out of quota.
         summary_msg = ", ".join(summary_parts) + " " + _("have exceeded their daily quota.")
         final_msg = summary_msg + "\n\n" + "\n".join(msg_parts).strip()
         # Translators: Title of the browseable message dialog showing exhausted API keys
         ui.browseableMessage(final_msg, _("Exhausted API Keys"))
 
+    # Translators: Script description for 'Reports the AI models selected in advanced routing.' in Input Gestures dialog.
     @scriptHandler.script(description=_("Reports the AI models selected in advanced routing."), category=ADDON_NAME)
     def script_reportSelectedModels(self, gesture):
-        if self.toggling: self.finish()
+        if getattr(self, "toggling", False): self.finish()
         models = []
-        conf = config.conf["VisionAssistant"]
+        conf = nvda_config.conf["VisionAssistant"]
         p = conf.get("active_provider", "gemini")
-
         m_key = "model_name" if p == "gemini" else f"{p}_model_name"
         main_m = conf.get(m_key, "")
-        if main_m:
-            # Translators: Prefix for main model status
-            models.append(_("Main: {model}").format(model=main_m))
-
+        # Translators: Prefix for main model status
+        if main_m: models.append(_("Main: {model}").format(model=main_m))
         def add_adv(task, name):
             m = conf.get(f"{p}_{task}_model", "")
-            if m and "Default" not in m and "Auto" not in m:
-                models.append(f"{name}: {m}")
-
+            if m and "Default" not in m and "Auto" not in m: models.append(f"{name}: {m}")
         add_adv("ocr", _("OCR"))
         # Translators: Abbreviation for Speech-to-Text.
         add_adv("stt", _("STT"))
@@ -559,149 +466,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         add_adv("operator", _("Operator"))
         add_adv("video", _("Video"))
         add_adv("live", _("Live"))
+        # Translators: Message when no specific AI models are selected in advanced routing
+        if not models: ui.message(_("No specific models selected."))
+        else: ui.message(". ".join(models))
 
-        if not models:
-            # Translators: Message when no specific AI models are selected in advanced routing
-            ui.message(_("No specific models selected."))
-        else:
-            ui.message(". ".join(models))
-
-    def _start_live_session(self):
-        if self.live_session or not AIHandler.is_gemini():
-            return
-        tones.beep(660, 120)
-        direct = config.conf["VisionAssistant"]["live_direct_output"]
-        self.live_session = LiveSession(
-            on_text=lambda line: wx.CallAfter(self._live_append, line),
-            on_status=lambda msg: wx.CallAfter(self._live_status, msg),
-            on_closed=lambda: wx.CallAfter(self._live_on_closed),
-            on_stream=lambda chunk: wx.CallAfter(self._live_stream, chunk),
-        )
-        if not direct:
-            self._show_live_window()
-        self._live_video_timer = wx.Timer(gui.mainFrame)
-        gui.mainFrame.Bind(wx.EVT_TIMER, self._on_live_video_tick, self._live_video_timer)
-        self._live_video_timer.Start(2000)
-        threading.Thread(target=self._start_live_worker, daemon=True).start()
-
-    def _show_live_window(self):
-        if getattr(self, "live_dlg", None) and LiveAssistantDialog.instance is self.live_dlg:
-            self.live_dlg.set_active(bool(self.live_session))
-        else:
-            self.live_dlg = LiveAssistantDialog(gui.mainFrame, self._start_live_session, self._end_live_session)
-            self.live_dlg.set_active(bool(self.live_session))
-            self.live_dlg.Show()
-        self.live_dlg.Raise()
-        self.live_dlg.history.SetFocus()
-
-    def _on_live_video_tick(self, event):
-        session = self.live_session
-        if not session:
-            return
-        jpeg_b64, w, h, m = self._capture_fullscreen()
-        if jpeg_b64:
-            threading.Thread(target=session.send_video_frame, args=(jpeg_b64,), daemon=True).start()
-
-    def _start_live_worker(self):
-        session = self.live_session
-        if session and not session.start():
-            wx.CallAfter(self._live_on_closed)
-
-    def _live_append(self, line):
-        if getattr(self, "live_dlg", None):
-            try: self.live_dlg.append_line(line)
-            except Exception: pass
-
-    def _live_stream(self, chunk):
-        if getattr(self, "live_dlg", None):
-            try: self.live_dlg.append_raw(chunk)
-            except Exception: pass
-
-    def _live_status(self, msg):
-        if msg.startswith("ERROR:"):
-            show_error_dialog(msg[6:])
-            self._end_live_session()
-        elif msg.startswith("STATUS:"):
-            self.report_status(msg[7:])
-
-    def _end_live_session(self):
-        if self.live_session:
-            try: self.live_session.stop()
-            except Exception: pass
-
-    def _live_on_closed(self):
-        self.live_session = None
-        if getattr(self, "_live_video_timer", None):
-            try:
-                self._live_video_timer.Stop()
-                gui.mainFrame.Unbind(wx.EVT_TIMER, handler=self._on_live_video_tick, source=self._live_video_timer)
-            except Exception: pass
-            self._live_video_timer = None
-        if getattr(self, "live_dlg", None) and LiveAssistantDialog.instance:
-            try:
-                self.live_dlg.set_active(False)
-                # Translators: Line appended to the conversation when the live session has ended.
-                self.live_dlg.append_line(_("--- Session ended ---"))
-            except Exception: pass
-        else:
-            self.live_dlg = None
-        tones.beep(440, 120)
-        # Translators: Message announced by NVDA when the live voice conversation ends.
-        self.report_status(_("Live conversation ended."))
-
-    def _browse_file(self, wildcard):
-        return get_file_path(_("Open"), wildcard)
-
-    def _upload_file_to_gemini(self, file_path, mime_type, silent=False, abort_checker=None, api_key=None):
-        p = config.conf["VisionAssistant"]["active_provider"]
-        keys = AIHandler.get_keys(p)
-        if not keys: return None
-
-        if not AIHandler.is_gemini():
-            url = AIHandler.get_endpoint("upload")
-            boundary = "Boundary-" + __import__('uuid').uuid4().hex
-            with open(file_path, "rb") as f:
-                data = f.read()
-            body = []
-            body.append(f"--{boundary}".encode())
-            body.append(f'Content-Disposition: form-data; name="purpose"'.encode())
-            body.append(b'')
-            body.append(b'ocr')
-            body.append(f"--{boundary}".encode())
-            body.append(f'Content-Disposition: form-data; name="file"; filename="{os.path.basename(file_path)}"'.encode())
-            body.append(f'Content-Type: {mime_type}'.encode())
-            body.append(b'')
-            body.append(data)
-            body.append(f"--{boundary}--".encode())
-            body.append(b'')
-
-            for key in keys:
-                if abort_checker and abort_checker(): return None
-                try:
-                    req = request.Request(url, data=b'\r\n'.join(body), headers={"Authorization": f"Bearer {key}", "Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST")
-                    with get_proxy_opener().open(req, timeout=3600) as r:
-                        res = json.loads(r.read().decode())
-                        return res.get("id") or res.get("name")
-                except Exception: continue
-            return None
-
-        from .ai.providers.gemini import GeminiHandler
-        if not api_key:
-            g_keys = GeminiHandler._get_api_keys()
-            if not g_keys: return None
-            api_key = g_keys[GeminiHandler._working_key_idx % len(g_keys)]
-
-        try:
-            uri, _dur = GeminiHandler._upload_file_common(file_path, mime_type, api_key, abort_checker=abort_checker)
-            return uri
-        except Exception as e:
-            err_msg = GeminiHandler._handle_error(e) if isinstance(e, error.HTTPError) else str(e)
-            # Translators: Message of a dialog which may pop up while performing an AI call
-            msg = _("File Upload Error: {error}").format(error=err_msg)
-            self.report_status(msg)
-            if not silent:
-                wx.CallAfter(show_error_dialog, msg)
-            return None
 
     def terminate(self):
         try:
@@ -711,7 +479,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
 
             gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(SettingsPanel)
 
-        except Exception: pass
+        except Exception as e: log.debug(f"Settings panel remove failed: {e}")
 
         if hasattr(self, 'update_timer') and self.update_timer and self.update_timer.IsRunning():
             self.update_timer.Stop()
@@ -722,7 +490,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
 
         if self.live_session:
             try: self.live_session.stop()
-            except Exception: pass
+            except Exception as e: log.debug(f"Live session stop failed: {e}")
             self.live_session = None
 
         for dlg in [self.refine_dlg, self.refine_menu_dlg, self.vision_dlg, self.doc_dlg, self.doc_viewer_dlg, self.translation_dlg]:
@@ -731,12 +499,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
                     if getattr(dlg, "abort", None) is not None:
                         dlg.abort = True
                     dlg.Destroy()
-                except Exception: pass
+                except Exception as e: log.debug(f"Dialog abort/destroy failed: {e}")
 
         if self.is_recording:
             try:
                 ctypes.windll.winmm.mciSendStringW('close all', None, 0, 0)
-            except Exception: pass
+            except Exception as e: log.debug(f"MCI close all failed: {e}")
 
         self.translation_cache = {}
         self._last_source_text = None
@@ -745,32 +513,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             try:
                 if os.path.exists(fpath):
                     os.remove(fpath)
-            except Exception: pass
+            except Exception as e: log.debug(f"Temp file removal failed: {e}")
         self._temp_files_to_cleanup = []
         gc.collect()
 
     def report_status(self, msg):
         self.current_status = msg
-        ui.message(msg)
+        plugin_state.speak_status(msg)
 
-    def script_layerDown(self, gesture):
-        self._quick_settings_idx = (getattr(self, '_quick_settings_idx', 0) + 1) % 17
-        self._announce_current_quick_setting()
-    script_layerDown.keep_layer_alive = True
-
-    def script_layerUp(self, gesture):
-        self._quick_settings_idx = (getattr(self, '_quick_settings_idx', 0) - 1) % 17
-        self._announce_current_quick_setting()
-    script_layerUp.keep_layer_alive = True
-
-    def script_layerRight(self, gesture):
-        self._change_quick_setting(1)
-    script_layerRight.keep_layer_alive = True
-
-    def script_layerLeft(self, gesture):
-        self._change_quick_setting(-1)
-    script_layerLeft.keep_layer_alive = True
-    
     # Translators: Script description for 'Activates the Command Layer for quick access to all features.' in Input Gestures dialog.
     @scriptHandler.script(description=_("Activates the Command Layer for quick access to all features."), category=ADDON_NAME)
     def script_activateLayer(self, gesture):
@@ -781,119 +531,76 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             self.script_error(gesture)
             return
 
-        self.bindGestures(self.__VisionGestures)
+        self.clearGestureBindings()
+        self.bindGestures(self._build_layer_gestures())
+        self.bindGestures(self.__gestures)
         self.toggling = True
         tones.beep(500, 100)
 
-    def _open_direct_chat_dialog(self, force_show=True, is_recall=False):
-        self._last_result_data = (self._open_direct_chat_dialog, ())
+    def _build_layer_gestures(self):
+        gestures = dict(self.__VisionGestures)
+        for gesture_id, script_name in getattr(self, "_custom_prompt_layer_gestures", {}).items():
+            if gesture_id not in gestures:
+                gestures[gesture_id] = script_name
+        return gestures
 
-        if self.vision_dlg:
-            try: self.vision_dlg.Destroy()
-            except Exception: pass
-            self.vision_dlg = None
+    def _make_custom_prompt_script(self, prompt_name, content, script_name):
+        # Translators: Script description in Input Gestures for a shortcut that runs a custom prompt. {name} is the prompt name.
+        description = _("Runs the custom prompt \"{name}\".").format(name=prompt_name)
 
-        def cb(atts, q, history, sz):
-            lang = get_lang_name("ai_response_language")
-            attached_paths = sz.get('attachments', [])
+        def make(prompt_content):
+            def script(self, gesture):
+                if self.toggling:
+                    self.finish()
+                captured_text = self._get_text_smart()
+                if not captured_text:
+                    captured_text = ""
+                wx.CallLater(100, self._run_refine_prompt, captured_text, prompt_content)
+            script.__name__ = "script_" + script_name
+            return scriptHandler.script(description=description, category=ADDON_NAME)(script)
 
-            if not AIHandler.is_gemini():
-                other_parts = []
-                for path in attached_paths:
-                    if not os.path.exists(path): continue
-                    mime_type = get_mime_type(path)
-                    if mime_type.startswith("image/"):
-                        try:
-                            with open(path, "rb") as f:
-                                data = base64.b64encode(f.read()).decode("utf-8")
-                            other_parts.append({"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{data}"}})
-                        except Exception: pass
+        return make(content)
 
-                messages = []
-                for h in history:
-                    r = "assistant" if h.get("role") == "model" else "user"
-                    txt = h["parts"][0]["text"] if h.get("parts") else ""
-                    messages.append({"role": r, "content": txt})
+    def _register_custom_prompt_scripts(self):
+        items = load_configured_custom_prompts()
+        self._custom_prompt_script_names = []
+        self._custom_prompt_layer_gestures = {}
+        self._custom_prompt_normal_gestures = {}
+        self._custom_prompt_layer_info = []
+        for item in items:
+            hotkey = (item.get("hotkey") or "").strip().lower()
+            if not hotkey:
+                continue
+            script_name = "customPrompt_" + hotkey.replace("+", "_")
+            self._custom_prompt_script_names.append(script_name)
+            layer_id = "kb:" + hotkey
+            self._custom_prompt_layer_gestures[layer_id] = script_name
+            if "+" in hotkey:
+                self._custom_prompt_normal_gestures[layer_id] = script_name
+            else:
+                self._custom_prompt_normal_gestures["kb:nvda+shift+" + hotkey] = script_name
+            self._custom_prompt_layer_info.append((hotkey, item.get("name", "")))
+            setattr(
+                type(self),
+                "script_" + script_name,
+                self._make_custom_prompt_script(item.get("name", ""), item.get("content", ""), script_name),
+            )
 
-                current_user_msg = {"role": "user", "content": [{"type": "text", "text": f"{q} (Answer strictly in {lang})"}] + other_parts}
-                messages.append(current_user_msg)
-                return AIHandler.call(messages), None
-
-            from .ai.providers.gemini import GeminiHandler
-            keys = GeminiHandler._get_api_keys(task="chat")
-            num_keys = len(keys)
-            keys_exhausted = 0
-
-            while keys_exhausted < num_keys:
-                idx = getattr(GeminiHandler, '_working_key_idx', 0)
-                key = keys[idx % num_keys]
-                gemini_parts = []
-                for path in attached_paths:
-                    if not os.path.exists(path): continue
-                    mime_type = get_mime_type(path)
-
-                    if "pdf" in mime_type.lower() or mime_type.startswith("audio/") or mime_type.startswith("video/"):
-                        file_uri = self._upload_file_to_gemini(path, mime_type, api_key=key)
-                        if file_uri:
-                            gemini_parts.append({"file_data": {"mime_type": mime_type, "file_uri": file_uri}})
-                    else:
-                        try:
-                            with open(path, "rb") as f:
-                                data = base64.b64encode(f.read()).decode("utf-8")
-                            gemini_parts.append({"inline_data": {"mime_type": mime_type, "data": data}})
-                        except Exception: pass
-
-                current_user_msg = {"role": "user", "parts": [{"text": f"{q} (Answer strictly in {lang})"}] + gemini_parts}
-                messages = []
-                messages.extend(history)
-                messages.append(current_user_msg)
-
-                atts_for_forcing = [{"file_uri": p["file_data"]["file_uri"]} for p in gemini_parts if "file_data" in p]
-
-                res = AIHandler.call(messages, attachments=atts_for_forcing if atts_for_forcing else None)
-
-                if atts_for_forcing and res and res.startswith("ERROR:"):
-                    err_msg_lower = res.lower()
-                    if "quota" in err_msg_lower or "exhausted" in err_msg_lower or "429" in err_msg_lower or "permission" in err_msg_lower or "403" in err_msg_lower:
-                        keys_exhausted += 1
-                        GeminiHandler._working_key_idx = (GeminiHandler._working_key_idx + 1) % num_keys
-                        continue
-
-                return res, None
-
-            # Translators: Error when all available API keys fail
-            return "ERROR:" + _("All API Keys failed (Quota/Server)."), None
-
-        # Translators: Initial greeting message for the Direct Chat dialog.
-        init_msg = _("Hello! I am Vision Assistant Pro. How can I help you today?")
-
-        self.vision_dlg = VisionQADialog(
-            gui.mainFrame,
-            # Translators: Dialog title for Direct Chat
-            _("{name} - Direct Chat").format(name=ADDON_NAME),
-            init_msg,
-            None,
-            cb,
-            extra_info={'skip_init_history': False, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None},
-            raw_content=init_msg,
-            status_callback=self.report_status,
-            allow_attachments=True
-        )
-        self.vision_dlg.Show()
-        self.vision_dlg.Raise()
-
-    # Translators: Script description for 'Opens a chat dialog to directly prompt the AI with text or files.' in Input Gestures dialog.
-    @scriptHandler.script(description=_("Opens a chat dialog to directly prompt the AI with text or files."), category=ADDON_NAME)
-    def script_openDirectChat(self, gesture):
-        if self.toggling: self.finish()
-        wx.CallAfter(self._open_direct_chat_dialog)
-
-    @scriptHandler.script(description=_("Shows the last AI response in a chat dialog for review or follow-up questions."), category=ADDON_NAME)
-    def script_showLastResult(self, gesture):
-        if self.toggling: self.finish()
-        if self._last_result_data:
-            func, args = self._last_result_data
-            wx.CallAfter(func, *args, force_show=True, is_recall=True)
+    def _refresh_custom_prompt_scripts(self):
+        try:
+            for script_name in getattr(self, "_custom_prompt_script_names", []):
+                try:
+                    delattr(type(self), "script_" + script_name)
+                except Exception:
+                    pass
+            self._register_custom_prompt_scripts()
+            self.clearGestureBindings()
+            self.bindGestures(self.__gestures)
+            self.bindGestures(getattr(self, "_custom_prompt_normal_gestures", {}))
+            if self.toggling:
+                self.bindGestures(self._build_layer_gestures())
+        except Exception as e:
+            log.warning("Failed to refresh custom prompt shortcuts: %s" % e)
 
     def on_settings_click(self, event):
         instance = getattr(gui.settingsDialogs.NVDASettingsDialog, "instance", None)
@@ -967,232 +674,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
             clsList.insert(0, CustomLabelOverlay)
             return
 
-    # Translators: Script description for 'Labels the current navigator object using AI.' in Input Gestures dialog.
-    @scriptHandler.script(description=_("Labels the current navigator object using AI."), category=ADDON_NAME)
-    def script_labelObject(self, gesture):
-        if self.toggling: self.finish()
-        obj = api.getNavigatorObject()
-        if not obj or not obj.location: return
-
-        if check_screen_curtain_active():
-            return
-
-        uniqueId = self._getAppId(obj)
-        if uniqueId in ["chrome", "msedge", "firefox", "opera", "brave"]:
-            # Translators: Message shown when a user tries to use AI labeling in a web browser.
-            ui.message(_("AI Labeling is currently not supported in web browsers."))
-            return
-
-        loc = obj.location
-        sig_key = _generate_object_signature(obj)
-
-        is_labeled = False
-        found_label = ""
-        if uniqueId in self.labels_cache:
-            if sig_key and sig_key in self.labels_cache[uniqueId]:
-                is_labeled = True
-                found_label = self.labels_cache[uniqueId][sig_key]
-
-        if is_labeled:
-            # Translators: Message spoken by NVDA when the current object already has a custom or AI-generated label. {name} is replaced with the existing label text.
-            ui.message(_("Already labeled as: {name}").format(name=found_label))
-            return
-
-        tones.beep(800, 100)
-        # Translators: Progress message spoken when the add-on starts taking a screenshot of the current focused object.
-        self.current_status = _("Identifying object...")
-        ui.message(self.current_status)
-
-        img, w, h, m = self._capture_navigator()
-        def worker():
-            if not img:
-                self.current_status = _("Idle")
-                return
-            self.current_status = _("Analyzing...")
-            core.callLater(0, ui.message, self.current_status)
-
-            resp_lang = get_lang_name("ai_response_language")
-            prompt_template = get_prompt_text("label_single_system")
-            prompt = apply_prompt_template(prompt_template, [
-                ("app_name", uniqueId),
-                ("response_lang", resp_lang)
-            ])
-
-            res = AIHandler.call(prompt, attachments=[{'mime_type': m, 'data': img}], task="operator")
-            self.current_status = _("Idle")
-
-            if res and not res.startswith("ERROR:"):
-                clean_name = clean_markdown(res)
-
-                def save_ui_thread():
-                    if uniqueId not in self.labels_cache: self.labels_cache[uniqueId] = {}
-                    sig_key = _generate_object_signature(obj)
-                    if sig_key:
-                        self.labels_cache[uniqueId][sig_key] = clean_name
-                        self._save_all_labels()
-                        tones.beep(1000, 100)
-                        # Translators: Success message spoken when the AI successfully assigns a new label to the object. {name} is replaced with the AI-generated label.
-                        ui.message(_("Labeled as: {name}").format(name=clean_name))
-
-                wx.CallAfter(save_ui_thread)
-            elif res and res.startswith("ERROR:"):
-                wx.CallAfter(show_error_dialog, res[6:])
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    # Translators: Script description for 'Manages existing labels or scans the entire app to label unnamed elements.' in Input Gestures dialog.
-    @scriptHandler.script(description=_("Manages existing labels or scans the entire app to label unnamed elements."), category=ADDON_NAME)
-    def script_manageOrScanApp(self, gesture):
-        if self.toggling: self.finish()
-        obj = api.getFocusObject()
-        app_name = obj.appModule.appName.lower()
-        if app_name in ["chrome", "msedge", "firefox", "opera", "brave"]:
-            ui.message(_("AI Labeling is currently not supported in web browsers."))
-            return
-        uniqueId = self._getAppId(obj)
-
-        if uniqueId in self.labels_cache and self.labels_cache[uniqueId]:
-            def show_manager():
-                gui.mainFrame.prePopup()
-                dlg = LabelManagerDialog(gui.mainFrame, uniqueId, self.labels_cache[uniqueId])
-                if dlg.ShowModal() == wx.ID_OK:
-                    if dlg.action_type == "delete":
-                        for k in dlg.target_keys: del self.labels_cache[uniqueId][k]
-                    elif dlg.action_type == "rename":
-                        self.labels_cache[uniqueId][dlg.target_keys[0]] = dlg.new_name
-                    elif dlg.action_type == "rescan":
-                        wx.CallLater(600, self._batchLabelApp, uniqueId)
-
-                    if dlg.action_type in ["delete", "rename"]:
-                        self._save_all_labels()
-                        # Translators: Confirmation message shown after labels are deleted or renamed.
-                        ui.message(_("Labels updated."))
-                dlg.Destroy()
-                gui.mainFrame.postPopup()
-            wx.CallAfter(show_manager)
-        else:
-            wx.CallLater(400, self._batchLabelApp, uniqueId)
-
-    def _save_all_labels(self):
-        try:
-            with open(LABELS_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.labels_cache, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            log.error(f"Failed to save labels: {e}")
-
-    def _batchLabelApp(self, unique_id):
-        if check_screen_curtain_active():
-            return
-        tones.beep(800, 100)
-        # Translators: Progress message spoken when the add-on begins scanning the current application window to find UI elements (like buttons or icons) that do not have accessibility names.
-        self.current_status = _("Scanning application UI...")
-        ui.message(self.current_status)
-
-        root = api.getForegroundObject()
-        candidates = []
-        stack = [(root, 0)]
-        target_roles = {controlTypes.Role.BUTTON, controlTypes.Role.TOGGLEBUTTON, controlTypes.Role.CHECKBOX, controlTypes.Role.RADIOBUTTON, controlTypes.Role.MENUITEM, controlTypes.Role.LINK, controlTypes.Role.TAB, controlTypes.Role.DATAITEM, controlTypes.Role.LISTITEM, controlTypes.Role.COMBOBOX, controlTypes.Role.GRAPHIC, controlTypes.Role.ICON, controlTypes.Role.TABLECELL}
-
-        while stack and len(candidates) < 1500:
-            obj, depth = stack.pop()
-            if depth > 25:
-                continue
-            try:
-                role = obj.role
-                loc = obj.location
-                name = obj.name
-                if loc and role in target_roles and (not name or not name.strip()):
-                    candidates.append(obj)
-
-                child = obj.firstChild
-                while child:
-                    stack.append((child, depth + 1))
-                    child = child.next
-            except Exception:
-                continue
-
-        if not candidates:
-            self.current_status = _("Idle")
-            # Translators: Message spoken when the add-on finishes the UI scan but finds no unnamed elements to label (everything already has a name).
-            ui.message(_("No unnamed elements found."))
-            return
-
-        # Translators: Progress message spoken when the add-on has found unnamed elements and is now sending the full application screenshot to AI for batch labeling.
-        self.current_status = _("Analyzing application...")
-        ui.message(self.current_status)
-
-        img, w, h, m = self._capture_fullscreen()
-
-        def worker():
-            prompt_template = get_prompt_text("label_batch_system")
-            prompt = apply_prompt_template(prompt_template, [("app_name", unique_id), ("response_lang", get_lang_name("ai_response_language"))])
-            res = AIHandler.call(prompt, attachments=[{'mime_type': m, 'data': img}], json_mode=True, task="operator")
-
-            self.current_status = _("Idle")
-            if res and not res.startswith("ERROR:"):
-                try:
-                    raw_res = res.strip()
-                    start_idx = raw_res.find('[')
-                    end_idx = raw_res.rfind(']')
-                    if start_idx != -1 and end_idx != -1:
-                        clean_json = raw_res[start_idx:end_idx+1]
-                    else:
-                        clean_json = raw_res
-
-                    clean_json = __import__('re').sub(r'\}\s*\{', '}, {', clean_json)
-                    ai_items = []
-                    try:
-                        ai_items = json.loads(clean_json)
-                    except Exception:
-                        try:
-                            ai_items = ast.literal_eval(clean_json)
-                        except Exception:
-                            for match in __import__('re').finditer(r'\{[^{}]*\}', clean_json):
-                                obj_str = match.group(0)
-                                lbl_match = __import__('re').search(r'"label"\s*:\s*"([^"]+)"', obj_str)
-                                x_match = __import__('re').search(r'"x"\s*:\s*(\d+)', obj_str)
-                                y_match = __import__('re').search(r'"y"\s*:\s*(\d+)', obj_str)
-                                if lbl_match and x_match and y_match:
-                                    ai_items.append({"label": lbl_match.group(1), "x": int(x_match.group(1)), "y": int(y_match.group(1))})
-
-                    def save_batch_ui_thread():
-                        if unique_id not in self.labels_cache:
-                            self.labels_cache[unique_id] = {}
-                        for item in ai_items:
-                            if not all(k in item for k in ("x", "y", "label")): continue
-                            try:
-                                x_val, y_val = float(item["x"]), float(item["y"])
-                            except Exception: continue
-
-                            ai_x, ai_y = int(x_val * w / 1000), int(y_val * h / 1000)
-                            best_match, min_dist = None, 100
-
-                            for cand in candidates:
-                                c_loc = cand.location
-                                if not c_loc: continue
-                                cx, cy = c_loc.left + c_loc.width/2, c_loc.top + c_loc.height/2
-                                dist = ((cx - ai_x)**2 + (cy - ai_y)**2)**0.5
-                                if dist < min_dist:
-                                    min_dist = dist
-                                    best_match = cand
-                            if best_match:
-                                sig_key = _generate_object_signature(best_match)
-                                if sig_key:
-                                    self.labels_cache[unique_id][sig_key] = item["label"]
-                        self._save_all_labels()
-                        tones.beep(1000, 100)
-                        # Translators: Success message spoken when the AI finishes analyzing the app and successfully names multiple elements in the background.
-                        ui.message(_("Application labeling complete."))
-                    wx.CallAfter(save_batch_ui_thread)
-                except Exception as e:
-                    log.error(f"Batch labeling mapping failed: {e}")
-                    # Translators: Error message spoken when the add-on fails to parse or map the labels returned by the AI (e.g., due to invalid AI response format).
-                    core.callLater(0, ui.message, _("Batch labeling failed."))
-            elif res and res.startswith("ERROR:"):
-                wx.CallAfter(show_error_dialog, res[6:])
-
-        threading.Thread(target=worker, daemon=True).start()
-
     def _getAppId(self, obj):
         try:
             appName = obj.appModule.appName.lower()
@@ -1204,7 +685,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
                 fg = api.getForegroundObject()
                 if fg and fg.name:
                     return f"{appName}_{fg.name}"
-            except Exception: pass
+            except Exception as e: log.debug(f"Foreground object name get failed: {e}")
         return appName
 
     __gestures = {
@@ -1242,4 +723,5 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin, VisionMixin, ScreenCaptureM
         "kb:rightArrow": "layerRight",
         "kb:leftArrow": "layerLeft",
         "kb:control+t": "voiceTranslation",
+        "kb:control+h": "openHistory",
     }

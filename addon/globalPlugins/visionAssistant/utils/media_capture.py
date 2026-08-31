@@ -23,11 +23,12 @@ import sys
 import zipfile
 import shutil
 
-import config
+import config as nvda_config
 import gui
 import core
 import ui
 import nvwave
+import tones
 
 from .. import plugin_state
 from .. import vision_config
@@ -41,7 +42,7 @@ _ = vision_config._ if hasattr(vision_config, '_') else (lambda x: x)
 # Proxy / HTTP helpers
 
 def get_proxy_opener(target_url=None):
-    proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
+    proxy_url = nvda_config.conf["VisionAssistant"]["proxy_url"].strip()
 
     is_local = False
     if target_url:
@@ -100,7 +101,7 @@ def ensure_ffmpeg():
     try:
         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
         if result.returncode == 0: return "ffmpeg"
-    except Exception: pass
+    except Exception as e: log.debug(f"ffmpeg version check failed: {e}")
 
     # Translators: Title of dialog asking user to download ffmpeg
     title = _("Download ffmpeg?")
@@ -161,7 +162,7 @@ def ensure_ffmpeg():
 def download_ffmpeg(target_path):
     try:
         # Translators: Status message when downloading ffmpeg
-        core.callLater(0, ui.message, _("Downloading ffmpeg, please wait..."))
+        plugin_state.speak_status(_("Downloading ffmpeg, please wait..."))
         download_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
         from urllib import request
         opener = get_proxy_opener(download_url)
@@ -180,10 +181,10 @@ def download_ffmpeg(target_path):
                         percent = int((downloaded / total_size) * 100)
                         if downloaded % (10 * 1024 * 1024) < 1024 * 1024:
                             # Translators: Progress message during ffmpeg download, {percent} is download percentage
-                            core.callLater(0, ui.message, _("Downloading ffmpeg: {percent}%").format(percent=percent))
+                            plugin_state.speak_status(_("Downloading ffmpeg: {percent}%").format(percent=percent))
 
         # Translators: Status message when extracting ffmpeg
-        core.callLater(0, ui.message, _("Extracting ffmpeg..."))
+        plugin_state.speak_status(_("Extracting ffmpeg..."))
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             ffmpeg_file = None
             for name in zip_ref.namelist():
@@ -194,13 +195,13 @@ def download_ffmpeg(target_path):
                 zip_ref.extract(ffmpeg_file, temp_extract)
                 shutil.move(os.path.join(temp_extract, ffmpeg_file), target_path)
                 try: shutil.rmtree(temp_extract)
-                except Exception: pass
+                except Exception as e: log.debug(f"Temp extract dir removal failed: {e}")
         try: os.remove(zip_path)
-        except Exception: pass
+        except Exception as e: log.debug(f"ffmpeg zip removal failed: {e}")
 
         if os.path.exists(target_path):
             # Translators: Success message after ffmpeg download completes
-            core.callLater(0, ui.message, _("ffmpeg downloaded successfully!"))
+            plugin_state.speak_status(_("ffmpeg downloaded successfully!"))
             if plugin_state.plugin_instance:
                 plugin_state.plugin_instance.current_status = _("Idle")
             return target_path
@@ -241,12 +242,12 @@ def compress_video(input_path):
             if os.path.getsize(temp_path) >= os.path.getsize(input_path):
                 os.remove(temp_path)
                 return input_path
-        except Exception: pass
+        except Exception as e: log.debug(f"Video compress temp removal failed: {e}")
         return temp_path
     except subprocess.CalledProcessError as e:
         log.error(f"Video compression failed: {e.stderr}")
         try: os.remove(temp_path)
-        except Exception: pass
+        except Exception as ex: log.debug(f"Video temp file removal failed: {ex}")
         return None
 
 
@@ -363,14 +364,14 @@ def _download_temp_video(url, abort_checker=None):
                         f.write(chunk)
                 if abort_checker and abort_checker():
                     try: os.remove(path)
-                    except Exception: pass
+                    except Exception as e: log.debug(f"Download temp file removal failed: {e}")
                     return None
                 return path
             except Exception as e:
                 log.error(f"Error writing temp video: {e}")
                 if os.path.exists(path):
                     try: os.remove(path)
-                    except Exception: pass
+                    except Exception as ex: log.debug(f"Download temp file removal failed: {ex}")
                 return None
     except Exception as e:
         log.error(f"Error downloading temp video: {e}")
@@ -413,7 +414,7 @@ class _LocalVideoSource:
         cp = self._compressed_path
         if cp and cp != self.path and os.path.exists(cp):
             try: os.remove(cp)
-            except Exception: pass
+            except Exception as e: log.debug(f"Compressed temp file removal failed: {e}")
 
 
 class _DownloadVideoSource:
@@ -478,7 +479,7 @@ class _DownloadVideoSource:
     def cleanup(self):
         if self._temp_path and os.path.exists(self._temp_path):
             try: os.remove(self._temp_path)
-            except Exception: pass
+            except Exception as e: log.debug(f"Temp file removal failed: {e}")
 
 
 class _YouTubeVideoSource:
@@ -605,7 +606,7 @@ class _MinimalWebSocket:
         self._send_lock = threading.Lock()
 
     def _get_effective_proxy(self):
-        proxy_url = config.conf["VisionAssistant"]["proxy_url"].strip()
+        proxy_url = nvda_config.conf["VisionAssistant"]["proxy_url"].strip()
         if not proxy_url:
             try:
                 sys_proxies = request.getproxies()
@@ -662,10 +663,11 @@ class _MinimalWebSocket:
                 s.close()
                 raise ConnectionError("Proxy tunnel closed connection abruptly.")
             resp += chunk
-        if b" 200 " not in resp.split(b"\r\n", 1)[0]:
+        first_line = resp.split(b"\r\n", 1)[0]
+        if b" 200 " not in first_line:
             s.close()
-            status_line = resp.split(b"\r\n", 1)[0].decode(errors='ignore')
-            raise ConnectionError(f"Proxy tunnel failed: {status_line}")
+            err_msg = first_line.decode(errors="ignore")
+            raise ConnectionError(f"Proxy tunnel failed: {err_msg}")
         return s
 
     def connect(self):
@@ -684,7 +686,7 @@ class _MinimalWebSocket:
                 log.error(f"Proxy connection failed: {e}")
                 if raw:
                     try: raw.close()
-                    except Exception: pass
+                    except Exception as ex: log.debug(f"Socket close failed: {ex}")
                 raise
         else:
             raw = socket.create_connection((self.host, self.port), timeout=self.timeout)
@@ -753,10 +755,12 @@ class _MinimalWebSocket:
     def send_text(self, text):
         self._send_frame(0x1, text.encode("utf-8"))
 
-    def _recv_exact(self, n):
+    def _recv_exact(self, n, deadline=None):
         while len(self._recv_buf) < n:
             if self.closed:
                 raise ConnectionError("WebSocket closed")
+            if deadline is not None and time.time() >= deadline:
+                raise socket.timeout("WebSocket receive timed out")
             try:
                 chunk = self.sock.recv(65536)
                 if not chunk:
@@ -764,10 +768,14 @@ class _MinimalWebSocket:
                     raise ConnectionError("WebSocket connection closed")
                 self._recv_buf += chunk
             except (BlockingIOError, ssl.SSLWantReadError, socket.timeout):
+                if deadline is not None and time.time() >= deadline:
+                    raise socket.timeout("WebSocket receive timed out")
                 time.sleep(0.05)
                 continue
             except ssl.SSLError as e:
                 if "timed out" in str(e).lower():
+                    if deadline is not None and time.time() >= deadline:
+                        raise socket.timeout("WebSocket receive timed out")
                     time.sleep(0.05)
                     continue
                 self.close()
@@ -778,24 +786,58 @@ class _MinimalWebSocket:
         data, self._recv_buf = self._recv_buf[:n], self._recv_buf[n:]
         return data
 
-    def recv(self):
+    def _read_frame(self, deadline=None):
+        b0, b1 = self._recv_exact(2, deadline)
+        opcode = b0 & 0x0F
+        fin = (b0 & 0x80) != 0
+        length = b1 & 0x7F
+        if length == 126:
+            length = struct.unpack(">H", self._recv_exact(2, deadline))[0]
+        elif length == 127:
+            length = struct.unpack(">Q", self._recv_exact(8, deadline))[0]
+        payload = self._recv_exact(length, deadline) if length else b""
+        return opcode, fin, payload
+
+    def _note_close(self, payload):
+        if len(payload) >= 2:
+            code = struct.unpack(">H", payload[:2])[0]
+            text = payload[2:].decode("utf-8", "replace")
+            self.close_reason = f"{code} {text}".strip()
+        self.closed = True
+
+    def recv(self, timeout=None):
+        deadline = (time.time() + timeout) if timeout is not None else None
         try:
-            b0, b1 = self._recv_exact(2)
-            opcode = b0 & 0x0F
-            length = b1 & 0x7F
-            if length == 126:
-                length = struct.unpack(">H", self._recv_exact(2))[0]
-            elif length == 127:
-                length = struct.unpack(">Q", self._recv_exact(8))[0]
-            payload = self._recv_exact(length) if length else b""
+            opcode, fin, payload = self._read_frame(deadline)
             if opcode == 0x8:
-                if len(payload) >= 2:
-                    code = struct.unpack(">H", payload[:2])[0]
-                    text = payload[2:].decode("utf-8", "replace")
-                    self.close_reason = f"{code} {text}".strip()
-                self.closed = True
+                self._note_close(payload)
                 return None, None
+            if opcode == 0x9:
+                return 0x9, payload
+            if not fin:
+                buf = bytearray(payload)
+                frame_count = 1
+                while True:
+                    cont_op, cont_fin, cont_payload = self._read_frame(deadline)
+                    if cont_op == 0x8:
+                        self._note_close(cont_payload)
+                        return None, None
+                    if cont_op == 0x9:
+                        try:
+                            self._send_frame(0xA, cont_payload or b"")
+                        except Exception:
+                            pass
+                        continue
+                    if cont_op == 0x0:
+                        buf += cont_payload
+                        frame_count += 1
+                    if cont_fin:
+                        break
+                payload = bytes(buf)
+                log.debug(f"WebSocket fragmented message reassembled from {frame_count} frames.")
             return opcode, payload
+        except socket.timeout:
+            raise
         except Exception as e:
             self.close_reason = self.close_reason or f"recv error: {e}"
             self.closed = True
@@ -901,7 +943,7 @@ class _MicCapture:
                         recorded = hdr.dwBytesRecorded
                         if recorded and self.on_data:
                             try: self.on_data(buf.raw[:recorded])
-                            except Exception: pass
+                            except Exception as e: log.debug(f"Mic data callback failed: {e}")
                         winmm.waveInUnprepareHeader(self.hwi, ctypes.byref(hdr), hdr_size)
                         hdr.dwFlags = 0
                         hdr.dwBytesRecorded = 0
@@ -912,21 +954,21 @@ class _MicCapture:
                     time.sleep(0.05)
         finally:
             try: winmm.waveInStop(self.hwi)
-            except Exception: pass
+            except Exception as e: log.debug(f"waveInStop failed: {e}")
             for buf, hdr in headers:
                 try: winmm.waveInUnprepareHeader(self.hwi, ctypes.byref(hdr), hdr_size)
-                except Exception: pass
+                except Exception as e: log.debug(f"waveInUnprepareHeader failed: {e}")
 
     def stop(self):
         self._running = False
         if self.hwi:
             try: ctypes.windll.winmm.waveInReset(self.hwi)
-            except Exception: pass
+            except Exception as e: log.debug(f"waveInReset failed: {e}")
         if self._thread:
             self._thread.join(timeout=2)
         if self.hwi:
             try: ctypes.windll.winmm.waveInClose(self.hwi)
-            except Exception: pass
+            except Exception as e: log.debug(f"waveInClose failed: {e}")
             self.hwi = None
 
 
@@ -948,6 +990,9 @@ class LiveSession:
         self._stream_speaker = None
         self._interrupted = False
         self._player_lock = threading.Lock()
+        self._ptt_enabled = False
+        self._ptt_vks = None
+        self._ptt_was_held = False
 
     def _get_player(self):
         with self._player_lock:
@@ -957,10 +1002,10 @@ class LiveSession:
                 try:
                     device = ""
                     try:
-                        device = config.conf["audio"]["outputDevice"]
+                        device = nvda_config.conf["audio"]["outputDevice"]
                     except (KeyError, IndexError):
                         try:
-                            device = config.conf["speech"]["outputDevice"]
+                            device = nvda_config.conf["speech"]["outputDevice"]
                         except (KeyError, IndexError):
                             pass
                     self.player = nvwave.WavePlayer(channels=1, samplesPerSec=24000, bitsPerSample=16, outputDevice=device)
@@ -976,11 +1021,11 @@ class LiveSession:
                 try:
                     self.player.stop()
                     self.player.close()
-                except Exception: pass
+                except Exception as e: log.debug(f"Wave player stop failed: {e}")
                 self.player = None
 
     def _resolve_model(self):
-        conf = config.conf["VisionAssistant"]
+        conf = nvda_config.conf["VisionAssistant"]
         default_live = "gemini-3.1-flash-live-preview"
         provider = conf["active_provider"]
         model = ""
@@ -990,7 +1035,7 @@ class LiveSession:
             model = conf.get("live_model", default_live).strip()
         if not model:
             model = default_live
-        if "live" not in model.lower():
+        if "live" not in model.lower() and "native" not in model.lower():
             log.warning(f"Live: selected model '{model}' is not a Live model; using '{default_live}'.")
             model = default_live
         return model
@@ -998,7 +1043,7 @@ class LiveSession:
     def _resolve_target(self):
         from ..ai.core import AIHandler
         try:
-            base = AIHandler.get_base_url(config.conf["VisionAssistant"]["active_provider"])
+            base = AIHandler.get_base_url(nvda_config.conf["VisionAssistant"]["active_provider"])
             parsed = urlparse(base)
             if parsed.hostname:
                 port = parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -1014,7 +1059,7 @@ class LiveSession:
         from ..prompt_utils import get_prompt_text, apply_prompt_template
         from ..vision_config import get_lang_name
 
-        keys = AIHandler.get_keys(config.conf["VisionAssistant"]["active_provider"])
+        keys = AIHandler.get_keys(nvda_config.conf["VisionAssistant"]["active_provider"])
         if not keys:
             # Translators: Error message when TTS is not supported by the provider
             self.on_status("ERROR:" + _("No API Keys configured."))
@@ -1037,9 +1082,9 @@ class LiveSession:
             except Exception:
                 pass
         if not voice:
-            voice = config.conf["VisionAssistant"].get("tts_voice", "Puck").strip() or "Puck"
+            voice = nvda_config.conf["VisionAssistant"].get("tts_voice", "Puck").strip() or "Puck"
         if not thinking_level:
-            thinking_level = config.conf["VisionAssistant"].get("live_thinking_level", "medium").strip() or "medium"
+            thinking_level = nvda_config.conf["VisionAssistant"].get("live_thinking_level", "medium").strip() or "medium"
         host, port, is_ssl = self._resolve_target()
 
         self.ws = None
@@ -1084,7 +1129,7 @@ class LiveSession:
                         if match:
                             try:
                                 delay = float(match.group(1)) + 0.5
-                            except Exception: pass
+                            except Exception as e: log.debug(f"Retry delay parse failed: {e}")
 
                     if not is_retryable:
                         log.error(f"LiveSession: WebSocket connection failed (Key {idx}): {e}")
@@ -1156,6 +1201,7 @@ class LiveSession:
         self._running = True
         self._recv_thread = threading.Thread(target=self._recv_loop, daemon=True)
         self._recv_thread.start()
+        self.set_push_to_talk(bool(nvda_config.conf["VisionAssistant"].get("live_push_to_talk", False)))
         try:
             self.mic = _MicCapture(self._on_mic_data, block_ms=100)
             self.mic.start()
@@ -1167,21 +1213,54 @@ class LiveSession:
             return False
         return True
 
+    def set_push_to_talk(self, enabled):
+        self._ptt_enabled = bool(enabled)
+        self._ptt_was_held = False
+        self._ptt_vks = None
+        if self._ptt_enabled:
+            from ..prompt_utils import hotkey_spec_to_vks
+            self._ptt_vks = hotkey_spec_to_vks(nvda_config.conf["VisionAssistant"].get("live_ptt_key", ""))
+
+    def _is_ptt_held(self):
+        if not self._ptt_enabled:
+            return True
+        vks = self._ptt_vks
+        if not vks:
+            return True
+        main_vk, mods, needs_nvda = vks
+        get = ctypes.windll.user32.GetAsyncKeyState
+        for vk in mods:
+            if not (get(vk) & 0x8000):
+                return False
+        if needs_nvda:
+            if not ((get(0x2D) & 0x8000) or (get(0x14) & 0x8000)):
+                return False
+        if main_vk is None:
+            return True
+        return bool(get(main_vk) & 0x8000)
+
     def _on_mic_data(self, pcm_bytes):
         if not self._running or not self.ws or self.ws.closed:
             return
 
+        if self._ptt_enabled:
+            held = self._is_ptt_held()
+            if held != self._ptt_was_held:
+                self._ptt_was_held = held
+                if held:
+                    wx.CallAfter(tones.beep, 880, 40)
+                else:
+                    wx.CallAfter(tones.beep, 440, 40)
+                    self._send_audio_stream_end()
+            if not held:
+                return
+
         try:
             samples = array.array('h', pcm_bytes)
             peak = max(abs(s) for s in samples)
-            if peak > 12000:
-                if self.player is not None:
-                    self._stop_player()
-                    try:
-                        cancel_msg = {"clientContent": {"turnComplete": True}}
-                        self.ws.send_text(json.dumps(cancel_msg))
-                    except Exception: pass
-        except Exception: pass
+            if peak > 3000:
+                self._stop_player()
+        except Exception as e: log.debug(f"Live audio send failed: {e}")
 
         msg = {
             "realtimeInput": {
@@ -1193,7 +1272,14 @@ class LiveSession:
         }
         try:
             self.ws.send_text(json.dumps(msg))
-        except Exception: pass
+        except Exception as e: log.debug(f"Live message send failed: {e}")
+
+    def _send_audio_stream_end(self):
+        if not self._running or not self.ws or self.ws.closed:
+            return
+        try:
+            self.ws.send_text(json.dumps({"realtimeInput": {"audioStreamEnd": True}}))
+        except Exception as e: log.debug(f"Live audioStreamEnd send failed: {e}")
 
     def send_video_frame(self, jpeg_b64):
         if not self._running or not self.ws or self.ws.closed or not jpeg_b64:
@@ -1208,7 +1294,7 @@ class LiveSession:
         }
         try:
             self.ws.send_text(json.dumps(msg))
-        except Exception: pass
+        except Exception as e: log.debug(f"Live message send failed: {e}")
 
     def _recv_loop(self):
         while self._running:
@@ -1222,7 +1308,7 @@ class LiveSession:
                 break
             if opcode == 0x9:
                 try: self.ws._send_frame(0xA, payload or b"")
-                except Exception: pass
+                except Exception as e: log.debug(f"WebSocket ping reply failed: {e}")
                 continue
             if opcode != 0x1 and opcode != 0x2:
                 continue
@@ -1331,13 +1417,225 @@ class LiveSession:
         self._running = False
         if self.mic:
             try: self.mic.stop()
-            except Exception: pass
+            except Exception as e: log.debug(f"Mic stop failed: {e}")
             self.mic = None
         if self.ws:
             try: self.ws.close()
-            except Exception: pass
+            except Exception as e: log.debug(f"WebSocket close failed: {e}")
             self.ws = None
         self._stop_player()
         if self.on_closed:
             try: self.on_closed()
-            except Exception: pass
+            except Exception as e: log.debug(f"on_closed callback failed: {e}")
+
+
+class GeminiLiveTTS:
+
+    def __init__(self, voice=""):
+        self.voice = voice or "Puck"
+        self.ws = None
+
+    def _system_instruction(self):
+        return "You are a strict Text-to-Speech engine. You will receive text segments. Your ONLY job is to read them out loud exactly as written. Do not add any conversational fillers, greetings, or extra words. Do not acknowledge instructions. Just speak the text provided."
+
+    def _resolve_model(self):
+        conf = nvda_config.conf["VisionAssistant"]
+        default_live = "gemini-3.1-flash-live-preview"
+        provider = conf.get("active_provider", "gemini")
+        live_model = ""
+        if conf.get("advanced_model_routing", False):
+            live_model = conf.get(f"{provider}_live_model", "").strip()
+        if not live_model:
+            live_model = conf.get("live_model", default_live).strip()
+        if not live_model:
+            live_model = default_live
+        if "live" not in live_model.lower() and "native" not in live_model.lower():
+            live_model = default_live
+        return live_model
+
+    def ensure_connection(self):
+        if self.ws and not getattr(self.ws, "closed", True):
+            return True
+        if self.ws:
+            try: self.ws.close()
+            except Exception as e: log.debug(f"WebSocket close failed: {e}")
+            self.ws = None
+
+        from ..ai.core import AIHandler
+        from ..ai.providers.gemini import GeminiHandler
+
+        live_model = self._resolve_model()
+        self._live_model = live_model
+        api_keys = AIHandler.get_keys("gemini")
+        if not api_keys:
+            return False
+
+        num_keys = len(api_keys)
+        start_idx = getattr(GeminiHandler, '_working_key_idx', 0)
+
+        for k_i in range(num_keys):
+            idx = (start_idx + k_i) % num_keys
+            api_key = api_keys[idx]
+            base_host = vision_config.DEFAULT_API_URLS["gemini"].replace("https://", "")
+            try:
+                base = AIHandler.get_base_url("gemini")
+                host = urlparse(base).hostname
+                if host:
+                    base_host = host
+            except:
+                pass
+
+            ws_path = f"/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={api_key}"
+
+            max_retries = getattr(GeminiHandler, '_max_retries', 3)
+            attempt = 0
+            while attempt < max_retries:
+                try:
+                    ws_candidate = _MinimalWebSocket(base_host, ws_path)
+                    ws_candidate.connect()
+
+                    setup_msg = {
+                        "setup": {
+                            "model": f"models/{live_model}",
+                            "generationConfig": {
+                                "responseModalities": ["AUDIO"],
+                                "speechConfig": {
+                                    "voiceConfig": {
+                                        "prebuiltVoiceConfig": {
+                                            "voiceName": self.voice
+                                        }
+                                    }
+                                }
+                            },
+                            "systemInstruction": {
+                                "parts": [{"text": self._system_instruction()}]
+                            }
+                        }
+                    }
+                    ws_candidate.send_text(json.dumps(setup_msg))
+
+                    start_wait = time.time()
+                    setup_success = False
+                    while time.time() - start_wait < 10:
+                        setup_res = ws_candidate.recv()
+                        if setup_res:
+                            op, pay = setup_res
+                            if op is None:
+                                break
+                            if op in (0x1, 0x2):
+                                try:
+                                    setup_data = json.loads(pay.decode('utf-8', 'replace'))
+                                    if "setupComplete" in setup_data:
+                                        setup_success = True
+                                        break
+                                except:
+                                    pass
+                            elif op == 0x9:
+                                try:
+                                    ws_candidate._send_frame(0xA, pay or b"")
+                                except:
+                                    pass
+                            time.sleep(0.05)
+
+                    if setup_success:
+                        self.ws = ws_candidate
+                        setattr(GeminiHandler, '_working_key_idx', idx)
+                        return True
+                    else:
+                        ws_candidate.close()
+
+                except Exception as e:
+                    log.error(f"VisionAssistant Offline TTS WebSocket exception: {e}")
+
+                attempt += 1
+                time.sleep(1)
+
+        return False
+
+    def generate(self, text, max_attempts=3, timeout=30):
+        chunks = []
+        for tts_attempt in range(max_attempts):
+            if not self.ensure_connection():
+                break
+
+            current_ws = self.ws
+            model_name = (getattr(self, "_live_model", "") or "").lower()
+            trailing_timeout = 5.0 if "native" in model_name else 1.0
+            try:
+                req = {
+                    "clientContent": {
+                        "turns": [
+                            {
+                                "role": "user",
+                                "parts": [{"text": text}]
+                            }
+                        ],
+                        "turnComplete": True
+                    }
+                }
+                current_ws.send_text(json.dumps(req))
+
+                received = []
+                turn_seen = False
+                last_data = time.time()
+                start_wait = time.time()
+                while time.time() - start_wait < timeout:
+                    if turn_seen:
+                        remaining = trailing_timeout - (time.time() - last_data)
+                        if remaining <= 0:
+                            break
+                        read_timeout = remaining
+                    else:
+                        read_timeout = None
+                    try:
+                        opcode, payload = current_ws.recv(read_timeout)
+                    except socket.timeout:
+                        break
+                    if opcode is None:
+                        if turn_seen:
+                            break
+                        raise ConnectionError("WebSocket dropped during receive.")
+                    if opcode in (0x1, 0x2) and payload:
+                        last_data = time.time()
+                        try:
+                            resp = json.loads(payload.decode('utf-8', 'replace'))
+                            if "serverContent" in resp:
+                                turn = resp["serverContent"].get("modelTurn") or resp["serverContent"].get("model_turn")
+                                if turn:
+                                    for part in turn.get("parts", []):
+                                        inline = part.get("inlineData") or part.get("inline_data")
+                                        if inline and inline.get("data"):
+                                            if turn_seen:
+                                                log.debug("Gemini TTS: collected trailing audio chunk after turnComplete.")
+                                            received.append(base64.b64decode(inline["data"]))
+                                if resp["serverContent"].get("turnComplete") or resp["serverContent"].get("turn_complete"):
+                                    turn_seen = True
+                        except Exception:
+                            pass
+                    elif opcode == 0x9:
+                        try:
+                            current_ws._send_frame(0xA, payload or b"")
+                        except Exception:
+                            pass
+                    time.sleep(0.01)
+
+                if received:
+                    chunks = received
+                    break
+            except Exception as e:
+                log.warning(f"Gemini TTS generation failed on attempt {tts_attempt+1}: {e}")
+                if self.ws:
+                    try: self.ws.close()
+                    except Exception as ex: log.debug(f"WebSocket close failed: {ex}")
+                    self.ws = None
+                time.sleep(1)
+
+        if not chunks:
+            return None
+        return b"".join(chunks)
+
+    def close(self):
+        if self.ws:
+            try: self.ws.close()
+            except Exception as e: log.debug(f"WebSocket close failed: {e}")
+            self.ws = None

@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 import re
+import time
 
 import wx
 
 import addonHandler
+import inputCore
+import keyboardHandler
 import ui
+
+from ..prompt_utils import _normalize_hotkey, _format_hotkey_display
+from ..vision_config import LAYER_BUSY_GESTURES
 
 addonHandler.initTranslation()
 
 
 class PromptItemDialog(wx.Dialog):
-    def __init__(self, parent, title, name="", prompt_text="", variables_guide=None):
+    def __init__(self, parent, title, name="", prompt_text="", hotkey="", variables_guide=None):
         super().__init__(parent, title=title, size=(620, 360), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.name_ctrl = None
         self.prompt_ctrl = None
         self.variables_guide = tuple(variables_guide or ())
+        self._capture_func = None
+        self._last_captured_combo = None
+        self._last_captured_time = 0.0
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -23,6 +32,15 @@ class PromptItemDialog(wx.Dialog):
         main_sizer.Add(name_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
         self.name_ctrl = wx.TextCtrl(self, value=name)
         main_sizer.Add(self.name_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        # Translators: Label for the optional shortcut key assigned to this custom prompt, instructing the user to press the keys to record it.
+        hotkey_label = wx.StaticText(self, label=_("Shortcut Key (optional): press the keys to record, for example Ctrl+Shift+1"))
+        main_sizer.Add(hotkey_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        self.hotkey_ctrl = wx.TextCtrl(self, value=hotkey)
+        self.hotkey_ctrl.Bind(wx.EVT_SET_FOCUS, self._on_hotkey_focus)
+        self.hotkey_ctrl.Bind(wx.EVT_KILL_FOCUS, self._on_hotkey_kill_focus)
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        main_sizer.Add(self.hotkey_ctrl, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
         # Translators: Label for prompt text input field.
         prompt_label = wx.StaticText(self, label=_("Prompt Text:"))
@@ -56,6 +74,7 @@ class PromptItemDialog(wx.Dialog):
         self.name_ctrl.SetFocus()
 
     def on_ok(self, event):
+        self._stop_hotkey_capture()
         name = self.name_ctrl.GetValue().strip()
         prompt_text = self.prompt_ctrl.GetValue()
 
@@ -66,6 +85,22 @@ class PromptItemDialog(wx.Dialog):
             title = _("Validation Error")
             wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             self.name_ctrl.SetFocus()
+            return
+        raw_hotkey = self.hotkey_ctrl.GetValue().strip()
+        normalized_hotkey = _normalize_hotkey(raw_hotkey)
+        if raw_hotkey and not normalized_hotkey:
+            # Translators: Validation error for an invalid shortcut key.
+            msg = _("Shortcut key must be a key or key combination, for example: 1, p, alt+1, control+shift+p, insert+1, or f3.")
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.hotkey_ctrl.SetFocus()
+            return
+        if normalized_hotkey in LAYER_BUSY_GESTURES:
+            # Translators: Validation error when the chosen shortcut key is already used by another command in the command layer.
+            msg = _("This key is already used by another command in the command layer (NVDA+Shift+V). Please choose a different key.")
+            title = _("Validation Error")
+            wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            self.hotkey_ctrl.SetFocus()
             return
         if not prompt_text.strip():
             # Translators: Validation error for empty prompt text.
@@ -85,7 +120,78 @@ class PromptItemDialog(wx.Dialog):
         return {
             "name": self.name_ctrl.GetValue().strip(),
             "content": self.prompt_ctrl.GetValue(),
+            "hotkey": _normalize_hotkey(self.hotkey_ctrl.GetValue()),
         }
+
+    def _on_hotkey_focus(self, event):
+        try:
+            if inputCore.manager._captureFunc is not None:
+                event.Skip()
+                return
+        except Exception:
+            pass
+        self._capture_func = self._hotkey_captor
+        self._last_captured_combo = None
+        self._last_captured_time = 0.0
+        try:
+            inputCore.manager._captureFunc = self._capture_func
+        except Exception:
+            pass
+        event.Skip()
+
+    def _on_hotkey_kill_focus(self, event):
+        self._stop_hotkey_capture()
+        event.Skip()
+
+    def _on_close(self, event):
+        self._stop_hotkey_capture()
+        event.Skip()
+
+    def _stop_hotkey_capture(self):
+        try:
+            if inputCore.manager._captureFunc is getattr(self, "_capture_func", None):
+                inputCore.manager._captureFunc = None
+                self._capture_func = None
+        except Exception:
+            pass
+
+    def _hotkey_captor(self, gesture):
+        if not isinstance(gesture, keyboardHandler.KeyboardInputGesture):
+            return True
+        if gesture.isModifier:
+            return False
+        try:
+            identifier = gesture.identifiers[-1]
+        except Exception:
+            return True
+        if ":" not in identifier:
+            return True
+        combo = identifier.rsplit(":", 1)[1].strip().lower()
+        if combo in ("escape", "enter", "tab"):
+            return None
+        now = time.monotonic()
+        if combo == self._last_captured_combo and now - self._last_captured_time < 0.5:
+            return False
+        self._last_captured_combo = combo
+        self._last_captured_time = now
+        if combo in ("backspace", "delete"):
+            wx.CallAfter(self._set_hotkey_value, "")
+            return False
+        if not _normalize_hotkey(combo):
+            return False
+        wx.CallAfter(self._set_hotkey_value, combo)
+        return False
+
+    def _set_hotkey_value(self, combo):
+        try:
+            display = _format_hotkey_display(_normalize_hotkey(combo))
+            if self.hotkey_ctrl.GetValue() == display:
+                return
+            self.hotkey_ctrl.SetValue(display)
+            if display:
+                ui.message(display)
+        except Exception:
+            pass
 
 
 class PromptVariablesGuideDialog(wx.Dialog):
@@ -119,7 +225,11 @@ class PromptManagerDialog(wx.Dialog):
         # Translators: Title for the prompt manager dialog.
         super().__init__(parent, title=_("Prompt Manager"), size=(760, 560), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.default_items = [dict(item) for item in default_items]
-        self.custom_items = [dict(item) for item in custom_items]
+        self.custom_items = []
+        for item in custom_items:
+            item = dict(item)
+            item.setdefault("hotkey", "")
+            self.custom_items.append(item)
         self.variables_guide = tuple(variables_guide or ())
         self._default_selection = wx.NOT_FOUND
 
@@ -412,8 +522,14 @@ class PromptManagerDialog(wx.Dialog):
         else:
             self.default_prompt_ctrl.SetValue("")
 
+    def _custom_display_name(self, item):
+        hotkey = _format_hotkey_display(_normalize_hotkey(item.get("hotkey")))
+        if hotkey:
+            return "%s (%s)" % (item["name"], hotkey)
+        return item["name"]
+
     def _refresh_custom_list(self, selection=None):
-        self.custom_list.Set([item["name"] for item in self.custom_items])
+        self.custom_list.Set([self._custom_display_name(item) for item in self.custom_items])
         if not self.custom_items:
             self.custom_preview.SetValue("")
             self._update_custom_buttons()
@@ -446,6 +562,26 @@ class PromptManagerDialog(wx.Dialog):
                 return True
         return False
 
+    @staticmethod
+    def _effective_normal_gesture(hotkey):
+        hotkey = _normalize_hotkey(hotkey)
+        if not hotkey:
+            return ""
+        if "+" in hotkey:
+            return hotkey
+        return "nvda+shift+" + hotkey
+
+    def _hotkey_exists(self, hotkey, skip_index=None):
+        wanted = self._effective_normal_gesture(hotkey)
+        if not wanted:
+            return False
+        for idx, item in enumerate(self.custom_items):
+            if skip_index is not None and idx == skip_index:
+                continue
+            if self._effective_normal_gesture(item.get("hotkey")) == wanted:
+                return True
+        return False
+
     def on_custom_selected(self, event):
         idx = self.custom_list.GetSelection()
         if idx == wx.NOT_FOUND or idx >= len(self.custom_items):
@@ -462,6 +598,11 @@ class PromptManagerDialog(wx.Dialog):
             if self._name_exists(item["name"]):
                 # Translators: Validation error for duplicate custom prompt name.
                 msg = _("A custom prompt with this name already exists.")
+                title = _("Validation Error")
+                wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            elif self._hotkey_exists(item.get("hotkey", "")):
+                # Translators: Validation error when another custom prompt already uses the chosen shortcut key.
+                msg = _("Another custom prompt already uses this shortcut key.")
                 title = _("Validation Error")
                 wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             else:
@@ -482,12 +623,18 @@ class PromptManagerDialog(wx.Dialog):
             _("Edit Custom Prompt"),
             current["name"],
             current["content"],
+            current.get("hotkey", ""),
             variables_guide=self.variables_guide,
         )
         if dlg.ShowModal() == wx.ID_OK:
             item = dlg.get_item()
             if self._name_exists(item["name"], skip_index=idx):
                 msg = _("A custom prompt with this name already exists.")
+                title = _("Validation Error")
+                wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
+            elif self._hotkey_exists(item.get("hotkey", ""), skip_index=idx):
+                # Translators: Validation error when another custom prompt already uses the chosen shortcut key.
+                msg = _("Another custom prompt already uses this shortcut key.")
                 title = _("Validation Error")
                 wx.MessageBox(msg, title, wx.OK | wx.ICON_WARNING)
             else:

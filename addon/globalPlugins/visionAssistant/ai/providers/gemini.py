@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import time
+import datetime
 import base64
 from urllib import request, error
 
@@ -14,6 +15,7 @@ import ui
 
 from ... import plugin_state
 from ... import vision_config
+from ...utils import error_contract
 from ...utils.media_capture import get_proxy_opener, ProgressFileReader
 from ...prompt_utils import get_prompt_text, apply_prompt_template
 from ..core import _apply_gemma_thinking_patch, _extract_text_from_parts
@@ -21,6 +23,18 @@ from ..core import _apply_gemma_thinking_patch, _extract_text_from_parts
 log = logging.getLogger(__name__)
 
 addonHandler.initTranslation()
+
+
+def _pacific_utc_offset(now):
+    dt = datetime.datetime.fromtimestamp(now, datetime.timezone.utc)
+    year = dt.year
+    march1 = datetime.date(year, 3, 1)
+    march_second_sunday = march1 + datetime.timedelta(days=(6 - march1.weekday()) % 7 + 7)
+    nov1 = datetime.date(year, 11, 1)
+    nov_first_sunday = nov1 + datetime.timedelta(days=(6 - nov1.weekday()) % 7)
+    if march_second_sunday <= dt.date() < nov_first_sunday:
+        return 7 * 3600
+    return 8 * 3600
 
 
 class GeminiHandler:
@@ -106,7 +120,7 @@ class GeminiHandler:
             gm = time.gmtime(now)
             seconds_since_midnight = gm.tm_hour * 3600 + gm.tm_min * 60 + gm.tm_sec
             midnight_utc = now - seconds_since_midnight
-            reset_ts = midnight_utc + 8 * 3600
+            reset_ts = midnight_utc + _pacific_utc_offset(now)
             if now >= reset_ts:
                 reset_ts += 24 * 3600
 
@@ -136,6 +150,10 @@ class GeminiHandler:
         return available_keys
 
     @staticmethod
+    def is_key_exhausted_error(err_msg):
+        return error_contract.is_key_exhausted_error(err_msg)
+
+    @staticmethod
     def _get_opener(url=None):
         return get_proxy_opener(url)
 
@@ -152,8 +170,9 @@ class GeminiHandler:
                 report_callback(msg)
             else:
                 if plugin_state.plugin_instance:
-                    plugin_state.plugin_instance.current_status = msg
-                core.callLater(0, ui.message, msg)
+                    plugin_state.plugin_instance.report_status(msg)
+                else:
+                    core.callLater(0, ui.message, msg)
 
         try:
             headers_init = {
@@ -207,7 +226,7 @@ class GeminiHandler:
                             dur_str = v_meta.get('videoDuration') or v_meta.get('video_duration') or v_meta.get('duration') or ''
                             if dur_str:
                                 try: duration_sec = float(dur_str.rstrip('s'))
-                                except Exception: pass
+                                except Exception as e: log.debug(f"Duration parse failed: {e}")
                             if duration_sec:
                                 if not hasattr(GeminiHandler, '_file_durations'):
                                     GeminiHandler._file_durations = {}
@@ -215,7 +234,7 @@ class GeminiHandler:
                             return uri, duration_sec
                         if data.get('state') == "FAILED":
                             break
-                except Exception: pass
+                except Exception as e: log.debug(f"File state poll failed: {e}")
                 for step in range(4):
                     if abort_checker and abort_checker(): return None, None
                     time.sleep(0.5)
@@ -223,12 +242,9 @@ class GeminiHandler:
             return None, None
         except error.HTTPError as e:
             err_msg = GeminiHandler._handle_error(e)
-            err_msg_lower = err_msg.lower()
             if hasattr(e, 'code') and e.code == 429:
                 is_daily = getattr(e, 'is_daily', False)
-                is_fatal_error = any(x in err_msg_lower for x in [
-                    "daily", "per day", "per_day", "perday", "requestsperday", "quota_exceeded_daily"
-                ])
+                is_fatal_error = error_contract.is_daily_quota_error(err_msg)
                 if is_daily or is_fatal_error:
                     GeminiHandler._ban_key(key)
             raise e
@@ -322,7 +338,7 @@ class GeminiHandler:
                     if hasattr(e, 'url') and e.url and "/models/" in e.url:
                         used_model = e.url.split("/models/")[-1].split(":")[0].split("?")[0]
 
-                    if any(x in err_msg_lower for x in ["daily", "per day", "per_day", "perday", "requestsperday"]):
+                    if error_contract.is_daily_quota_error(err_msg_lower):
                         GeminiHandler._ban_key(key, model=used_model)
                         is_retryable = False
                     else:
@@ -332,7 +348,7 @@ class GeminiHandler:
                     if hasattr(e, 'url') and e.url and "/models/" in e.url:
                         used_model = e.url.split("/models/")[-1].split(":")[0].split("?")[0]
 
-                    if not any(x in err_msg_lower for x in ["daily", "per day", "per_day", "perday", "requestsperday"]):
+                    if not error_contract.is_daily_quota_error(err_msg_lower):
                         is_retryable = True
                     else:
                         GeminiHandler._ban_key(key, model=used_model)
@@ -342,7 +358,7 @@ class GeminiHandler:
                     match = re.search(r"retry in ([\d\.]+)s", err_msg_lower)
                     if match:
                         try: delay_sec = float(match.group(1))
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Retry delay parse failed: {e}")
 
                 if delay_sec is not None and delay_sec > 0 and is_retryable:
                     n_keys = len(GeminiHandler._get_api_keys())
@@ -364,6 +380,7 @@ class GeminiHandler:
                 last_exc = e
 
             if attempt < max_retries - 1:
+                log.debug(f"Gemini retry attempt {attempt + 2}/{max_retries} in {1.0 * (attempt + 1):.1f}s")
                 time.sleep(1.0 * (attempt + 1))
         raise last_exc
 
@@ -521,18 +538,19 @@ class GeminiHandler:
         for i in range(num_keys):
             idx = (GeminiHandler._working_key_idx + i) % num_keys
             key = keys[idx]
+            log.debug(f"Gemini rotation: trying key index {idx} (task={task})")
+            key_start = time.time()
             try:
                 res = GeminiHandler._call_with_retry(func_logic, key, *args)
                 GeminiHandler._working_key_idx = idx
+                log.debug(f"Gemini rotation: key index {idx} succeeded in {int((time.time() - key_start) * 1000)} ms")
                 return res
             except error.HTTPError as e:
                 err_msg = getattr(e, 'parsed_msg', GeminiHandler._handle_error(e))
-                err_msg_lower = err_msg.lower()
 
                 is_quota_or_server = (
                     err_msg in ["QUOTA_EXCEEDED", "SERVER_ERROR"] or
-                    "quota" in err_msg_lower or
-                    "exhausted" in err_msg_lower or
+                    GeminiHandler.is_key_exhausted_error(err_msg) or
                     (hasattr(e, 'code') and e.code == 429) or
                     (hasattr(e, 'code') and e.code >= 500)
                 )
@@ -635,7 +653,7 @@ class GeminiHandler:
                     prompt = apply_prompt_template(get_prompt_text("ocr_document_extract"), [("response_lang", nvda_config.conf["VisionAssistant"]["ai_response_language"])])
                 parts.append({"text": prompt})
                 res_text = GeminiHandler._call_with_rotation(GeminiHandler._logic, [{"parts": parts}], None, False, "ocr", task="ocr")
-                if res_text.startswith("ERROR:"): return [res_text]
+                if error_contract.is_ai_error(res_text): return [res_text]
                 return res_text.split('[[[PAGE_SEP]]]')
             except Exception as e:
                 return ["ERROR:" + str(e)]
@@ -652,7 +670,8 @@ class GeminiHandler:
             try:
                 def local_report(msg):
                     if plugin_state.plugin_instance:
-                        plugin_state.plugin_instance.current_status = msg
+                        plugin_state.plugin_instance.report_status(msg)
+                    else:
                         core.callLater(0, ui.message, msg)
 
                 uri, _dur = GeminiHandler._upload_file_common(file_path, mime_type, key, report_callback=local_report, abort_checker=abort_checker)
@@ -662,8 +681,7 @@ class GeminiHandler:
                         if plugin_state.plugin_instance:
                             # Translators: Message reported when an upload fails and the system automatically switches to the next available API key.
                             msg = _("Upload failed. Rotating key...")
-                            plugin_state.plugin_instance.current_status = msg
-                            core.callLater(0, ui.message, msg)
+                            plugin_state.plugin_instance.report_status(msg)
                         continue
                     # Translators: Error message for upload failure
                     return [ "ERROR:" + _("Upload failed.") ]
@@ -672,20 +690,23 @@ class GeminiHandler:
                     prompt = apply_prompt_template(get_prompt_text("ocr_document_extract"), [("response_lang", nvda_config.conf["VisionAssistant"]["ai_response_language"])])
                 attachments = [{'mime_type': mime_type, 'file_uri': uri}]
 
+                if plugin_state.plugin_instance and page_range_text:
+                    rng = page_range_text.split("-", 1)
+                    if len(rng) == 2:
+                        process_msg = _("Processing pages {start} to {end}...").format(start=rng[0], end=rng[1])
+                        plugin_state.plugin_instance.report_status(process_msg)
+
                 for gen_attempt in range(10):
                     res = GeminiHandler._call_with_key(GeminiHandler._logic, key, prompt, attachments, False, "ocr", max_retries=1)
 
-                    if res and not res.startswith("ERROR:"):
+                    if res and not error_contract.is_ai_error(res):
                         GeminiHandler._working_key_idx = idx
                         return res.split('[[[PAGE_SEP]]]')
 
-                    err_msg = res[6:] if res.startswith("ERROR:") else "Unknown Error"
+                    err_msg = error_contract.ai_error_message(res) if error_contract.is_ai_error(res) else "Unknown Error"
                     err_msg_lower = err_msg.lower()
 
-                    is_fatal_error = any(x in err_msg_lower for x in [
-                        "daily", "per day", "per_day", "perday", "requestsperday", "quota_exceeded_daily",
-                        "400", "403", "bad request", "forbidden", "blocked"
-                    ])
+                    is_fatal_error = error_contract.is_daily_quota_error(err_msg_lower)
 
                     if is_fatal_error:
                         GeminiHandler._ban_key(key, model=model)
@@ -693,18 +714,20 @@ class GeminiHandler:
                             break
                         return [res]
 
+                    if error_contract.is_hard_error(err_msg_lower):
+                        return [res]
+
                     delay_sec = 0
                     match = re.search(r"retry in ([\d\.]+)s", err_msg_lower)
                     if match:
                         try: delay_sec = float(match.group(1))
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Retry delay parse failed: {e}")
 
                     if delay_sec > 0:
                         if plugin_state.plugin_instance:
                             # Translators: Message shown when an API rate limit is reached. {sec} is the number of seconds to wait.
                             retry_msg = _("Rate limit reached. Waiting {sec}s before retry...").format(sec=int(delay_sec))
-                            plugin_state.plugin_instance.current_status = retry_msg
-                            core.callLater(0, ui.message, retry_msg)
+                            plugin_state.plugin_instance.report_status(retry_msg)
                         for step in range(int(delay_sec * 2) + 2):
                             if abort_checker and abort_checker(): return ["ERROR: Aborted"]
                             time.sleep(0.5)
@@ -717,8 +740,7 @@ class GeminiHandler:
                                 retry_msg = _("Temporary error ({error}). Retrying API request for pages {range} (Attempt {current}/{total})...").format(error=err_msg, range=page_range_text, current=gen_attempt + 2, total=10)
                             else:
                                 retry_msg = _("Temporary error ({error}). Retrying on current key (Attempt {current}/{total})...").format(error=err_msg, current=gen_attempt + 2, total=10)
-                            plugin_state.plugin_instance.current_status = retry_msg
-                            core.callLater(0, ui.message, retry_msg)
+                            plugin_state.plugin_instance.report_status(retry_msg)
                         time_limit_sleep = 5.0 * (gen_attempt + 1)
                         for step in range(int(time_limit_sleep * 2)):
                             if abort_checker and abort_checker(): return ["ERROR: Aborted"]
@@ -726,8 +748,12 @@ class GeminiHandler:
                 else:
                     if i == num_keys - 1:
                         return [res] if res else ["ERROR:" + _("All keys failed.")]
+                    if error_contract.is_server_busy_error(err_msg_lower):
+                        return [res] if res else ["ERROR:" + _("All keys failed.")]
 
             except Exception as e:
+                if abort_checker and abort_checker():
+                    return ["ERROR: Aborted"]
                 log.error(f"Error in upload_and_process_batch with key index {idx}: {e}", exc_info=True)
                 if i == num_keys - 1:
                     return ["ERROR:" + str(e)]
@@ -736,8 +762,7 @@ class GeminiHandler:
                 if plugin_state.plugin_instance:
                     # Translators: Message reported when API quota is exhausted and the system rotates key.
                     msg = _("Daily quota exhausted or retries failed. Rotating key and re-uploading...")
-                    plugin_state.plugin_instance.current_status = msg
-                    core.callLater(0, ui.message, msg)
+                    plugin_state.plugin_instance.report_status(msg)
 
         return ["ERROR:" + _("All keys failed.")]
 
@@ -852,6 +877,9 @@ class GeminiHandler:
             uri, _dur = GeminiHandler._upload_file_common(file_path, "video/mp4", key, abort_checker=abort_checker)
             return uri
         except Exception as e:
+            if abort_checker and abort_checker():
+                log.debug("Gemini video upload aborted by user")
+                return None
             err_msg = GeminiHandler._handle_error(e) if isinstance(e, error.HTTPError) else str(e)
             log.error(f"Gemini video upload error: {err_msg}")
             return None
@@ -934,29 +962,35 @@ class GeminiHandler:
 
                     res = GeminiHandler._call_with_key(GeminiHandler._logic, key, prompt, attachments, json_mode, "video", max_retries=1)
 
-                    if res and not res.startswith("ERROR:"):
+                    if res and not error_contract.is_ai_error(res):
                         if validator and not validator(res):
                             # Translators: Error shown internally when AI stops early
                             res = "ERROR:" + _("Incomplete description. AI stopped early.")
                         else:
                             return res, current_uri, current_key
 
-                    err_msg = res[6:] if res and res.startswith("ERROR:") else "Unknown Error"
+                    err_msg = error_contract.ai_error_message(res) if res and error_contract.is_ai_error(res) else "Unknown Error"
                     err_msg_lower = err_msg.lower()
 
-                    is_fatal_error = any(x in err_msg_lower for x in [
-                        "daily", "per day", "per_day", "perday", "requestsperday", "quota_exceeded_daily",
-                        "400", "403", "bad request", "forbidden", "blocked"
-                    ])
+                    is_fatal_error = error_contract.is_daily_quota_error(err_msg_lower)
 
                     if is_fatal_error:
                         break
+
+                    if error_contract.is_file_access_error(err_msg_lower):
+                        if report_callback:
+                            # Translators: Status message when an uploaded file is no longer accessible and the video is being re-uploaded with another key.
+                            report_callback(_("Uploaded file is no longer accessible. Re-uploading with the next key..."))
+                        break
+
+                    if error_contract.is_hard_error(err_msg_lower):
+                        return res, current_uri, current_key
 
                     delay_sec = 0
                     match = re.search(r"retry in ([\d\.]+)s", err_msg_lower)
                     if match:
                         try: delay_sec = float(match.group(1))
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Retry delay parse failed: {e}")
 
                     if delay_sec > 0:
                         if report_callback:
@@ -975,7 +1009,7 @@ class GeminiHandler:
                         if abort_checker and abort_checker(): return None, None, None
                         time.sleep(0.5)
 
-                if res and not res.startswith("ERROR:"):
+                if res and not error_contract.is_ai_error(res):
                     return res, current_uri, current_key
 
                 keys_exhausted += 1

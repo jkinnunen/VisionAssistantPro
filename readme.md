@@ -8,7 +8,7 @@ _This add-on was released to the community in honor of the International Day of 
 
 ## 1. Setup & Configuration
 
-Go to **NVDA Menu > Preferences > Settings > Vision Assistant Pro**. The settings dialog is organized into 8 accessible tabs: **Connection**, **AI Behavior**, **Translation Languages**, **Document Reader**, **Video**, **CAPTCHA**, **Prompts**, and **Advanced**.
+Go to **NVDA Menu > Preferences > Settings > Vision Assistant Pro**. The settings dialog is organized into 9 accessible tabs: **Connection**, **Live Assistant**, **AI Behavior**, **Translation Languages**, **Document Reader**, **Video**, **CAPTCHA**, **Prompts**, and **Advanced**.
 
 ### 1.1 Connection Tab
 - **Provider:** Select your preferred AI service. Supported providers include **Google Gemini**, **OpenAI**, **Mistral**, **Groq**, **MiniMax**, and **Custom** (OpenAI-compatible servers like Ollama, LM Studio, Jan.ai, or KoboldCPP).
@@ -17,42 +17,55 @@ Go to **NVDA Menu > Preferences > Settings > Vision Assistant Pro**. The setting
 - **AI Model:** Select the main model used for general chat and analysis.
 - **Custom Provider Settings:** Configure local or custom endpoints. Includes **Setup Local AI** (one-click setup for Ollama, LM Studio, Jan.ai, or KoboldCPP) and **Advanced Endpoint Configuration**.
 - **Advanced Model Routing (Task-specific):** Optionally select dedicated models from dropdowns for OCR, STT, TTS, AI Operator, Video, and Live Assistant tasks.
-- **Connection & Output Options:** Configure Proxy URL, startup update checks, Clean Markdown in Chat, Copy AI responses to clipboard, Direct Output (No Chat Window), and Live Assistant Direct Output.
+- **Connection & Output Options:** Configure Proxy URL, startup update checks, Clean Markdown in Chat, Copy AI responses to clipboard, and Direct Output (No Chat Window).
 
-### 1.2 AI Behavior Tab
+### 1.2 Live Assistant Tab
+- **Live Assistant: Direct Output (No Window):** Start the Live Assistant without its conversation window; open it later with the Recall Last Result key (`Space`).
+- **Push to Talk:** Toggle push-to-talk mode. When enabled, your microphone only sends audio while you hold the assigned key.
+- **Push to Talk Key:** Press the keys to record the shortcut (for example `F12` or `Ctrl+F12`) — you can even assign a lone modifier like `Left Ctrl`. Hold the key to speak and release it to finish; a short beep confirms each press and release.
+
+Note: This tab appears only when **Google Gemini** (or a Gemini-compatible Custom provider) is your active provider.
+
+### 1.3 AI Behavior Tab
 - **Creativity (Temperature):** Controls AI randomness and creativity (from 0.0 to 2.0). Lower values produce more deterministic and accurate translation/OCR results.
 
-### 1.3 Translation Languages Tab
+### 1.4 Translation Languages Tab
 - **Source Language:** Select your default input language.
 - **Target Language:** Select your primary target translation language.
 - **AI Response Language:** Select the language for general AI responses.
 - **Smart Swap:** Automatically swaps source and target languages based on detected input.
 
-### 1.4 Document Reader Tab
+### 1.5 Document Reader Tab
 - **OCR Engine:** Choose between **Chrome (Fast)** for quick results or **AI (Advanced)** for superior layout preservation.
 - **OCR Batch Size:** Specify pages per request (set to 0 for single-request processing).
 - **Describe Images Inline:** Toggle inline image descriptions during document text extraction.
 - **Export Page Numbers:** Toggle page numbers and separators in multi-page document outputs.
 - **TTS Voice:** Select default voice style for audio generation.
 
-### 1.5 Video Tab
+### 1.6 Video Tab
 - **Video Chunk Size:** Segment duration in minutes for Audio Description generation (set to 0 to process whole file).
 - **Add Character List:** Option to add character dictionary as the first subtitle entry.
 - **Add AI Disclaimer:** Option to insert an AI disclaimer at the beginning of video SRT subtitles.
 
-### 1.6 CAPTCHA Tab
+### 1.7 CAPTCHA Tab
 - **Enable Visual CAPTCHA Solver:** Toggle automated visual challenge solving (hCaptcha, reCAPTCHA).
 - **Text CAPTCHA Method:** Choose between capturing the **Navigator Object** or **Full Screen**.
 
-### 1.7 Prompts Tab
+### 1.8 Prompts Tab
 - **Manage Prompts:** Opens a dedicated dialog to customize default system prompts or create, edit, reorder, and preview custom user-defined prompts with dynamic variables (e.g., `[selection]`, `[screen_fg_obj]`).
+- **Custom Prompt Shortcuts:** Assign a dedicated shortcut key to any custom prompt right in the Prompt Manager. Press the keys to record them — single keys run inside the Command Layer (and globally as `NVDA + Shift + key`), while combinations like `Control + Shift + 1` run globally on their own.
 
-### 1.8 Advanced Tab & Global Logging
+### 1.9 Advanced Tab & Global Logging
 Navigate to the **Advanced** tab to configure global add-on logging:
 - **Enable dedicated log file:** Toggles logging of all operational events, API traffic, and errors across all add-on modules into a separate file (`vision_assistant.log`).
 - **Log Level:** Select verbosity between **Debug (All Details)**, **Info (General Information)**, **Warning (Warnings Only)**, and **Error (Errors Only)**.
 - **Keep Logs For:** Set automatic retention periods to automatically clean up older log entries (ranging from 1 hour to 90 days).
 - **Log Management Controls:** Use **Open Log File**, **Open Log Folder**, or **Clear Log File** to inspect or clear log data directly without restarting NVDA or interfering with standard NVDA logs.
+
+### 1.10 Settings Backup & Restore
+The **Advanced** tab also includes a **Backup and Restore** section:
+- **Backup:** Saves your configuration into a single JSON file. When you click it, you choose what to include: **Everything** (settings, custom labels, OCR progress, and history) or **Settings Only**.
+- **Restore:** Loads a previously saved backup to restore your configuration and data at any time, on any machine, or after reinstalling NVDA. You will be asked to confirm first, since restoring replaces all of your current settings and data.
 
 ## 2. Command Layer & Shortcuts
 
@@ -71,7 +84,7 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 | **O**         | Full Screen Vision       | Analyzes the entire screen layout and content.                              |
 | **Shift + V** | Video Analysis    | Analyze local video files or online **YouTube**, **Instagram**, **TikTok**, or **Twitter (X)** videos.  |
 | **Control + V** | Local Video Recording  | Records a silent video of your screen and analyzes the actions and layout.  |
-| **D**         | Document Reader          | Advanced reader for PDF and images with page range selection.               |
+| **D**         | Document Reader          | Advanced reader for PDF, images, and plain text/HTML files with page range selection.               |
 | **F**         | **Smart File Action**    | Context-aware recognition from selected image, PDF, or TIFF files.          |
 | **M**         | Media Transcription & Dubbing | Transcribe or Dub audio/video files (MP3, WAV, MP4, etc.) into your target language. |
 | **C**         | CAPTCHA Solver           | Captures and solves CAPTCHAs.                        |
@@ -85,13 +98,27 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 | **U**         | Update Check             | Manually check GitHub for the latest version of the add-on.                 |
 | **Space**     | Recall Last Result       | Shows the last AI response in a chat dialog for review or follow-up.        |
 | **H**         | Commands Help            | Displays a list of all available shortcuts.                                 |
+| **Control + H** | **History**            | Opens the History dialog listing your past chats and documents, with type filters and Delete/Clear options. |
 | **Alt + S**   | Settings                 | Opens the Vision Assistant Pro settings dialog.                             |
 | **Alt + Q**   | Quota Exhausted Keys Report | Reports the number of Gemini API keys that have exceeded their daily quota and their reset time. |
 | **Alt + M**   | Routing Audit            | Reports the AI models currently selected in advanced routing.               |
 | **Up / Down** | Quick Settings Nav       | Navigates between quick settings categories (Provider, Model, etc.) in the layer. |
 | **Left / Right**| Change Quick Setting   | Changes the value of the currently selected quick setting.                  |
 
-## 3. AI Operator - Autonomous Computer Control
+## 3. Chat & History
+
+Chat windows and the History dialog work across all features, so you can review conversations and pick up right where you left off.
+
+### 3.1 Chat Window Shortcuts
+When a chat window is open (Direct Chat, document chat, refine, and similar), you can review the conversation with:
+- **Alt + Down:** Read the next message.
+- **Alt + Up:** Read the previous message.
+- **Alt + C:** Copy the current message.
+
+### 3.2 History (Control + H)
+Press **Control + H** in the Command Layer to open the **History** dialog with your past chats and documents, filterable by type (All / Chats / Documents). Open a chat to continue the conversation — including its attached files, which are re-attached automatically — or open a document and keep reading. Press **Delete** on any item to remove it, or **Clear All** to empty the list.
+
+## 4. AI Operator - Autonomous Computer Control
 
 The **AI Operator** turns Vision Assistant Pro from a passive reader into an active assistant that can interact with your computer on your behalf. You can ask it to describe the screen, answer questions about what it sees, or even take control—clicking buttons, dragging items, typing text, and navigating through applications using natural language commands.
 
@@ -120,88 +147,113 @@ The operator understands a wide range of commands:
 - **Administrator Applications**: If NVDA is not running with Administrator privileges, the operator may not be able to interact with windows that require elevated permissions. This is a Windows security limitation, not a bug in the add-on.
 - **Best Practices**: For best results, give clear and specific commands. "Click the blue Submit button at the bottom of the form" will almost always work better than just "Click the button".
 
-## 4. Video Analysis & Audio Description
+## 5. Video Analysis & Audio Description
 
 > **Note:** The Video Analysis and Audio Description features are strictly powered by the **Google Gemini** provider. Ensure that your active provider in the add-on settings is set to Google Gemini.
 
 Vision Assistant Pro introduces powerful video processing capabilities designed specifically for blind users. It can analyze both online videos and local screen recordings to provide highly detailed visual descriptions and generate professional Audio Description scripts (SRT).
 
-### 4.1 Local Screen Recording (Control + V)
+### 5.1 Local Screen Recording (Control + V)
 If you encounter a silent video, an animation, or a tutorial on your screen, you can capture it directly:
 1. Press **NVDA + Shift + V** to enter the Command Layer, then press **Control + V**.
 2. The add-on will silently record your screen in the background.
 3. Press **Control + V** again to stop recording.
 4. The AI will then analyze the recorded video segment and provide a highly detailed description of the scene, characters, and actions.
 
-### 4.2 Video Analysis (Shift + V)
+### 5.2 Video Analysis (Shift + V)
 You can analyze both local video files and online videos. Simply select a local video file in Windows Explorer, or copy an online video link to your clipboard. You can also press **Shift + V** anywhere (like inside a media player) to open a dialog where you can browse for a video file or paste a URL manually.
 - **Supported Online Platforms:** YouTube, Instagram, TikTok, and Twitter (X).
 - The AI will automatically detect the local file or the URL, process the video, and provide a comprehensive visual description and audio summary.
 
-### 4.3 Audio Description Generation (SRT)
+### 5.3 Audio Description Generation (SRT)
 For a more structured experience, the add-on can generate professional Audio Description scripts in standard SubRip (SRT) format. 
 - **Smart Gap-Timing:** The AI listens to the audio track and specifically anchors its visual descriptions to natural pauses and silent gaps to intelligently minimize dialogue overlap.
 - **Character Tracking:** The engine performs a pre-pass to extract distinct characters based on immutable facial features. It builds a global dictionary to accurately track and label characters across different scenes without confusion.
 - **Verbatim Text OCR:** Any text appearing on the screen (signs, phones, credits) is strictly quoted verbatim.
 - **How to Use:** To listen to the generated subtitle, simply place the `.srt` file in the same folder as your video file and give it the exact same name. Then, configure your media player (e.g., VLC or PotPlayer) to route the subtitle text directly to your screen reader or TTS engine during playback.
 
-### 4.4 Synchronized Audio Narration (MP3 Export)
+### 5.4 Synchronized Audio Narration (MP3 Export)
 Beyond just creating text-based SRT files, the add-on functions as a complete Audio Description production tool by synthesizing the descriptions into speech and mixing them with the video. You can now choose **Gemini Live TTS** as the voice engine, which utilizes the Gemini Live API to generate highly realistic, unlimited voice narration. When generating an MP3 for local video files, you have multiple mixing modes:
 - **Standard AD (Mix Voice):** The narration is overlaid directly on top of the video's audio. You will be prompted if you want to apply **Audio Ducking** (lowering the background volume during descriptions) to ensure the narration is clear.
 - **Extended AD (Pause Audio):** The engine pauses the original video audio during descriptions, ensuring you never miss a single word of the original dialogue or the AI narration.
 - **YouTube Videos:** For YouTube sources (which are not downloaded locally), the MP3 export will strictly contain the synchronized AI voice track without the background video audio.
 
-## 5. Media Transcription & Dubbing (M)
+## 6. Media Transcription & Dubbing (M)
 The Audio Transcriber has been completely rebuilt to support both audio and video files (MP3, WAV, MP4, MKV, etc.). Press **M** in the Command Layer to select a media file and choose one of 3 distinct operation modes:
 1. **Transcribe (Original Language)**: Accurately transcribes the spoken speech in its original language.
 2. **Transcribe and Translate (Target Language)**: Transcribes the speech and translates it into your configured target language.
 3. **Dub and Translate (Target Language)** *(Gemini Only)*: A powerful new feature that transcribes the speech, translates it into your target language, and synthesizes a spoken audio dub using the add-on's TTS engine.
 
-## 6. Advanced Document & Image Reader
+## 7. Advanced Document & Image Reader
 
-Vision Assistant Pro includes a highly optimized Document Reader designed for multi-page PDFs, complex images, and even iPhone HEIC formats.
+The **Document Reader** turns your documents into clean, readable text — so you can read, translate, and listen to anything from a scanned book to a stack of photos. It handles multi-page PDFs, complex images, iPhone HEIC formats, and even plain text (`.txt`) and HTML (`.html`, `.htm`) files, which are opened instantly with no OCR or AI processing. Select several files at once and they are merged into a single continuous document in page order. Three OCR engines are available — **Chrome (Fast)**, **AI (Advanced)** for superior layout preservation, and **None (Extract Text Layer)** for searchable PDFs — selected in Settings → Document Reader.
 
-### 6.1 Batch Processing & Resume
-You don't need to read a massive document all at once. Enter a page range (e.g., `1-20`), and the AI will process all pages in the background. If NVDA crashes or you interrupt the scan, the add-on will remember your progress and offer to **Resume** exactly where it left off!
+### How It Works
+1. Press **NVDA + Shift + V**, then **D** to open the Document Reader — or highlight a file in File Explorer first and press **D** / **F** to skip the file dialog entirely.
+2. Pick one or more PDFs or images. The add-on scans them and announces the total page count.
+3. In the **Options** dialog, choose the page range (From/To). You can also check **Translate Output** and pick the target language, or toggle **Describe images inline during OCR**.
+4. Text extraction starts in the background in batches. You can close the window at any time and continue later — nothing is lost.
+5. Once pages are ready, read them in the viewer: move between pages, jump to any page, ask the AI questions, save the text, or generate an audio narration.
 
-### 6.2 Smart File Action
-You don't always need to open the document first. In Windows File Explorer, simply highlight a PDF or image and press **D** (Document Reader) or **F** (Smart File Action) inside the Command Layer. The add-on will instantly bypass the file dialog and begin processing the highlighted file.
+### 7.1 Batch Processing & Resume
+You don't need to read a massive document all at once. Choose a page range (e.g., `1-20`) or keep the defaults to process everything, and the AI extracts all pages in the background. If NVDA crashes or you interrupt the scan, the add-on remembers your progress and offers to **Resume** exactly where it left off — even across restarts. Completed documents are also cached, so reopening them (from Recent Documents or via **D**) loads the text instantly without re-running OCR, unless the source files have changed.
 
-### 6.3 Document Viewer Shortcuts
-When the Document Reader window is open, you can use the following shortcuts:
-- **Ctrl + PageDown:** Move to the next page.
-- **Ctrl + PageUp:** Move to the previous page.
+### 7.2 Smart File Action
+You don't always need to open the document first. In Windows File Explorer, simply highlight a PDF, image, or text/HTML file and press **D** (Document Reader) — or highlight a PDF or image and press **F** (Smart File Action) — inside the Command Layer. The add-on instantly bypasses the file dialog and begins processing the highlighted file. Selecting several files at once processes them together as one document.
+
+### 7.3 Document Viewer Controls & Shortcuts
+When the Document Reader window is open, you can use the following:
+
+#### Keyboard Shortcuts
+- **Ctrl + PageDown / Ctrl + PageUp:** Move to the next / previous page.
+- **Down / Up Arrow:** When your cursor reaches the last line of a page, press **Down** to jump to the next page; press **Up** at the top of a page to return to the previous one.
 - **Alt + A:** Open a chat dialog to ask questions about the document.
 - **Alt + R:** Force a **Re-scan with AI** using your active provider.
-- **Alt + G:** Generate and save a high-quality audio file (WAV/MP3). *(Hidden if provider doesn't support TTS).*
+- **Alt + G:** Generate and save a high-quality audio file (WAV/MP3). *(Hidden if the provider doesn't support TTS).*
 - **Alt + S / Ctrl + S:** Save the extracted text as a TXT or HTML file.
 
-## 7. Semantic AI Labeling & UI Explorer
+#### Buttons & Controls
+- **Go to:** Choose any page from the page selector.
+- **View Formatted:** See the whole document combined as formatted text.
+- **Retry Failed Pages:** Retry only the batches that failed due to a temporary server error (e.g., high demand). This button appears automatically when needed.
+- **TTS Voice / TTS Engine:** Pick the voice, and on Gemini, choose between **Standard TTS** and **Gemini Live** streaming.
+- **Previous / Next:** Move between pages (same as the Ctrl+PageUp/Down shortcuts).
+
+### 7.4 Recent Documents (D)
+Pressing **D** in the Command Layer lists your recently read documents first. Choose one to continue from the page you were on — even if the OCR already finished — or press **Open File...** (`Ctrl + O`) to browse for a file as usual.
+
+## 8. Semantic AI Labeling & UI Explorer
 
 Stuck in an application with "unlabeled button" everywhere? The Semantic AI Labeling engine solves this permanently.
 
-### 7.1 Permanent Object Labeling (L)
+### 8.1 Permanent Object Labeling (L)
 Focus your screen reader on an unlabeled graphic or button and press **L** in the Command Layer. The AI will look at the button visually, determine its function, and apply a permanent label. 
 *Unlike older screen reader labeling tools, this add-on uses an advanced hybrid "Object Signature" system (AutomationId/ControlID). Your custom labels will survive window resizing, monitor switching, and application updates!*
 
-### 7.2 Full Application Scan (Shift + L)
+### 8.2 Full Application Scan (Shift + L)
 Press **Shift + L** to scan the entire active window at once. The AI will find all unlabeled elements and intelligently name them in one go. You can later manage, rename, or batch-delete these labels from the built-in Label Manager.
 
-### 7.3 UI Explorer (E)
+### 8.3 UI Explorer (E)
 Need to interact with an element without navigating to it manually? Press **E** to activate the UI Explorer. The AI will scan the screen and generate an accessible list of every clickable element (ignoring system noise like taskbars). Pick an item from the list, and the add-on will instantly click it for you.
 
-## 8. Live Voice Assistant
+## 9. Live Voice Assistant
 
 The Live Assistant turns Vision Assistant Pro into a real-time, interactive copilot.
 *(Note: This feature is exclusive to Google Gemini and Gemini-compatible Custom providers).*
 
 - **Activation:** Press **Control + L** in the Command Layer to open the Live Assistant dialog.
 - **Real-time Interaction:** Talk naturally through your microphone. The AI will simultaneously listen to your voice and look at your active screen. You can ask questions like "What am I looking at?" or "Read the third paragraph to me."
+- **Push to Talk:** Enable **Push to Talk** in the Live Assistant settings tab (or toggle it right inside the Live Assistant window), then hold your assigned key to speak and release it to finish. This keeps the microphone muted until you press the key — perfect for noisy environments.
 - **Customization:** Inside the dialog, you can change the AI's Voice Style (e.g., Professional, Friendly, Upbeat) and adjust its "Thinking Depth" to control how deeply it reasons before answering.
 
-## 9. Custom Prompts & Variables
+## 10. Custom Prompts & Variables
 
 You can manage prompts in **Settings > Prompts > Manage Prompts...**.
+
+### Custom Prompt Shortcuts
+Give any custom prompt its own shortcut key directly in the Prompt Manager, and run it instantly with your current selection or context:
+- **Single key** (e.g., `1`, `p`, or `F3`): Works inside the Command Layer, and also globally as `NVDA + Shift + key`.
+- **Key combination** (e.g., `Control + Shift + 1`, `Alt + P`, or `Insert + 1`): Works globally on its own.
 
 ### Supported Variables
 - `[selection]`: Currently selected text.
@@ -219,7 +271,7 @@ You can manage prompts in **Settings > Prompts > Manage Prompts...**.
 - `{swap_target}`: Fallback language for smart swap translation.
 - `{swap_instruction}`: Smart swap translation instruction block.
 
-## 10. Real-World Use Cases (Which feature should I use?)
+## 11. Real-World Use Cases (Which feature should I use?)
 
 Vision Assistant Pro is packed with advanced tools. Here are some common scenarios to help you choose the right one:
 
@@ -250,7 +302,7 @@ Vision Assistant Pro is packed with advanced tools. Here are some common scenari
 ***
 **Note:** An active internet connection is required for all AI features. Multi-page documents are processed automatically.
 
-## 11. Support & Community
+## 12. Support & Community
 
 Stay updated with the latest news, features, and releases:
 - **Telegram Channel:** [t.me/VisionAssistantPro](https://t.me/VisionAssistantPro)
@@ -259,22 +311,39 @@ Stay updated with the latest news, features, and releases:
 ### Reporting Bugs & Logs
 When opening a GitHub issue or asking for support, please include details about your active AI provider, model, and NVDA version. If you are experiencing connection issues or unexpected crashes, enable the dedicated log file in **Settings > Advanced**, recreate the issue, and attach your `vision_assistant.log` file to help us resolve the problem faster.
 
-## 12. Project Supporters
+## 13. Project Supporters
 
 A heartfelt thank you to our community members who support the continuous development and maintenance of this project through their generous financial contributions:
 
 *   **@Alyabani94**
 *   **Ali Alamri**
 *   **Ilya**
-*   **Anonymous Supporter**
+*   **Anonymous Supporter** (`UQDd...CnMY`)
 *   **leonardo0216**
 *   **Sergei Fleytin**
-*   **Arne Siebert**
+*   **Suman Gayen**
 
 *If you wish to support the project financially and see your name here, you can find the **Donate** option in the NVDA Tools menu (Vision Assistant submenu) or during the setup process after installation.*
 
 
 ---
+## Changes for 2026.09.01
+
+*   **History (Control + H)**: The Command Layer now includes a **History** dialog (`Control + H`) that lists your past chats and documents with filters for All, Chats, and Documents. Reopen any chat with its full conversation — attached files are re-attached automatically — or reopen a document and keep reading. Press **Delete** on any item to remove it, or clear everything at once.
+*   **Recent Documents in the Reader**: Pressing **D** in the Command Layer now shows your recently read documents first. Pick one to continue from the page you were on — even when the OCR already finished — or press **Open File...** (`Ctrl + O`) to browse as usual.
+*   **Push to Talk for Live Assistant**: Take full control of your live conversations! Enable **Push to Talk** in the new Live Assistant settings tab and assign any key — or even a lone modifier like `Left Ctrl` — to talk. Hold the key to speak and release it when you're done, with a short beep on each press and release. A matching toggle also appears right in the Live Assistant window, so you can switch between push-to-talk and open-mic mode without leaving the conversation.
+*   **Gemini 2.5 Flash Native Audio**: The Live Assistant now supports Gemini 2.5 Flash's native audio model (`gemini-2.5-flash-native-audio-preview-12-2025`) for low-latency, natural voice conversations. You can switch to it from **Settings → Advanced Model Routing → Live Assistant Model (Gemini only)**, or keep "Auto" to stay on the recommended model.
+*   **Settings Backup & Restore**: Added a powerful backup and restore system in the **Advanced** tab! You can now save all of your add-on settings — including API keys, models, custom prompts, and preferences — into a single JSON file, and restore them perfectly at any time, on any machine, or after reinstalling NVDA.
+*   **Direct Text & HTML Reading**: The Document Reader can now open plain text (`.txt`) and HTML (`.html`, `.htm`) files directly! It automatically detects the file encoding, strips scripts and formatting clutter, and intelligently splits the content into readable pages — even re-importing its own exported files while preserving page structure — so you can read them instantly with no OCR or AI processing!
+*   **Gemini Live TTS for the Document Reader**: The "Generate Audio" button now supports Gemini Live — a high-quality, natural-pace streaming text-to-speech engine! When Gemini is your active provider, you can choose between Standard TTS and Gemini Live right in the reader, and your selection is remembered for next time!
+*   **Custom Prompt Shortcuts**: You can now assign a shortcut key to any of your custom prompts right from the Prompt Manager! Give every prompt its own dedicated key or key combination to run it instantly, automatically capturing your current selection or context with zero extra steps!
+*   **Chat Message Navigation**: Review any conversation hands-free! Inside any chat window (Direct Chat, document chat, refine, and more), press `Alt + Down` to hear the next message and `Alt + Up` to hear the previous one — with clear "You" / "AI" prefixes and "First message" / "Last message" boundaries announced as you go.
+*   **Copy Chat Message (Alt + C)**: While reviewing a conversation with `Alt + Up/Down`, press `Alt + C` to copy the message you are currently on to the clipboard — respecting your Clean Markdown setting — with a spoken confirmation.
+*   **Direct Chat System Prompt**: The Direct Chat (`Shift+C`) now has its own editable system prompt — "Direct Chat Instruction" — that sets the assistant's persona and response language for every conversation. You can customize it from the Prompt Manager's Default Prompts tab.
+*   **Document Reader Cursor Page Navigation**: Reading multi-page documents just got smoother! In the Document Viewer, when your cursor reaches the last line of a page and you press `Down`, the reader automatically jumps to the next page. Pressing `Up` at the start of a page seamlessly takes you back to the previous one — no more manual page switching while reading!
+*   **New Quick Settings Toggles**: Copy AI responses to clipboard, Direct Output (no chat window), Clean Markdown in Chat, and Smart Swap can now be switched on and off instantly from the command layer's Quick Settings!
+*   **Live Assistant Settings Tab**: The Live Assistant now has its own dedicated settings tab! The "Live Assistant: Direct Output (No Window)" option moved here from the Connection tab, and the tab appears only when Google Gemini (or a Gemini-compatible Custom provider) is your active provider.
+
 ## Changes for 2026.08.06
 
 *   **UI Explorer Labeling**: You can now add labels directly to found elements inside the UI Explorer! A new "Add Label" button has been added, and the interface smartly stays open and preserves focus so you can rapidly label multiple objects without interruption.

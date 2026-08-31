@@ -7,10 +7,13 @@ import re
 import tempfile
 import ctypes
 import io
+import html.parser
 import wx
 import winUser
 import api
 from functools import wraps
+
+from .error_contract import is_ai_error
 
 try:
     import comtypes.client
@@ -30,56 +33,261 @@ except ImportError:
     markdown_lib = None
 
 from .. import vision_config
+from .storage import JsonStore
+
+_ocr_progress_store = JsonStore(vision_config.OCR_PROGRESS_FILE)
+
 
 class OCRProgressStore:
-    _lock = threading.Lock()
-
-    @staticmethod
-    def _read_all():
-        if not os.path.exists(vision_config.OCR_PROGRESS_FILE):
-            return {}
-        try:
-            with open(vision_config.OCR_PROGRESS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-
-    @staticmethod
-    def _write_all(data):
-        try:
-            tmp = vision_config.OCR_PROGRESS_FILE + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False)
-            os.replace(tmp, vision_config.OCR_PROGRESS_FILE)
-        except Exception as e:
-            log.error(f"Failed to write OCR progress: {e}")
-
     @staticmethod
     def save(key, record):
-        with OCRProgressStore._lock:
-            data = OCRProgressStore._read_all()
-            data[key] = record
-            OCRProgressStore._write_all(data)
+        _ocr_progress_store.set(key, record)
 
     @staticmethod
     def load(key):
-        with OCRProgressStore._lock:
-            return OCRProgressStore._read_all().get(key)
+        return _ocr_progress_store.get(key)
 
     @staticmethod
     def clear(key):
-        with OCRProgressStore._lock:
-            data = OCRProgressStore._read_all()
-            if key in data:
-                del data[key]
-                OCRProgressStore._write_all(data)
+        _ocr_progress_store.delete(key)
 
 
 def _is_failed_ocr_page(text):
     if not text:
         return True
     stripped = text.strip()
-    return stripped.startswith("[") or stripped.startswith("ERROR:")
+    return stripped.startswith("[") or is_ai_error(stripped)
+
+
+TEXT_EXTENSIONS = ('.txt', '.html', '.htm')
+
+
+def _decode_text_file(raw):
+    if raw.startswith(b'\xef\xbb\xbf'):
+        return raw.decode('utf-8-sig')
+    if raw.startswith(b'\xff\xfe') or raw.startswith(b'\xfe\xff'):
+        return raw.decode('utf-16')
+    for enc in ('utf-8', 'cp1256', 'windows-1252', 'latin-1'):
+        try:
+            return raw.decode(enc)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return raw.decode('utf-8', errors='replace')
+
+
+_TXT_PAGE_MARKER = re.compile(r'^---\s*Page\s+(\d+)\s*---\s*$', re.IGNORECASE)
+_BLOCK_TAGS = {'p', 'div', 'table', 'tr', 'td', 'th', 'li', 'ul', 'ol', 'pre', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'hr', 'section', 'article'}
+
+
+def _split_txt_pages(text):
+    lines = text.splitlines()
+    marker_idx = [i for i, ln in enumerate(lines) if _TXT_PAGE_MARKER.match(ln)]
+    if not marker_idx:
+        return None
+    pages = []
+    for k, start in enumerate(marker_idx):
+        end = marker_idx[k + 1] if k + 1 < len(marker_idx) else len(lines)
+        pages.append("\n".join(lines[start + 1:end]).strip())
+    return pages
+
+
+def _group_paragraphs(text, target_chars=2500):
+    text = text.strip()
+    if not text:
+        return []
+    paras = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+    pages = []
+    cur = []
+    cur_len = 0
+    for p in paras:
+        if len(p) > target_chars:
+            if cur:
+                pages.append("\n\n".join(cur))
+                cur, cur_len = [], 0
+            lines = p.splitlines() or [p]
+            part = []
+            part_len = 0
+            for ln in lines:
+                while len(ln) > target_chars:
+                    if part:
+                        pages.append("\n".join(part))
+                        part, part_len = [], 0
+                    pages.append(ln[:target_chars])
+                    ln = ln[target_chars:]
+                if part and part_len + len(ln) > target_chars:
+                    pages.append("\n".join(part))
+                    part, part_len = [], 0
+                part.append(ln)
+                part_len += len(ln)
+            if part:
+                pages.append("\n".join(part))
+            continue
+        if cur and cur_len + len(p) > target_chars:
+            pages.append("\n\n".join(cur))
+            cur, cur_len = [], 0
+        cur.append(p)
+        cur_len += len(p)
+    if cur:
+        pages.append("\n\n".join(cur))
+    return pages
+
+
+def _html_to_plain_text(text):
+    out = []
+    skip = [0]
+
+    class _Parser(html.parser.HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            tag = tag.lower()
+            if tag in ('script', 'style'):
+                skip[0] += 1
+            elif not skip[0] and tag in _BLOCK_TAGS:
+                out.append("\n")
+
+        def handle_endtag(self, tag):
+            tag = tag.lower()
+            if tag in ('script', 'style'):
+                if skip[0]:
+                    skip[0] -= 1
+            elif not skip[0] and tag in _BLOCK_TAGS:
+                out.append("\n")
+
+        def handle_data(self, data):
+            if not skip[0]:
+                out.append(data)
+
+    parser = _Parser(convert_charrefs=True)
+    try:
+        parser.feed(text)
+        parser.close()
+    except Exception:
+        pass
+    text = "".join(out).replace('\r\n', '\n').replace('\r', '\n')
+    return re.sub(r'\n{3,}', '\n\n', text).strip()
+
+
+def _is_page_label(txt):
+    t = (txt or '').strip()
+    if not t or len(t) > 25:
+        return False
+    if not re.search(r'\d', t):
+        return False
+    word = re.sub(r'[\d\s\.:،,؛\-–—]+', '', t)
+    return len(word) <= 12
+
+
+class _PageHTMLParser(html.parser.HTMLParser):
+    
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.pages = []
+        self._cur = []
+        self._cur_started = False
+        self._div_depth = 0
+        self._skip_depth = 0
+        self._in_h2 = False
+        self._h2_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in ('script', 'style'):
+            self._skip_depth += 1
+            return
+        if tag == 'div':
+            if self._div_depth == 0 and dict(attrs).get('dir', '').lower() == 'auto':
+                if self._cur_started:
+                    self._flush()
+                self._cur_started = True
+            self._div_depth += 1
+            self._block_newline(tag)
+            return
+        if self._skip_depth:
+            return
+        if tag == 'h2':
+            self._in_h2 = True
+            self._h2_parts = []
+            return
+        self._block_newline(tag)
+
+    def handle_startendtag(self, tag, attrs):
+        self._block_newline(tag.lower())
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in ('script', 'style'):
+            if self._skip_depth:
+                self._skip_depth -= 1
+            return
+        if self._skip_depth:
+            return
+        if tag == 'div':
+            if self._div_depth > 0:
+                self._div_depth -= 1
+            self._block_newline(tag)
+            return
+        if tag == 'h2':
+            if self._in_h2:
+                txt = "".join(self._h2_parts).strip()
+                if not _is_page_label(txt):
+                    self._cur.append(txt)
+                self._in_h2 = False
+            self._block_newline(tag)
+            return
+        self._block_newline(tag)
+
+    def handle_data(self, data):
+        if self._skip_depth:
+            return
+        if self._in_h2:
+            self._h2_parts.append(data)
+            return
+        if data.strip():
+            self._cur_started = True
+        self._cur.append(data)
+
+    def _block_newline(self, tag):
+        if tag in _BLOCK_TAGS:
+            self._cur.append("\n")
+
+    def _flush(self):
+        text = "".join(self._cur).replace('\r\n', '\n').replace('\r', '\n')
+        text = re.sub(r'[ \t]+\n', '\n', text)
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        self.pages.append(text.strip())
+        self._cur = []
+        self._cur_started = False
+
+    def close(self):
+        super().close()
+        if self._cur_started:
+            self._flush()
+
+
+def _read_text_pages(path):
+    try:
+        with open(path, 'rb') as f:
+            raw = f.read()
+    except Exception as e:
+        log.error(f"Error reading text file {path}: {e}", exc_info=True)
+        return None
+    text = _decode_text_file(raw)
+    ext = os.path.splitext(path)[1].lower()
+    if ext in ('.html', '.htm'):
+        if '<div' in text.lower() and 'dir="auto"' in text.lower():
+            parser = _PageHTMLParser()
+            try:
+                parser.feed(text)
+                parser.close()
+            except Exception as e:
+                log.warning(f"HTML page parsing failed for {path}: {e}")
+            if parser.pages:
+                return parser.pages
+        text = _html_to_plain_text(text)
+    pages = _split_txt_pages(text)
+    if pages:
+        return pages
+    return _group_paragraphs(text)
 
 
 def get_focused_explorer_files():
@@ -178,6 +386,14 @@ def get_focused_explorer_files():
         pass
 
     try:
+        if (
+            (ctypes.windll.user32.GetAsyncKeyState(0x10) & 0x8000)
+            or (ctypes.windll.user32.GetAsyncKeyState(0x12) & 0x8000)
+            or (ctypes.windll.user32.GetAsyncKeyState(0x5B) & 0x8000)
+            or (ctypes.windll.user32.GetAsyncKeyState(0x5C) & 0x8000)
+        ):
+            return paths
+
         ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
         ctypes.windll.user32.keybd_event(0x43, 0, 0, 0)
         ctypes.windll.user32.keybd_event(0x43, 0, 2, 0)
@@ -206,12 +422,22 @@ class VirtualDocument:
         self.file_paths = file_paths
         self.page_map = [] 
         self.total_pages = 0
+        self.text_pages = {}
         self.is_single_pdf = (len(file_paths) == 1 and file_paths[0].lower().endswith('.pdf'))
         self.single_pdf_path = file_paths[0] if self.is_single_pdf else None
 
     def scan(self):
-        if not fitz: return
         for path in self.file_paths:
+            ext = os.path.splitext(path)[1].lower()
+            if ext in TEXT_EXTENSIONS:
+                pages = _read_text_pages(path)
+                if pages:
+                    self.text_pages[path] = pages
+                    for k in range(len(pages)):
+                        self.page_map.append((path, k))
+                    continue
+            if not fitz:
+                continue
             try:
                 doc = fitz.open(path)
                 count = len(doc)
@@ -393,15 +619,15 @@ def convert_json_to_srt_string(json_text, chunk_size=1200, segments=None, global
         if "```json" in clean_text.lower():
             try:
                 clean_text = re.split(r'```json', clean_text, flags=re.IGNORECASE)[1].split("```")[0].strip()
-            except Exception: pass
+            except Exception as e: log.debug(f"JSON fence strip failed: {e}")
         elif "```srt" in clean_text.lower():
             try:
                 clean_text = re.split(r'```srt', clean_text, flags=re.IGNORECASE)[1].split("```")[0].strip()
-            except Exception: pass
+            except Exception as e: log.debug(f"SRT fence strip failed: {e}")
         elif "```" in clean_text:
             try:
                 clean_text = clean_text.split("```")[1].split("```")[0].strip()
-            except Exception: pass
+            except Exception as e: log.debug(f"Markdown fence strip failed: {e}")
 
         try:
             data = json.loads(clean_text)

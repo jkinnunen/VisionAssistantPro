@@ -4,6 +4,7 @@ import json
 import logging
 import ssl
 import re
+import time
 from urllib import request, error
 from urllib.parse import urlparse
 
@@ -11,6 +12,7 @@ import config as nvda_config
 import addonHandler
 
 from .. import vision_config
+from ..utils.error_contract import AI_ERROR_PREFIX, is_ai_error, ai_error_message, is_server_busy_error
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +71,7 @@ class AIHandler:
             mid = mid_orig.lower()
             mname = mname_orig.lower()
             if provider == "gemini":
-                excluded = ["nano", "banana", "robotic", "vo3", "v03", "veo", "tts", "native", "audio", "image", "aqa", "lyria", "embedding", "bison", "gecko", "deep", "antigravity", "computer"]
+                excluded = ["nano", "banana", "robotic", "vo3", "v03", "veo", "tts", "native", "audio", "image", "aqa", "lyria", "embedding", "bison", "gecko", "deep", "antigravity", "computer", "live", "omni", "video", "customtools"]
                 if any(x in mid or x in mname for x in excluded):
                     continue
             elif provider == "groq":
@@ -213,6 +215,8 @@ class AIHandler:
         if not url:
             return []
             
+        if is_gemini_logic:
+            url += ("&" if "?" in url else "?") + "pageSize=1000"
         if is_gemini_logic and key and "key=" not in url:
             url += ("&" if "?" in url else "?") + f"key={key}"
             
@@ -274,7 +278,9 @@ class AIHandler:
         p_name = nvda_config.conf["VisionAssistant"]["active_provider"]
         endpoint = AIHandler.get_endpoint(task)
         att_count = len(attachments) if attachments else 0
+        start_time = time.time()
         log.info(f"AI call started: provider={p_name}, task={task}, endpoint={endpoint}, prompt_len={len(prompt or '')}, attachments={att_count}")
+        log.debug(f"AI call PROMPT:\n{prompt}")
 
         if AIHandler.is_gemini():
             forced_key = None
@@ -291,10 +297,12 @@ class AIHandler:
         else:
             res = OpenAIHandler.call(prompt, attachments, json_mode, task)
 
-        if res and res.startswith("ERROR:"):
-            log.warning(f"AI call error: {res}")
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        if is_ai_error(res):
+            log.warning(f"AI call error ({elapsed_ms} ms): {res}")
         else:
-            log.info(f"AI call finished: ({len(res) if res else 0} chars returned)")
+            log.info(f"AI call finished: {len(res) if res else 0} chars, {elapsed_ms} ms")
+            log.debug(f"AI call RESPONSE:\n{res}")
         return res
 
     @staticmethod

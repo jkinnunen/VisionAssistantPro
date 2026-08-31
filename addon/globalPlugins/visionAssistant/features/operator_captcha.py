@@ -24,7 +24,7 @@ import mouseHandler
 
 from .. import vision_config
 from ..vision_config import ADDON_NAME
-from ..ai.core import AIHandler
+from ..ai.core import AIHandler, is_ai_error, ai_error_message
 from ..utils.system import clean_markdown, show_error_dialog, _generate_object_signature, check_screen_curtain_active
 from ..utils.mouse_keyboard import MouseSimulator, send_ctrl_v
 from ..dialogs.chat_dialog import VisionQADialog
@@ -68,10 +68,10 @@ class OperatorCaptchaMixin:
             prompt = vision_config.apply_prompt_template(prompt_template, [("app_name", fg_app)])
             res = AIHandler.call(prompt, attachments=[{'mime_type': m, 'data': img}], json_mode=True, task="operator")
             if not self.is_ui_explorer_active: return
-            if not res or res.startswith("ERROR:"):
+            if not res or is_ai_error(res):
                 self.is_ui_explorer_active = False
                 # Translators: Generic error message for AI failures
-                err_msg = res[6:] if res else _("Unknown AI Error")
+                err_msg = ai_error_message(res) if res else _("Unknown AI Error")
                 wx.CallAfter(show_error_dialog, err_msg)
                 return
             try:
@@ -207,7 +207,7 @@ class OperatorCaptchaMixin:
                         try:
                             exp_match = re.search(r'"explanation":\s*"([^"]*)"', content)
                             if exp_match: content = exp_match.group(1)
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Explanation extraction failed: {e}")
                     if is_gemini:
                         messages.append({"role": "user" if role == "user" else "model", "parts": [{"text": content}]})
                     else:
@@ -224,9 +224,9 @@ class OperatorCaptchaMixin:
                 res = AIHandler.call(messages, task="operator")
                 if self._should_abort(token): break
                 
-                if not res or res.startswith("ERROR:"):
+                if not res or is_ai_error(res):
                     # Translators: Error message shown when the AI returns an unknown error
-                    wx.CallAfter(show_error_dialog, res[6:] if res else _("AI Error"))
+                    wx.CallAfter(show_error_dialog, ai_error_message(res) if res else _("AI Error"))
                     break
                     
                 display_text, is_finished, action_info = self._process_ai_action_logic(res, w, h)
@@ -304,6 +304,8 @@ class OperatorCaptchaMixin:
         if self._operator_history:
             dialog_history = []
             self.vision_dlg.outputArea.Clear()
+            self.vision_dlg._nav_messages = []
+            self.vision_dlg._nav_index = -1
             for h in self._operator_history:
                 role = "user" if h["role"] == "user" else "model"
                 content = h.get("content") or h.get("parts", [{}])[0].get("text", "")
@@ -315,10 +317,12 @@ class OperatorCaptchaMixin:
                     if "{" in content:
                         json_match = re.search(r'\{.*\}', content, flags=re.DOTALL)
                         if json_match: content_only = json.loads(json_match.group(0)).get("explanation", "")
-                except Exception: pass
+                except Exception as e: log.debug(f"Captcha JSON parse failed: {e}")
                 if not content_only: content_only = re.sub(r'\{.*\}', '', content, flags=re.DOTALL).strip()
                 if "Windows operator" not in content and content_only:
-                    self.vision_dlg.outputArea.AppendText(f"{role_label}: {clean_markdown(content_only)}\n\n")
+                    cleaned = clean_markdown(content_only)
+                    self.vision_dlg.outputArea.AppendText(f"{role_label}: {cleaned}\n\n")
+                    self.vision_dlg._add_nav_message(cleaned, role)
             self.vision_dlg.chat_history = dialog_history
 
         self.vision_dlg.Show(); self.vision_dlg.Raise(); self.vision_dlg.SetFocus()
@@ -495,7 +499,7 @@ class OperatorCaptchaMixin:
                 prompt = vision_config.apply_prompt_template(prompt_template, [("app_name", uniqueId), ("response_lang", resp_lang)])
                 
                 res = AIHandler.call(prompt, attachments=[{'mime_type': m, 'data': img}], task="operator")
-                if res and not res.startswith("ERROR:"):
+                if res and not is_ai_error(res):
                     clean_name = clean_markdown(res)
                     def save_ui_thread():
                         if uniqueId not in self.labels_cache: self.labels_cache[uniqueId] = {}
@@ -507,7 +511,7 @@ class OperatorCaptchaMixin:
                             # Translators: Success message spoken when the AI successfully assigns a new label to the object. {name} is replaced with the AI-generated label.
                             ui.message(_("Labeled as: {name}").format(name=clean_name))
                     wx.CallAfter(save_ui_thread)
-                elif res and res.startswith("ERROR:"): wx.CallAfter(show_error_dialog, res[6:])
+                elif res and is_ai_error(res): wx.CallAfter(show_error_dialog, ai_error_message(res))
             except Exception as e: log.error(f"Single label thread failed: {e}")
             finally: self.current_status = _("Idle")
         
@@ -578,7 +582,9 @@ class OperatorCaptchaMixin:
                 while child:
                     stack.append((child, depth + 1))
                     child = child.next
-            except Exception: continue
+            except Exception as e:
+                log.debug(f"Object tree traversal skipped: {e}")
+                continue
                 
         if not candidates:
             self.current_status = _("Idle")
@@ -597,7 +603,7 @@ class OperatorCaptchaMixin:
                 prompt = vision_config.apply_prompt_template(prompt_template, [("app_name", unique_id), ("response_lang", vision_config.get_lang_name("ai_response_language"))])
                 res = AIHandler.call(prompt, attachments=[{'mime_type': m, 'data': img}], json_mode=True, task="operator")
                 
-                if res and not res.startswith("ERROR:"):
+                if res and not is_ai_error(res):
                     try:
                         raw_res = res.strip()
                         start_idx = raw_res.find('[')
@@ -619,7 +625,9 @@ class OperatorCaptchaMixin:
                             for item in ai_items:
                                 if not all(k in item for k in ("x", "y", "label")): continue
                                 try: x_val, y_val = float(item["x"]), float(item["y"])
-                                except Exception: continue
+                                except Exception as e:
+                                    log.debug(f"Label coordinate parse skipped: {e}")
+                                    continue
                                 
                                 ai_x, ai_y = int(x_val * w / 1000), int(y_val * h / 1000)
                                 best_match, min_dist = None, 100
@@ -641,7 +649,7 @@ class OperatorCaptchaMixin:
                         log.error(f"Batch labeling mapping failed: {e}")
                         # Translators: Error message spoken when the add-on fails to parse or map the labels returned by the AI (e.g., due to invalid AI response format).
                         core.callLater(0, ui.message, _("Batch labeling failed."))
-                elif res and res.startswith("ERROR:"): wx.CallAfter(show_error_dialog, res[6:])
+                elif res and is_ai_error(res): wx.CallAfter(show_error_dialog, ai_error_message(res))
             except Exception as e: log.error(f"Batch label worker failed: {e}")
             finally: self.current_status = _("Idle")
 
@@ -667,7 +675,7 @@ class OperatorCaptchaMixin:
         is_gov = False
         try:
             if api.getForegroundObject() and "پنجره ملی خدمات دولت هوشمند" in api.getForegroundObject().name: is_gov = True
-        except Exception: pass
+        except Exception as e: log.debug(f"Gov window check failed: {e}")
 
         if d:
             log.info(f"CAPTCHA solving started in mode: {mode}, is_gov={is_gov}")
@@ -695,9 +703,9 @@ class OperatorCaptchaMixin:
                 return
                 
             if r:
-                log.info(f"CAPTCHA raw AI response: {r}")
-                if r.startswith("ERROR:"):
-                    wx.CallAfter(show_error_dialog, r[6:])
+                log.debug(f"CAPTCHA raw AI response: {r}")
+                if is_ai_error(r):
+                    wx.CallAfter(show_error_dialog, ai_error_message(r))
                     return
                 # Translators: Message reported by NVDA when the AI cannot detect any CAPTCHA in the captured image.
                 if "[[[NO_CAPTCHA]]]" in r: core.callLater(0, self.report_status, _("No CAPTCHA detected."))
@@ -720,7 +728,8 @@ class OperatorCaptchaMixin:
 
     def _finish_captcha(self, text):
         clean_text = re.sub(r'[^a-zA-Z0-9]', '', text)
-        log.info(f"CAPTCHA solved result text: {clean_text}")
+        log.info(f"CAPTCHA solved ({len(clean_text)} chars).")
+        log.debug(f"CAPTCHA solved result text: {clean_text}")
         for char in clean_text:
             try: keyboardHandler.KeyboardInputGesture.fromName(char).send()
             except Exception:
@@ -751,7 +760,7 @@ class OperatorCaptchaMixin:
                 try:
                     res = AIHandler.call(sys_prompt, attachments=[{'mime_type': m, 'data': d}], json_mode=True, task="operator")
                     if getattr(self, "_abort_captcha", False): break
-                    if not res or res.startswith("ERROR:"): break
+                    if not res or is_ai_error(res): break
                     
                     clean_res = res.strip()
                     if "```json" in clean_res: clean_res = clean_res.split("```json")[1].split("```")[0].strip()

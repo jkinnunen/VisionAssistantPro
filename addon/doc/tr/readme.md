@@ -1,6 +1,6 @@
 # Profesyonel Görsel Asistan Belgeleri
 
-<!-- DOWNLOAD_COUNT_START --> Toplam İndirme: 61.000+ <!-- DOWNLOAD_COUNT_END -->
+<!-- DOWNLOAD_COUNT_START --> Toplam İndirme: 62,863 <!-- DOWNLOAD_COUNT_END -->
 
 **Profesyonel Görsel Asistan**, NVDA için gelişmiş, çok modlu bir yapay zekâ asistanıdır. Akıllı ekran okuma, çeviri, sesli dikte ve belge analizi sağlamak için dünya çapında yapay zekâ motorlarından yararlanır.
 
@@ -18,44 +18,51 @@ Bu eklenti, Dünya Engelliler Günü onuruna topluluğa sunulmuştur.
 * **Yapay Zekâ Modeli:** Genel sohbet ve analiz için kullanılacak ana modeli seçin.
 * **Özel Sağlayıcı Ayarları:** Yerel veya özel uç noktaları yapılandırın. **Yerel Yapay Zekâyı Kur** (Ollama, LM Studio, Jan.ai veya KoboldCPP için tek tıklamayla kurulum) ve **Gelişmiş Uç Nokta Yapılandırması** seçeneklerini içerir.
 * **Gelişmiş Model Yönlendirme (Göreve Özel):** İsteğe bağlı olarak OCR, STT, TTS, AI Operator, Video ve Canlı Asistan görevleri için açılır listelerden özel modeller seçin.
-* **Bağlantı ve Çıktı Seçenekleri:** Proxy URL'si, başlangıçta güncelleme denetimi, Sohbette Markdown'ı Temizle, Yapay zekâ yanıtlarını panoya kopyala, Doğrudan Çıktı (Sohbet Penceresi Yok) ve Canlı Asistan Doğrudan Çıktı seçeneklerini yapılandırın.
+* **Bağlantı ve Çıktı Seçenekleri:** Proxy URL'si, başlangıçta güncelleme denetimi, Sohbette Markdown'ı Temizle, Yapay zekâ yanıtlarını panoya kopyala, Doğrudan Çıktı (Sohbet Penceresi Yok) seçeneklerini yapılandırın.
 
-### 1.2 Yapay Zekâ Davranışı Sekmesi
+### 1.2 Canlı Asistan Sekmesi
+- **Canlı Asistan: Doğrudan Çıktı (Penceresiz):** Canlı Asistan’ı konuşma penceresi olmadan başlatın; daha sonra “Son Sonucu Çağır” tuşuyla (`Boşluk`) açabilirsiniz.
+- **Bas-Konuş:** Bas-konuş modunu etkinleştirin veya devre dışı bırakın. Etkinleştirildiğinde, mikrofonunuz yalnızca atanmış tuşu basılı tuttuğunuz sürece ses gönderir.
+- **Bas Konuş Tuşu:** Kısayolu kaydetmek için tuşlara basın (örneğin `F12` veya `Ctrl+F12`) — hatta `Sol Ctrl` gibi tek bir değiştirici tuş atayabilirsiniz. Konuşmak için tuşu basılı tutun ve bırakın...
+
+Not: Bu sekme yalnızca **Google Gemini** (veya Gemini uyumlu bir Özel sağlayıcı) etkin sağlayıcınız olduğunda görünür.
+
+### 1.3 Yapay Zekâ Davranışı Sekmesi
 
 * **Yaratıcılık (Temperature):** Yapay zekânın rastgelelik ve yaratıcılık düzeyini kontrol eder (0,0 ile 2,0 arasında). Daha düşük değerler, daha tutarlı ve daha doğru çeviri/OCR sonuçları üretir.
 
-### 1.3 Çeviri Dilleri Sekmesi
+### 1.4 Çeviri Dilleri Sekmesi
 
 * **Kaynak Dil:** Varsayılan giriş dilinizi seçin.
 * **Hedef Dil:** Birincil hedef çeviri dilinizi seçin.
 * **Yapay Zekâ Yanıt Dili:** Genel yapay zekâ yanıtları için kullanılacak dili seçin.
 * **Akıllı Değişim:** Algılanan giriş diline göre kaynak ve hedef dilleri otomatik olarak değiştirir.
 
-
-### 1.4 Belge Okuyucu Sekmesi
+### 1.5 Belge Okuyucu Sekmesi
 
 * **OCR Motoru:** Hızlı sonuçlar için **Chrome (Hızlı)** veya üstün düzen koruması için **YZ (Gelişmiş)** seçeneklerinden birini seçin.
 * **OCR Toplu İşlem Boyutu:** İstek başına işlenecek sayfa sayısını belirtin (tek istekle işleme için 0 olarak ayarlayın).
-* **Satır İçi Görsel Açıklamaları:** Belge metni çıkarılırken görseller için satır içi açıklamaları açıp kapatın.
+* **Satır İçi Görsel Betimlemeleri:** Belge metni çıkarılırken görseller için satır içi açıklamaları açıp kapatın.
 * **Sayfa Numaralarını Dışa Aktar:** Çok sayfalı belge çıktılarında sayfa numaralarını ve ayırıcıları eklemeyi açıp kapatın.
 * **TTS Sesi:** Ses oluşturma için kullanılacak varsayılan ses stilini seçin.
 
-### 1.5 Video Sekmesi
+### 1.6 Video Sekmesi
 
 * **Video Parça Boyutu:** Sesli Betimleme oluşturulurken kullanılacak bölüm süresini dakika cinsinden belirleyin (tüm dosyayı işlemek için 0 olarak ayarlayın).
 * **Karakter Listesi Ekle:** Karakter sözlüğünü ilk altyazı girdisi olarak ekleme seçeneği.
 * **Yapay Zekâ Sorumluluk Reddi Ekle:** Video SRT altyazılarının başına yapay zekâ tarafından oluşturulduğunu belirten bir sorumluluk reddi metni ekleme seçeneği.
 
-### 1.6 CAPTCHA Sekmesi
+### 1.7 CAPTCHA Sekmesi
 
 * **Görsel CAPTCHA Çözücüyü Etkinleştir:** Görsel doğrulama sınamalarının (hCaptcha, reCAPTCHA) otomatik olarak çözülmesini açıp kapatın.
 * **Metin CAPTCHA Yöntemi:** **Gezgin Nesnesi (Navigator Object)** veya **Tam Ekran** yakalama yöntemlerinden birini seçin.
 
-### 1.7 İstemler (Prompts) Sekmesi
+### 1.8 İstemler (Prompts) Sekmesi
 
 * **İstemleri Yönet:** Varsayılan sistem istemlerini özelleştirebileceğiniz veya dinamik değişkenler (ör. `[selection]`, `[screen_fg_obj]`) kullanarak kullanıcı tanımlı istemler oluşturabileceğiniz, düzenleyebileceğiniz, yeniden sıralayabileceğiniz ve önizleyebileceğiniz özel bir iletişim kutusunu açar.
+- **Özel İstem Kısayolları:** Doğrudan İstem Yöneticisi'nde herhangi bir özel istem için özel bir kısayol tuşu atayın. Bunları kaydetmek için tuşlara basın; tek tuşlar Komut Katmanı içinde (ve genel olarak "NVDA + Shift + tuş" olarak) çalıştırılırken, "Kontrol + Shift + 1" gibi kombinasyonlar genel olarak kendi başlarına çalışır.
 
-### 1.8 Gelişmiş Sekmesi ve Genel Günlük Kaydı
+### 1.9 Gelişmiş Sekmesi ve Genel Günlük Kaydı
 
 Genel eklenti günlük kaydı ayarlarını yapılandırmak için **Gelişmiş** sekmesine gidin:
 
@@ -63,6 +70,11 @@ Genel eklenti günlük kaydı ayarlarını yapılandırmak için **Gelişmiş** 
 * **Günlük Düzeyi:** Ayrıntı düzeyini **Hata Ayıklama (Tüm Ayrıntılar)**, **Bilgi (Genel Bilgiler)**, **Uyarı (Yalnızca Uyarılar)** ve **Hata (Yalnızca Hatalar)** seçenekleri arasından belirleyin.
 * **Günlükleri Saklama Süresi:** Eski günlük kayıtlarının otomatik olarak temizlenmesi için saklama süresini ayarlayın (1 saat ile 90 gün arasında).
 * **Günlük Yönetim Denetimleri:** NVDA'yı yeniden başlatmadan veya standart NVDA günlüklerine müdahale etmeden günlük verilerini incelemek ya da temizlemek için **Günlük Dosyasını Aç**, **Günlük Klasörünü Aç** veya **Günlük Dosyasını Temizle** seçeneklerini kullanın.
+
+### 1.10 Ayarları Yedekleme ve Geri Yükleme
+**Gelişmiş** sekmesi aynı zamanda **Yedekle ve Geri Yükle** bölümünü de içerir:
+- **Yedekleme:** Yapılandırmanızı tek bir JSON dosyasına kaydeder. Tıkladığınızda nelerin dahil edileceğini seçersiniz: **Her şey** (ayarlar, özel etiketler, OCR ilerleme durumu ve geçmiş) veya **Yalnızca Ayarlar**.
+- **Geri Yükle:** Yapılandırmanızı ve verilerinizi istediğiniz zaman, herhangi bir makineye veya NVDA'yı yeniden yükledikten sonra geri yüklemek için önceden kaydedilmiş bir yedeklemeyi yükler. Geri yükleme işlemi tüm mevcut ayarlarınızın ve verilerinizin yerini alacağından, önce sizden onaylamanız istenecektir.
 
 ## 2. Komut Katmanı ve Kısayollar
 
@@ -94,15 +106,29 @@ Klavye çakışmalarını önlemek için bu eklenti bir **Komut Katmanı** kulla
 | **L**         | **Nesne Etiketleme**         | **Anlamsal Yapay Zeka Etiketleme:** Odaklanılan geçerli öğeyi/simgeyi kalıcı olarak etiketler. |
 | **Shift + L** | **Etiketleri Yönet/Tara**   | Etiket Yöneticisini açar (etiketler varsa) veya uygulamayı adsız öğelere karşı tarar. |
 | **U**         | Güncellemeleri Denetle      | Eklentinin en son sürümü için GitHub’ı manuel olarak kontrol eder.                    |
-| **Boşluk Çubuğu**     | Son Sonucu Çağır         | Son yapay zekâ yanıtını inceleme veya devam için sohbet penceresinde gösterir.        |
+| **Aralık**     | Son Sonucu Çağır         | Son yapay zekâ yanıtını inceleme veya devam için sohbet penceresinde gösterir.        |
 | **H**         | Komut Yardımı            | Komut katmanındaki tüm kısayolların listesini gösterir.                               |
+| **Kontrol + H** | **Geçmiş**            | Tür filtreleri ve Sil/Temizle seçenekleriyle geçmiş sohbetlerinizi ve belgelerinizi listeleyen Geçmiş iletişim kutusunu açar. |
 | **Alt + S**   | Ayarlar                 | Profesyonel Görsel Asistan Ayarları iletişim kutusunu açar.                             |
 | **Alt + Q**   | Günlük kotası tükenmiş anahtarları bildirir. | Günlük kotasını aşan Gemini API anahtarlarının sayısını ve sıfırlama sürelerini bildirir. |
 | **Alt + M**   | Yönlendirme Denetimi            | Gelişmiş yönlendirmede seçili olan YZ modellerini bildirir.               |
 | **Yukarı / Aşağı** | Hızlı Ayarlar Dolaşımı          | Katman içindeki hızlı ayar kategorileri (Sağlayıcı, Model vb.) arasında dolaşır.     |
 | **Sol / Sağ**      | Hızlı Ayarı Değiştir             | O anda seçili olan hızlı ayarın değerini değiştirir.     |
 
-## 3. Yapay Zekâ Operatörü - Otonom Bilgisayar Kontrolü
+## 3. Sohbet ve Geçmiş
+
+Sohbet pencereleri ve Geçmiş iletişim kutusu tüm özelliklerde çalışır; böylece konuşmaları gözden geçirebilir ve kaldığınız yerden devam edebilirsiniz.
+
+### 3.1 Sohbet Penceresi Kısayolları
+Bir sohbet penceresi açıkken (Doğrudan Sohbet, belge sohbeti, hassaslaştırma ve benzeri), konuşmayı aşağıdakilerle inceleyebilirsiniz:
+- **Alt + Aşağı:** Sonraki mesajı okuyun.
+- **Alt + Yukarı:** Önceki mesajı okuyun.
+- **Alt + C:** Geçerli mesajı kopyalayın.
+
+### 3.2 Geçmiş (Kontrol + H)
+Türe göre filtrelenebilen (Tümü / Sohbetler / Belgeler) geçmiş sohbetlerinizi ve belgelerinizi içeren **Geçmiş** iletişim kutusunu açmak için Komut Katmanında **Control + H** tuşlarına basın. Otomatik olarak yeniden eklenen ekli dosyalar da dahil olmak üzere sohbete devam etmek için bir sohbet açın veya bir belge açıp okumaya devam edin. Herhangi bir öğeyi kaldırmak için **Sil**'e veya listeyi boşaltmak için **Tümünü Temizle**'ye basın.
+
+## 4. Yapay Zekâ Operatörü - Otonom Bilgisayar Kontrolü
 
 **Yapay Zekâ Operatörü**, Profesyonel Görsel Asistan'ı pasif bir okuyucudan bilgisayarınızla sizin adınıza etkileşim kurabilen aktif bir asistana dönüştürür. Ekranı betimlemesini isteyebilir, gördükleri hakkında sorular sorabilir veya hatta kontrolü devralmasını sağlayabilirsiniz; düğmelere tıklayabilir, öğeleri sürükleyebilir, metin yazabilir ve doğal dil komutlarını kullanarak uygulamalar arasında dolaşabilir.
 
@@ -135,13 +161,13 @@ Operatör çok çeşitli komutları anlayabilir:
 * **Yönetici Uygulamaları:** NVDA yönetici ayrıcalıklarıyla çalışmıyorsa, operatör yükseltilmiş izinler gerektiren pencerelerle etkileşim kuramayabilir. Bu, Windows'un güvenlik sınırlamasıdır, eklentideki bir hata değildir.
 * **En İyi Uygulamalar:** En iyi sonuçlar için açık ve belirgin komutlar verin. "Formun altındaki mavi Gönder düğmesine tıkla" komutu, yalnızca "Düğmeye tıkla" demekten neredeyse her zaman daha iyi sonuç verir.
 
-## 4. Video Analizi ve Sesli Betimleme
+## 5. Video Analizi ve Sesli Betimleme
 
 > **Not:** Video Analizi ve Sesli Betimleme özellikleri yalnızca **Google Gemini** sağlayıcısı tarafından desteklenmektedir. Eklenti ayarlarında etkin sağlayıcınızın Google Gemini olarak ayarlandığından emin olun.
 
 Profesyonel Görsel Asistan, özellikle kör kullanıcılar için tasarlanmış güçlü video işleme yetenekleri sunar. Hem çevrim içi videoları hem de yerel ekran kayıtlarını analiz ederek son derece ayrıntılı görsel betimlemeler sağlayabilir ve profesyonel Sesli Betimleme betikleri (SRT) oluşturabilir.
 
-### 4.1 Yerel Ekran Kaydı (Control + V)
+### 5.1 Yerel Ekran Kaydı (Control + V)
 
 Ekranınızda sessiz bir video, animasyon veya eğitim videosuyla karşılaşırsanız, bunu doğrudan kaydedebilirsiniz:
 
@@ -150,14 +176,14 @@ Ekranınızda sessiz bir video, animasyon veya eğitim videosuyla karşılaşır
 3. Kaydı durdurmak için tekrar **Control + V** tuşlarına basın.
 4. Yapay zekâ daha sonra kaydedilen video bölümünü analiz edecek ve sahne, karakterler ve eylemler hakkında son derece ayrıntılı bir betimleme sunacaktır.
 
-### 4.2 Video Analizi (Shift + V)
+### 5.2 Video Analizi (Shift + V)
 
 Hem yerel video dosyalarını hem de çevrim içi videoları analiz edebilirsiniz. Windows Gezgini'nde bir yerel video dosyası seçin veya çevrim içi bir video bağlantısını panonuza kopyalayın. Ayrıca herhangi bir yerde (örneğin bir medya oynatıcısının içinde) **Shift + V** tuşlarına basarak bir video dosyası seçebileceğiniz veya bir URL'yi el ile yapıştırabileceğiniz bir iletişim kutusu açabilirsiniz.
 
 * **Desteklenen Çevrim İçi Platformlar:** YouTube, Instagram, TikTok ve Twitter (X).
 * Yapay zekâ yerel dosyayı veya URL'yi otomatik olarak algılayacak, videoyu işleyecek ve kapsamlı bir görsel betimleme ile sesli özet sunacaktır.
 
-### 4.3 Sesli Betimleme Oluşturma (SRT)
+### 5.3 Sesli Betimleme Oluşturma (SRT)
 
 Daha yapılandırılmış bir deneyim için eklenti, standart SubRip (SRT) biçiminde profesyonel Sesli Betimleme betikleri oluşturabilir.
 
@@ -166,7 +192,7 @@ Daha yapılandırılmış bir deneyim için eklenti, standart SubRip (SRT) biçi
 * **Bire Bir Metin OCR:** Ekranda görünen tüm metinler (tabelalar, telefonlar, jenerikler) bire bir alıntılanır.
 * **Nasıl Kullanılır:** Oluşturulan altyazıyı dinlemek için `.srt` dosyasını video dosyanızla aynı klasöre yerleştirin ve tam olarak aynı adı verin. Ardından medya oynatıcınızı (örneğin VLC veya PotPlayer), oynatma sırasında altyazı metnini doğrudan ekran okuyucunuza veya TTS motorunuza yönlendirecek şekilde yapılandırın.
 
-### 4.4 Eşzamanlı Sesli Betimleme (MP3 Dışa Aktarma)
+### 5.4 Eşzamanlı Sesli Betimleme (MP3 Dışa Aktarma)
 
 Eklenti yalnızca metin tabanlı SRT dosyaları oluşturmakla kalmaz, aynı zamanda betimlemeleri konuşmaya dönüştürüp videoyla birleştirerek eksiksiz bir Sesli Betimleme üretim aracı olarak çalışır. Yerel video dosyaları için MP3 oluştururken birden fazla karıştırma modu kullanılabilir:
 
@@ -174,7 +200,7 @@ Eklenti yalnızca metin tabanlı SRT dosyaları oluşturmakla kalmaz, aynı zama
 * **Genişletilmiş AD (Sesi Duraklat):** Motor, betimlemeler sırasında videonun orijinal sesini duraklatır ve böylece ne orijinal diyaloğun ne de yapay zekâ anlatımının tek bir kelimesini bile kaçırmazsınız.
 * **YouTube Videoları:** YouTube kaynakları için (yerel olarak indirilmeyen videolar), MP3 dışa aktarma yalnızca eşzamanlı yapay zekâ ses parçasını içerir, arka plan video sesi bulunmaz.
 
-## 5. Medya Yazıya Dökme ve Dublaj (M)
+## 6. Medya Yazıya Dökme ve Dublaj (M)
 
 Ses Yazıya Dökme özelliği, hem ses hem de video dosyalarını (MP3, WAV, MP4, MKV vb.) destekleyecek şekilde tamamen yeniden geliştirilmiştir. Bir medya dosyası seçmek ve aşağıdaki 3 farklı çalışma modundan birini kullanmak için Komut Katmanında **M** tuşuna basın:
 
@@ -182,47 +208,69 @@ Ses Yazıya Dökme özelliği, hem ses hem de video dosyalarını (MP3, WAV, MP4
 2. **Yazıya Dök ve Çevir (Hedef Dil):** Konuşmayı yazıya döker ve yapılandırılmış hedef dilinize çevirir.
 3. **Dublaj Yap ve Çevir (Hedef Dil)** *(Yalnızca Gemini)*: Konuşmayı yazıya döken, hedef dilinize çeviren ve eklentinin TTS motorunu kullanarak sesli bir dublaj oluşturan güçlü yeni bir özelliktir.
 
-## 6. Gelişmiş Belge ve Görüntü Okuyucu
+## 7. Gelişmiş Belge ve Görüntü Okuyucu
 
-Profesyonel Görsel Asistan, çok sayfalı PDF'ler, karmaşık görüntüler ve hatta iPhone HEIC biçimleri için tasarlanmış son derece optimize edilmiş bir Belge Okuyucu içerir.
+**Belge Okuyucu** belgelerinizi temiz, okunabilir metne dönüştürür; böylece taranmış bir kitaptan bir yığın fotoğrafa kadar her şeyi okuyabilir, çevirebilir ve dinleyebilirsiniz. Çok sayfalı PDF'leri, karmaşık görüntüleri, iPhone HEIC formatlarını ve hatta OCR veya AI işlemine gerek kalmadan anında açılan düz metin ('.txt') ve HTML ('.html', '.htm') dosyalarını yönetir. Aynı anda birkaç dosya seçin ve bunlar sayfa sırasına göre tek bir sürekli belgede birleştirilir. Üç OCR motoru mevcuttur — üstün düzen koruması için **Chrome (Hızlı)**, **YZ (Gelişmiş)** ve aranabilir PDF'ler için **Yok (Metin Katmanını Çıkart)** — Ayarlar → Belge Okuyucu'da seçilir.
 
-### 6.1 Toplu İşleme ve Devam Etme
+### Nasıl Çalışır?
+
+1. Belge Okuyucuyu açmak için **NVDA + Shift + V** ve ardından **D** tuşlarına basın — veya önce Dosya Gezgini'nde bir dosyayı seçili hale getirin ve dosya iletişim kutusunu tamamen atlamak için **D** / **F** tuşlarına basın.
+2. Bir veya daha fazla PDF veya resim seçin. Eklenti bunları tarar ve toplam sayfa sayısını duyurur.
+3. **Seçenekler** iletişim kutusunda sayfa aralığını seçin (Hangi aralıktan 2/4). Ayrıca **Çıktıyı Çevir** seçeneğini işaretleyebilir ve hedef dili seçebilir veya **OCR sırasında görüntüleri satır içi olarak Betimle** seçeneğini etkinleştirebilirsiniz.
+4. Metin çıkarma arka planda toplu olarak başlar. Pencereyi istediğiniz zaman kapatabilir ve daha sonra devam edebilirsiniz; hiçbir şey kaybolmaz.
+5. Sayfalar hazır olduğunda bunları görüntüleyicide okuyun: sayfalar arasında geçiş yapın, herhangi bir sayfaya geçin, AI sorularını sorun, metni kaydedin veya sesli anlatım oluşturun.
+
+### 7.1 Toplu İşleme ve Devam Etme
 
 Büyük bir belgeyi tek seferde okumak zorunda değilsiniz. Bir sayfa aralığı girin (örneğin, `1-20`), yapay zekâ tüm sayfaları arka planda işleyecektir. NVDA çökerse veya taramayı keserseniz, eklenti ilerlemenizi hatırlayacak ve tam olarak kaldığı yerden **Devam Etmeyi** önerecektir!
 
-### 6.2 Akıllı Dosya İşlemi
+### 7.2 Akıllı Dosya İşlemi
 
 Belgeyi her zaman önce açmanız gerekmez. Windows Dosya Gezgini'nde bir PDF veya görüntü dosyasını seçin ve Komut Katmanında **D** (Belge Okuyucu) veya **F** (Akıllı Dosya İşlemi) tuşuna basın. Eklenti dosya iletişim kutusunu anında atlayacak ve seçili dosyayı işlemeye başlayacaktır.
 
-### 6.3 Belge Görüntüleyici Kısayolları
+### 7.3 Belge Görüntüleyici Kontrolleri ve Kısayolları
+Belge Okuyucu penceresi açıkken aşağıdakileri kullanabilirsiniz:
 
-Belge Okuyucu penceresi açıkken aşağıdaki kısayolları kullanabilirsiniz:
+#### Klavye Kısayolları
 
 * **Ctrl + Sayfa Aşağı:** Sonraki sayfaya gider.
 * **Ctrl + Sayfa Yukarı:** Önceki sayfaya gider.
+* **Aşağı / Yukarı Ok:** İmleç bir sayfanın son satırına ulaştığında, sonraki sayfaya atlamak için**Aşağı** tuşuna basın; Bir önceki sayfaya dönmek için sayfanın üst kısmındaki **Yukarı** tuşuna basın.
 * **Alt + A:** Belge hakkında soru sormak için sohbet penceresi açar.
 * **Alt + R:** Etkin sağlayıcıyı kullanarak **Yapay Zekâ ile Yeniden Tarar**.
 * **Alt + G:** Yüksek kaliteli bir ses dosyası (WAV/MP3) oluşturur ve kaydeder. *Sağlayıcı TTS desteklemiyorsa gizlenir.*
 * **Alt + S / Ctrl + S:** Çıkarılan metni TXT veya HTML olarak kaydeder.
 
-## 7. Anlamsal Yapay Zekâ Etiketleme ve Arayüz Gezgini
+#### Düğmeler ve Kontroller
+
+- **Git:** Sayfa seçiciden herhangi bir sayfayı seçin.
+- **Biçimlendirilmiş Görüntüle:** Belgenin tamamını biçimlendirilmiş metin olarak birleştirilmiş olarak görün.
+- **Başarısız Sayfaları Yeniden Dene:** Yalnızca geçici sunucu hatası (ör. yüksek talep) nedeniyle başarısız olan grupları yeniden deneyin. Bu düğme ihtiyaç duyulduğunda otomatik olarak görünür.
+- **TTS Sesi / TTS Motoru:** Sesi seçin ve Gemini'de **Standart TTS** ve **Gemini Live** akışı arasında seçim yapın.
+- **Önceki / Sonraki:** Sayfalar arasında geçiş yapın (Ctrl+PageUp/Down kısayollarıyla aynıdır).
+
+### 7.4 Son Belgeler (D)
+
+Komut Katmanında **D** tuşuna bastığınızda, en son okuduğunuz belgeler ilk önce listelenir. OCR zaten bitmiş olsa bile, bulunduğunuz sayfadan devam etmek için birini seçin veya bir dosyaya her zamanki gibi göz atmak için **Dosya Aç...** (`Ctrl + O`) tuşuna basın.
+
+## 8. Anlamsal Yapay Zekâ Etiketleme ve Arayüz Gezgini
 
 Her yerde "etiketsiz düğme" bulunan bir uygulamada mı takıldınız? Anlamsal Yapay Zekâ Etiketleme motoru bunu kalıcı olarak çözer.
 
-### 7.1 Kalıcı Nesne Etiketleme (L)
+### 8.1 Kalıcı Nesne Etiketleme (L)
 
 Ekran okuyucunuzun odağını etiketsiz bir grafik veya düğme üzerine getirin ve Komut Katmanında **L** tuşuna basın. Yapay zekâ düğmeye görsel olarak bakacak, işlevini belirleyecek ve kalıcı bir etiket uygulayacaktır.
 *Eski ekran okuyucu etiketleme araçlarının aksine, bu eklenti gelişmiş hibrit bir "Nesne İmzası" sistemi (AutomationId/ControlID) kullanır. Özel etiketleriniz pencere boyutu değişikliklerinden, monitör değiştirmeden ve uygulama güncellemelerinden etkilenmeden korunacaktır!*
 
-### 7.2 Tam Uygulama Taraması (Shift + L)
+### 8.2 Tam Uygulama Taraması (Shift + L)
 
 Tüm etkin pencereyi tek seferde taramak için **Shift + L** tuşuna basın. Yapay zekâ tüm etiketsiz öğeleri bulacak ve hepsini tek seferde akıllıca adlandıracaktır. Daha sonra bu etiketleri yerleşik Etiket Yöneticisi üzerinden yönetebilir, yeniden adlandırabilir veya toplu olarak silebilirsiniz.
 
-### 7.3 Arayüz Gezgini (E)
+### 8.3 Arayüz Gezgini (E)
 
 Bir öğeyle ona el ile gitmeden etkileşim kurmanız mı gerekiyor? Arayüz Gezginini etkinleştirmek için **E** tuşuna basın. Yapay zekâ ekranı tarayacak ve tıklanabilir tüm öğelerin erişilebilir bir listesini oluşturacaktır (görev çubuğu gibi sistem gürültülerini yok sayarak). Listeden bir öğe seçin; eklenti sizin için anında o öğeye tıklayacaktır.
 
-## 8. Canlı Sesli Asistan
+## 9. Canlı Sesli Asistan
 
 Canlı Asistan, Profesyonel Görsel Asistan'ı gerçek zamanlı, etkileşimli bir yardımcı pilota dönüştürür.
 *(Not: Bu özellik yalnızca Google Gemini ve Gemini uyumlu Özel sağlayıcılara özeldir.)*
@@ -231,7 +279,7 @@ Canlı Asistan, Profesyonel Görsel Asistan'ı gerçek zamanlı, etkileşimli bi
 * **Gerçek Zamanlı Etkileşim:** Mikrofonunuz aracılığıyla doğal şekilde konuşun. Yapay zekâ aynı anda hem sesinizi dinleyecek hem de etkin ekranınıza bakacaktır. "Şu anda neye bakıyorum?" veya "Üçüncü paragrafı bana oku." gibi sorular sorabilirsiniz.
 * **Özelleştirme:** İletişim kutusu içinde yapay zekânın Ses Stilini (örneğin Profesyonel, Samimi, Enerjik) değiştirebilir ve yanıt vermeden önce ne kadar derin düşündüğünü kontrol etmek için "Düşünme Derinliğini" ayarlayabilirsiniz.
 
-## 9. Özel İstemler ve Değişkenler
+## 10. Özel İstemler ve Değişkenler
 
 İstemleri **Ayarlar > İstemler > İstemleri Yönet…** yolundan yönetebilirsiniz.
 
@@ -252,7 +300,7 @@ Canlı Asistan, Profesyonel Görsel Asistan'ı gerçek zamanlı, etkileşimli bi
 * `{swap_target}`: Akıllı takas çevirisi için yedek dil.
 * `{swap_instruction}`: Akıllı takas çeviri talimat bloğu.
 
-## 10. Gerçek Dünya Kullanım Senaryoları (Hangi özelliği kullanmalıyım?)
+## 11. Gerçek Dünya Kullanım Senaryoları (Hangi özelliği kullanmalıyım?)
 
 Profesyonel Görsel Asistan gelişmiş araçlarla doludur. Doğru özelliği seçmenize yardımcı olmak için işte bazı yaygın senaryolar:
 
@@ -281,14 +329,18 @@ Profesyonel Görsel Asistan gelişmiş araçlarla doludur. Doğru özelliği se�
 
 **Not:** Tüm yapay zekâ özellikleri için etkin bir internet bağlantısı gereklidir. Çok sayfalı belgeler otomatik olarak işlenir.
 
-## 10. Destek ve Topluluk
+## 12. Destek ve Topluluk
 
 En son haberler, özellikler ve sürümlerden haberdar olun:
 
 * **Telegram Kanalı:** [https://t.me/VisionAssistantPro](https://t.me/VisionAssistantPro)
 * **GitHub Issues:** Hata bildirimleri ve özellik istekleri için.
 
-## 11. Proje Destekçileri
+### Hataları ve Günlükleri Raporlama
+
+GitHub konusunu açarken veya destek isterken lütfen aktif AI sağlayıcınız, modeliniz ve NVDA sürümünüz hakkındaki ayrıntıları ekleyin. Bağlantı sorunları veya beklenmeyen çökmeler yaşıyorsanız **Ayarlar > Gelişmiş** bölümünde özel günlük dosyasını etkinleştirin, sorunu yeniden oluşturun ve sorunu daha hızlı çözmemize yardımcı olması için "vision_assistant.log" dosyanızı ekleyin.
+
+## 13. Proje Destekçileri
 
 Cömert mali katkılarıyla bu projenin sürekli geliştirilmesini ve sürdürülmesini destekleyen topluluk üyelerimize yürekten teşekkür ederiz:
 
@@ -304,6 +356,23 @@ Cömert mali katkılarıyla bu projenin sürekli geliştirilmesini ve sürdürü
 
 
 ---
+
+## 2026.09.01 İçin Değişiklikler
+
+* **Geçmiş (Kontrol + H)**: Komut Katmanı artık Geçmiş iletişim kutusunu (`Kontrol + H`) içeriyor; bu iletişim kutusu Tümü, Sohbetler ve Belgeler filtreleriyle geçmiş sohbetlerinizi ve belgelerinizi listeliyor. Herhangi bir sohbeti tüm konuşmasıyla yeniden açın - ekli dosyalar otomatik olarak yeniden eklenir - veya bir belgeyi yeniden açın ve okumaya devam edin. Herhangi bir öğeyi kaldırmak için üzerinde **Delete** tuşuna basın veya her şeyi tek seferde temizleyin.
+* **Okuyucudaki Son Belgeler**: Komut Katmanı'nda **D** tuşuna basmak artık ilk olarak yakın zamanda okuduğunuz belgeleri gösteriyor. Üzerinde bulunduğunuz sayfadan devam etmek için birini seçin - OCR zaten tamamlanmış olsa bile - veya her zamanki gibi göz atmak için **Dosya Aç...** (`Ctrl + O`) seçeneğine basın.
+* **Canlı Asistan için Bas Konuş**: Canlı konuşmalarınızın tam kontrolünü elinize alın! Yeni Canlı Asistan ayarları sekmesinde **Bas Konuş** özelliğini etkinleştirin ve konuşmak için herhangi bir tuşu - hatta `Sol Ctrl` gibi tek başına bir değiştirici tuşu bile - atayın. Konuşmak için tuşa basılı tutun ve işiniz bittiğinde bırakın; her basışta ve bırakışta kısa bir bip sesi duyulur. Eşleşen bir geçiş de doğrudan Canlı Asistan penceresinde görünür, böylece konuşmadan ayrılmadan Bas Konuş ve açık mikrofon kipi arasında geçiş yapabilirsiniz.
+* **Gemini 2.5 Flash Yerel Ses**: Canlı Asistan artık düşük gecikmeli, doğal sesli konuşmalar için Gemini 2.5 Flash'ın yerel ses modelini (`gemini-2.5-flash-native-audio-preview-12-2025`) destekliyor. **Ayarlar → Gelişmiş Model Yönlendirme → Canlı Asistan Modeli (yalnızca Gemini)** üzerinden bu modele geçebilir veya önerilen modelde kalmak için "Otomatik" seçeneğini kullanmaya devam edebilirsiniz.
+* **Ayarları Yedekleme ve Geri Yükleme**: **Gelişmiş** sekmesine güçlü bir yedekleme ve geri yükleme sistemi eklendi! Artık API anahtarları, modeller, özel istemler ve tercihler dahil tüm eklenti ayarlarınızı tek bir JSON dosyasına kaydedebilir ve bunları herhangi bir zamanda, herhangi bir makinede veya NVDA'yı yeniden yükledikten sonra kusursuz bir şekilde geri yükleyebilirsiniz. Yedekleme yaparken neyin dahil edileceğini seçersiniz: **Her şey** (ayarlar, özel etiketler, OCR ilerlemesi ve geçmiş) veya **Yalnızca Ayarlar**.
+* **Doğrudan Metin ve HTML Okuma**: Belge Okuyucu artık düz metin (`.txt`) ve HTML (`.html`, `.htm`) dosyalarını doğrudan açabiliyor! Dosya kodlamasını otomatik olarak algılıyor, betikleri ve biçimlendirme karmaşasını kaldırıyor ve içeriği okunabilir sayfalara akıllıca bölüyor - hatta sayfa yapısını koruyarak kendi dışa aktardığı dosyaları yeniden içe aktarabiliyor - böylece herhangi bir OCR veya YZ işlemi olmadan anında okuyabilirsiniz!
+* **Belge Okuyucu için Gemini Canlı TTS**: "Ses Oluştur" düğmesi artık Gemini Canlı - yüksek kaliteli, doğal tempolu akış metinden sese motorunu - destekliyor! Gemini etkin sağlayıcınız olduğunda, okuyucunun içinden Standart TTS ve Gemini Canlı arasında seçim yapabilir ve seçiminiz bir sonraki sefer için hatırlanır!
+* **Özel İstem Kısayolları**: Artık özel istemlerinizden herhangi birine doğrudan İstem Yöneticisi'nden bir kısayol tuşu atayabilirsiniz! Her isteme anında çalıştırmak için kendine özel bir tuş veya tuş kombinasyonu verin; mevcut seçiminizi veya bağlamınızı hiçbir ekstra adım olmadan otomatik olarak yakalar!
+* **Sohbet Mesajı dolaşımı**: Herhangi bir konuşmayı eller serbest şekilde tarayın! Herhangi bir sohbet penceresinin içinde (Doğrudan Sohbet, belge sohbeti, iyileştirme ve daha fazlası), sonraki mesajı duymak için `Alt + Aşağı`, önceki mesajı duymak için `Alt + Yukarı` tuşlarına basın - ilerledikçe net "Siz" / "AI" ön ekleri ve "İlk mesaj" / "Son mesaj" sınırları duyurulur.
+* **Sohbet Mesajını Kopyala (Alt + C)**: `Alt + Yukarı/Aşağı` ile bir konuşmayı gözden geçirirken, bulunduğunuz mesajı panoya kopyalamak için `Alt + C` tuşlarına basın - Temiz Markdown ayarınıza uygun şekilde - ve sesli bir onay alın.
+* **Doğrudan Sohbet Sistem İstemi**: Doğrudan Sohbet (`Shift+C`) artık kendi düzenlenebilir sistem istemine - her konuşma için asistanın kişiliğini ve yanıt dilini belirleyen "Doğrudan Sohbet Talimatı"na - sahip. Bunu İstem Yöneticisi'nin Varsayılan İstemler sekmesinden özelleştirebilirsiniz.
+* **Belge Okuyucu İmleç Sayfa Dolaşımı**: Çok sayfalı belgeleri okumak artık daha akıcı! Belge Görüntüleyici'de imleciniz bir sayfanın son satırına ulaştığında ve `Aşağı` tuşuna bastığınızda, okuyucu otomatik olarak sonraki sayfaya geçer. Bir sayfanın başında `Yukarı` tuşuna basmak sizi sorunsuz bir şekilde önceki sayfaya geri götürür - okurken artık elle sayfa değiştirmeye gerek yok!
+* **Yeni Hızlı Ayarlar Geçişleri**: YZ yanıtlarını panoya kopyalama, Doğrudan Çıktı (sohbet penceresi yok), Sohbette Temiz Markdown ve Akıllı Değiştirme artık komut katmanının Hızlı Ayarlarından anında açılıp kapatılabilir!
+* **Canlı Asistan Ayarları Sekmesi**: Canlı Asistan artık kendine ait özel bir ayarlar sekmesine sahip! "Canlı Asistan: Doğrudan Çıktı (Pencere Yok)" seçeneği Bağlantı sekmesinden buraya taşındı ve sekme yalnızca etkin sağlayıcınız Google Gemini (veya Gemini uyumlu bir Özel sağlayıcı) olduğunda görünür.
 
 ## 2026.08.06 İçin Değişiklikler
 

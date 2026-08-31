@@ -23,7 +23,7 @@ import addonHandler
 
 from .. import vision_config
 from ..vision_config import ADDON_NAME
-from ..ai.core import AIHandler
+from ..ai.core import AIHandler, is_ai_error, ai_error_message
 from ..utils.system import clean_markdown, show_error_dialog, get_mime_type, get_file_path, get_focused_explorer_files
 from ..utils.mouse_keyboard import send_ctrl_v
 from ..utils.media_capture import ensure_ffmpeg
@@ -39,56 +39,66 @@ class AudioMixin:
     # Translators: Script description for 'Records voice, transcribes it using AI, and types the result.' in Input Gestures dialog.
     @scriptHandler.script(description=_("Records voice, transcribes it using AI, and types the result."), category=ADDON_NAME)
     def script_smartDictation(self, gesture):
+        self._toggle_voice_capture("transcribe")
+
+    # Translators: Script description for 'Shows a list of available commands in the layer.' in Input Gestures dialog.
+    @scriptHandler.script(description=_("Records voice, transcribes and translates it using AI, and types the result."), category=ADDON_NAME)
+    def script_voiceTranslation(self, gesture):
+        self._toggle_voice_capture("translate")
+
+    def _toggle_voice_capture(self, mode):
         if getattr(self, "toggling", False): self.finish()
-        if not self.is_recording:
-            self.is_recording = True
+        flag = "is_recording" if mode == "transcribe" else "is_translation_recording"
+        alias = "myaudio" if mode == "transcribe" else "myaudiotrans"
+        if not getattr(self, flag, False):
+            setattr(self, flag, True)
             tones.beep(800, 100)
             try:
-                ret_open = ctypes.windll.winmm.mciSendStringW('open new type waveaudio alias myaudio', None, 0, 0)
+                ret_open = ctypes.windll.winmm.mciSendStringW(f'open new type waveaudio alias {alias}', None, 0, 0)
                 if ret_open != 0:
-                    self.is_recording = False
+                    setattr(self, flag, False)
                     # Translators: Message in an error dialog which can pop up while trying dictation.
                     msg = _("Audio Hardware Error: {error}").format(error=f"MCI_OPEN_ERR_{ret_open}")
                     show_error_dialog(msg)
                     return
-                
-                ret_rec = ctypes.windll.winmm.mciSendStringW('record myaudio', None, 0, 0)
+
+                ret_rec = ctypes.windll.winmm.mciSendStringW(f'record {alias}', None, 0, 0)
                 if ret_rec != 0:
-                    self.is_recording = False
+                    setattr(self, flag, False)
                     ctypes.windll.winmm.mciSendStringW('close all', None, 0, 0)
-                    # Translators: Message reported when dictation starts
                     msg = _("Audio Hardware Error: {error}").format(error=f"MCI_RECORD_ERR_{ret_rec}")
                     show_error_dialog(msg)
                     return
 
+                # Translators: Message reported when dictation or voice translation recording starts.
                 msg = _("Listening...")
                 self.report_status(msg)
             except Exception as e:
                 msg = _("Audio Hardware Error: {error}").format(error=e)
                 show_error_dialog(msg)
-                self.is_recording = False
+                setattr(self, flag, False)
         else:
-            self.is_recording = False
+            setattr(self, flag, False)
             tones.beep(500, 100)
             try:
-                ctypes.windll.winmm.mciSendStringW(f'save myaudio "{self.temp_audio_file}"', None, 0, 0)
-                ctypes.windll.winmm.mciSendStringW('close myaudio', None, 0, 0)
-                threading.Thread(target=self._thread_dictation, daemon=True).start()
+                ctypes.windll.winmm.mciSendStringW(f'save {alias} "{self.temp_audio_file}"', None, 0, 0)
+                ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, 0)
+                threading.Thread(target=self._thread_dictation, args=(mode,), daemon=True).start()
             except Exception as e:
                 # Translators: Message in an error dialog which can pop up while trying dictation.
                 msg = _("Save Recording Error: {error}").format(error=e)
                 show_error_dialog(msg)
 
-    def _thread_dictation(self):
+    def _thread_dictation(self, mode="transcribe"):
         try:
             if not os.path.exists(self.temp_audio_file): return
-            
+
             try:
                 with wave.open(self.temp_audio_file, "rb") as wave_file:
                     frame_rate = wave_file.getframerate()
                     n_frames = wave_file.getnframes()
                     duration = n_frames / float(frame_rate)
-                
+
                 if duration < 1.0:
                     # Translators: Message reported when the AI detects silence or empty speech
                     msg = _("No speech detected.")
@@ -100,31 +110,57 @@ class AudioMixin:
             except Exception as e:
                 log.warning(f"Dictation duration check failed: {e}")
 
-            # Translators: Message reported when processing dictation
-            core.callLater(0, self.report_status, _("Typing..."))
+            if mode == "transcribe":
+                # Translators: Message reported when processing dictation
+                core.callLater(0, self.report_status, _("Typing..."))
+            else:
+                # Translators: Message reported when calling translation command
+                core.callLater(0, self.report_status, _("Translating..."))
+
             with open(self.temp_audio_file, "rb") as f:
                 audio_data = base64.b64encode(f.read()).decode('utf-8')
-            
-            dictation_template = vision_config.get_prompt_text("dictation_transcribe") or (
-                "Transcribe speech. Use native script. Fix stutters. If there is no speech, "
-                "silence, or background noise only, write exactly: [[[NOSPEECH]]]"
-            )
-            p = vision_config.apply_prompt_template(dictation_template, [("response_lang", vision_config.get_lang_name("ai_response_language"))])
-            
+
+            if mode == "transcribe":
+                dictation_template = vision_config.get_prompt_text("dictation_transcribe") or (
+                    "Transcribe speech. Use native script. Fix stutters. If there is no speech, "
+                    "silence, or background noise only, write exactly: [[[NOSPEECH]]]"
+                )
+                p = vision_config.apply_prompt_template(dictation_template, [("response_lang", vision_config.get_lang_name("ai_response_language"))])
+            else:
+                translation_template = vision_config.get_prompt_text("dictation_translate") or (
+                    "Transcribe and translate the spoken audio from {source_lang} to {target_lang}. "
+                    "If {source_lang} is Auto-detect, identify the language first. "
+                    "SMART SWAP RULE: If the spoken language is ALREADY {target_lang} AND Smart Swap is {smart_swap}, translate the audio into {swap_target} instead. "
+                    "Output ONLY the final translation. Do not add any extra comments or notes. "
+                    "If there is no speech, silence, or background noise only, write exactly: [[[NOSPEECH]]]"
+                )
+
+                s = vision_config.get_lang_name("source_language")
+                t = vision_config.get_lang_name("target_language")
+                swap = nvda_config.conf["VisionAssistant"]["smart_swap"]
+                fallback = "English" if s == "Auto-detect" else s
+
+                p = vision_config.apply_prompt_template(translation_template, [
+                    ("source_lang", s),
+                    ("target_lang", t),
+                    ("swap_target", fallback),
+                    ("smart_swap", str(swap))
+                ])
+
             res = AIHandler.call(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}])
-            
+
             if res:
-                if res.startswith("ERROR:"):
-                    log.error(f"Dictation AI call error: {res}")
-                    wx.CallAfter(show_error_dialog, res[6:])
+                if is_ai_error(res):
+                    log.error(f"{'Dictation' if mode == 'transcribe' else 'Voice Translation'} AI call error: {res}")
+                    wx.CallAfter(show_error_dialog, ai_error_message(res))
                 elif "NOSPEECH" in res.upper():
                     msg = _("No speech detected.")
                     core.callLater(0, self.report_status, msg)
                 else:
                     cleaned_text = clean_markdown(res)
                     core.callLater(0, self._paste_text, cleaned_text)
-            else: 
-                log.error("Dictation: AI returned empty response")
+            else:
+                log.error(f"{'Dictation' if mode == 'transcribe' else 'Voice Translation'}: AI returned empty response")
                 # Translators: Message reported while trying dictation.
                 msg = _("No speech recognized or Error.")
                 core.callLater(0, self.report_status, msg)
@@ -133,123 +169,12 @@ class AudioMixin:
                 try: os.remove(self.temp_audio_file)
                 except Exception as e: log.warning(f"Temp file removal failed: {e}")
         except Exception as e:
-            log.error(f"Dictation thread failed: {e}", exc_info=True)
+            log.error(f"{'Dictation' if mode == 'transcribe' else 'Voice Translation'} thread failed: {e}", exc_info=True)
         finally:
             # Translators: Error message shown when uploading a video file fails.
             self.current_status = _("Idle")
-            self.is_recording = False
-
-    # Translators: Script description for 'Shows a list of available commands in the layer.' in Input Gestures dialog.
-    @scriptHandler.script(description=_("Records voice, transcribes and translates it using AI, and types the result."), category=ADDON_NAME)
-    def script_voiceTranslation(self, gesture):
-        if getattr(self, "toggling", False): self.finish()
-        if getattr(self, "is_translation_recording", False) == False:
-            self.is_translation_recording = True
-            tones.beep(800, 100)
-            try:
-                ret_open = ctypes.windll.winmm.mciSendStringW('open new type waveaudio alias myaudiotrans', None, 0, 0)
-                if ret_open != 0:
-                    self.is_translation_recording = False
-                    msg = _("Audio Hardware Error: {error}").format(error=f"MCI_OPEN_ERR_{ret_open}")
-                    show_error_dialog(msg)
-                    return
-
-                ret_rec = ctypes.windll.winmm.mciSendStringW('record myaudiotrans', None, 0, 0)
-                if ret_rec != 0:
-                    self.is_translation_recording = False
-                    ctypes.windll.winmm.mciSendStringW('close all', None, 0, 0)
-                    msg = _("Audio Hardware Error: {error}").format(error=f"MCI_RECORD_ERR_{ret_rec}")
-                    show_error_dialog(msg)
-                    return
-
-                msg = _("Listening...")
-                self.report_status(msg)
-            except Exception as e:
-                msg = _("Audio Hardware Error: {error}").format(error=e)
-                show_error_dialog(msg)
-                self.is_translation_recording = False
-        else:
-            self.is_translation_recording = False
-            tones.beep(500, 100)
-            try:
-                ctypes.windll.winmm.mciSendStringW(f'save myaudiotrans "{self.temp_audio_file}"', None, 0, 0)
-                ctypes.windll.winmm.mciSendStringW('close myaudiotrans', None, 0, 0)
-                threading.Thread(target=self._thread_voiceTranslation, daemon=True).start()
-            except Exception as e:
-                # Translators: Message in an error dialog which can pop up while trying dictation.
-                msg = _("Save Recording Error: {error}").format(error=e)
-                show_error_dialog(msg)
-
-    def _thread_voiceTranslation(self):
-        try:
-            if not os.path.exists(self.temp_audio_file): return
-
-            try:
-                with wave.open(self.temp_audio_file, "rb") as wave_file:
-                    frame_rate = wave_file.getframerate()
-                    n_frames = wave_file.getnframes()
-                    duration = n_frames / float(frame_rate)
-
-                if duration < 1.0:
-                    msg = _("No speech detected.")
-                    core.callLater(0, self.report_status, msg)
-                    if os.path.exists(self.temp_audio_file):
-                        try: os.remove(self.temp_audio_file)
-                        except Exception as e: log.warning(f"Temp file removal failed: {e}")
-                    return
-            except Exception as e:
-                log.warning(f"Dictation duration check failed: {e}")
-
-            # Translators: Message reported when calling translation command
-            core.callLater(0, self.report_status, _("Translating..."))
-            with open(self.temp_audio_file, "rb") as f:
-                audio_data = base64.b64encode(f.read()).decode('utf-8')
-
-            translation_template = vision_config.get_prompt_text("dictation_translate") or (
-                "Transcribe and translate the spoken audio from {source_lang} to {target_lang}. "
-                "If {source_lang} is Auto-detect, identify the language first. "
-                "SMART SWAP RULE: If the spoken language is ALREADY {target_lang} AND Smart Swap is {smart_swap}, translate the audio into {swap_target} instead. "
-                "Output ONLY the final translation. Do not add any extra comments or notes. "
-                "If there is no speech, silence, or background noise only, write exactly: [[[NOSPEECH]]]"
-            )
-            
-            s = vision_config.get_lang_name("source_language")
-            t = vision_config.get_lang_name("target_language")
-            swap = nvda_config.conf["VisionAssistant"]["smart_swap"]
-            fallback = "English" if s == "Auto-detect" else s
-            
-            p = vision_config.apply_prompt_template(translation_template, [
-                ("source_lang", s),
-                ("target_lang", t),
-                ("swap_target", fallback),
-                ("smart_swap", str(swap))
-            ])
-
-            res = AIHandler.call(p, attachments=[{'mime_type': 'audio/wav', 'data': audio_data}])
-
-            if res:
-                if res.startswith("ERROR:"):
-                    log.error(f"Voice Translation AI call error: {res}")
-                    wx.CallAfter(show_error_dialog, res[6:])
-                elif "NOSPEECH" in res.upper():
-                    msg = _("No speech detected.")
-                    core.callLater(0, self.report_status, msg)
-                else:
-                    cleaned_text = clean_markdown(res)
-                    core.callLater(0, self._paste_text, cleaned_text)
-            else:
-                log.error("Voice Translation: AI returned empty response")
-                msg = _("No speech recognized or Error.")
-                core.callLater(0, self.report_status, msg)
-
-            if os.path.exists(self.temp_audio_file):
-                try: os.remove(self.temp_audio_file)
-                except Exception as e: log.warning(f"Temp file removal failed: {e}")
-        except Exception as e:
-            log.error(f"Voice Translation thread failed: {e}", exc_info=True)
-        finally:
-            self.current_status = _("Idle")
-            self.is_translation_recording = False
+            flag = "is_recording" if mode == "transcribe" else "is_translation_recording"
+            setattr(self, flag, False)
 
     def _paste_text(self, text):
         api.copyToClip(text)
@@ -328,6 +253,7 @@ class AudioMixin:
             self._dialog_open = False
 
     def _thread_audio(self, path, action_type, s_lang=None, t_lang=None):
+        log.info(f"Media processing started: path={path}, action={action_type}")
         try:
             # Translators: Message reported when calling the audio transcription command
             msg = _("Uploading...")
@@ -357,8 +283,8 @@ class AudioMixin:
             res = AIHandler.call(p, attachments=att)
             
             if res:
-                if res.startswith("ERROR:"):
-                    wx.CallAfter(show_error_dialog, res[6:])
+                if is_ai_error(res):
+                    wx.CallAfter(show_error_dialog, ai_error_message(res))
                     return
                 wx.CallAfter(self._open_doc_chat_dialog, res, att, res, res)
         except Exception as e:
@@ -374,6 +300,7 @@ class AudioMixin:
             ffmpeg_path = ensure_ffmpeg()
             if not ffmpeg_path: return
 
+            log.info(f"Live dubbing started: path={path}, source={s_lang}, target={t_lang}")
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = 0
@@ -384,7 +311,8 @@ class AudioMixin:
                 proc = subprocess.run([ffmpeg_path, "-i", path], stderr=subprocess.PIPE, text=True, startupinfo=startupinfo, creationflags=CREATE_NO_WINDOW)
                 m = re.search(r"Duration: (\d+):(\d+):(\d+\.\d+)", proc.stderr)
                 if m: duration_sec = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
-            except: pass
+            except Exception as e: log.debug(f"Duration probe failed: {e}")
+            log.debug(f"Live dubbing duration: {duration_sec:.1f}s")
 
             model = "gemini-3.5-live-translate-preview"
             api_keys = AIHandler.get_keys("gemini")
@@ -409,7 +337,7 @@ class AudioMixin:
                     base = AIHandler.get_base_url("gemini")
                     host = urllib.parse.urlparse(base).hostname
                     if host: base_host = host
-                except: pass
+                except Exception as e: log.debug(f"Gemini base URL parse failed: {e}")
                 
                 ws_path = f"/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key={api_key}"
                 
@@ -439,7 +367,7 @@ class AudioMixin:
                             match = re.search(r"retry in ([\d\.]+)s", err_str)
                             if match:
                                 try: delay = float(match.group(1)) + 0.5
-                                except Exception: pass
+                                except Exception as e: log.debug(f"Retry delay parse failed: {e}")
                                     
                         if not is_retryable:
                             log.error(f"Live Translate: WebSocket connection failed (Key {idx}): {e}")
@@ -491,6 +419,7 @@ class AudioMixin:
                 ws.close()
                 return
 
+            log.info(f"Live dubbing session ready: model={model}, target_code={target_code}")
             duration_str = ""
             import datetime
             if duration_sec > 0:
@@ -546,7 +475,7 @@ class AudioMixin:
                     try:
                         ffmpeg_proc.terminate()
                         ffmpeg_proc.wait(timeout=2)
-                    except Exception: pass
+                    except Exception as e: log.debug(f"ffmpeg terminate failed: {e}")
 
             sender_thread = threading.Thread(target=send_audio, daemon=True)
             sender_thread.start()
@@ -568,7 +497,7 @@ class AudioMixin:
                         break
                     if opcode == 0x9:
                         try: ws._send_frame(0xA, payload or b"")
-                        except Exception: pass
+                        except Exception as e: log.debug(f"WebSocket ping reply failed: {e}")
                         continue
                     if opcode != 0x1 and opcode != 0x2: continue
                     try:
@@ -586,18 +515,18 @@ class AudioMixin:
                             is_complete = srv.get("turnComplete") or srv.get("turn_complete")
                             if is_complete and not sender_thread.is_alive():
                                 break
-                    except Exception: pass
+                    except Exception as e: log.debug(f"Live translate payload parse failed: {e}")
             
             ws.close()
             sender_thread.join(timeout=2)
             try: ffmpeg_proc.kill()
-            except: pass
+            except Exception as e: log.debug(f"ffmpeg kill failed: {e}")
 
             if os.path.getsize(out_pcm) == 0:
                 # Translators: Error message shown when live dubbing fails to return any audio
                 wx.CallAfter(show_error_dialog, _("Dubbing failed. No audio returned. Check NVDA log for details."))
                 try: os.remove(out_pcm)
-                except: pass
+                except Exception as e: log.debug(f"Temp PCM removal failed: {e}")
                 return
 
             temp_mp3 = os.path.join(temp_dir, bname + "_dubbed_temp.mp3")
@@ -621,7 +550,7 @@ class AudioMixin:
                 ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, startupinfo=startupinfo, creationflags=CREATE_NO_WINDOW)
 
             try: os.remove(out_pcm)
-            except: pass
+            except Exception as e: log.debug(f"Temp PCM removal failed: {e}")
 
             def _save_file():
                 import gui
@@ -643,12 +572,13 @@ class AudioMixin:
                     core.callLater(0, ui.message, _("Dubbed file saved: {path}").format(path=out_path))
                 else:
                     try: os.remove(temp_mp3)
-                    except: pass
+                    except Exception as e: log.debug(f"Temp MP3 removal failed: {e}")
                 save_dlg.Destroy()
 
             wx.CallAfter(_save_file)
             # Translators: Status message when dubbing process finishes
             core.callLater(0, self.report_status, _("Dubbing finished."))
+            log.info("Live dubbing finished")
 
         except Exception as e:
             log.error(f"Live translate failed: {e}", exc_info=True)

@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import wx
 
 import addonHandler
-import config
+import config as nvda_config
 import gui
 import ui
 import core
@@ -26,11 +26,11 @@ log = logging.getLogger(__name__)
 addonHandler.initTranslation()
 
 from .. import plugin_state
-from ..ai.core import AIHandler
+from ..ai.core import AIHandler, is_ai_error, ai_error_message
 from ..ai.providers.gemini import GeminiHandler
 from ..ai.translation import GoogleTranslator
 from ..ai.ocr import ChromeOCREngine, SmartProgrammersOCREngine
-from ..utils.system import VirtualDocument, get_focused_explorer_files
+from ..utils.system import VirtualDocument, get_focused_explorer_files, TEXT_EXTENSIONS
 from .. import vision_config
 from ..vision_config import get_lang_name, get_localized_languages, ADDON_NAME, TARGET_NAMES, REFINE_PROMPT_KEYS
 from ..prompt_utils import (
@@ -41,7 +41,8 @@ from ..prompt_utils import (
     serialize_default_prompt_overrides, _normalize_custom_prompt_items,
     _normalize_required_markers, _normalize_required_regex_checks,
     _sanitize_default_prompt_overrides, apply_prompt_template,
-    clean_markdown, markdown_to_html, strip_thinking_tags, get_refine_menu_options
+    clean_markdown, markdown_to_html, strip_thinking_tags, get_refine_menu_options,
+    history_to_openai_messages
 )
 from ..utils.system import get_mime_type, get_file_path, OCRProgressStore, _is_failed_ocr_page, show_error_dialog, check_screen_curtain_active, convert_json_to_srt_string
 from ..utils.media_capture import LiveSession, get_proxy_opener
@@ -92,20 +93,21 @@ class VisionMixin:
 
 
     def _browse_file(self, wildcard):
-        # Translators: Message announced by NVDA when the live voice conversation ends.
         return get_file_path(_("Open"), wildcard)
 
 
     def _end_live_session(self):
         if self.live_session:
             try: self.live_session.stop()
-            except Exception: pass
+            except Exception as e: log.debug(f"Live session stop failed: {e}")
+            self.live_session = None
 
 
     def _live_append(self, line):
+        self._live_history += line + "\n"
         if getattr(self, "live_dlg", None):
             try: self.live_dlg.append_line(line)
-            except Exception: pass
+            except Exception as e: log.debug(f"Live dialog append_line failed: {e}")
 
 
     def _live_on_closed(self):
@@ -114,32 +116,35 @@ class VisionMixin:
             try:
                 self._live_video_timer.Stop()
                 gui.mainFrame.Unbind(wx.EVT_TIMER, handler=self._on_live_video_tick, source=self._live_video_timer)
-            except Exception: pass
+            except Exception as e: log.debug(f"Live video timer cleanup failed: {e}")
             self._live_video_timer = None
         if getattr(self, "live_dlg", None) and LiveAssistantDialog.instance:
             try:
                 self.live_dlg.set_active(False)
                 # Translators: Line appended to the conversation when the live session has ended.
+                self._live_history += _("--- Session ended ---") + "\n"
                 self.live_dlg.append_line(_("--- Session ended ---"))
-            except Exception: pass
+            except Exception as e: log.debug(f"Live dialog session-ended append failed: {e}")
         else:
             self.live_dlg = None
         tones.beep(440, 120)
+        # Translators: Message announced by NVDA when the live voice conversation ends.
         self.report_status(_("Live conversation ended."))
 
 
     def _live_status(self, msg):
-        if msg.startswith("ERROR:"):
-            show_error_dialog(msg[6:])
+        if is_ai_error(msg):
+            show_error_dialog(ai_error_message(msg))
             self._end_live_session()
         elif msg.startswith("STATUS:"):
             self.report_status(msg[7:])
 
 
     def _live_stream(self, chunk):
+        self._live_history += chunk
         if getattr(self, "live_dlg", None):
             try: self.live_dlg.append_raw(chunk)
-            except Exception: pass
+            except Exception as e: log.debug(f"Live dialog append_raw failed: {e}")
 
 
     def _maybe_resume_ocr(self, context, paths):
@@ -149,9 +154,18 @@ class VisionMixin:
         if not record:
             return None
 
-        total_pages = record.get("end", 0) - record.get("start", 0) + 1
-        done_pages = min(len(record.get("pages", {})), total_pages)
+        start_page = record.get("start", 0)
+        end_page = record.get("end", 0)
+        total_pages = end_page - start_page + 1
+        pages = record.get("pages", {})
+        done_pages = sum(
+            1 for page, text in pages.items()
+            if start_page <= int(page) <= end_page and text and not _is_failed_ocr_page(text)
+        )
         file_count = len(record.get("paths", paths))
+        if done_pages >= total_pages:
+            OCRProgressStore.clear(key)
+            return record
 
         # Translators: Title of the dialog asking whether to resume an OCR operation that did not finish (for example after NVDA closed unexpectedly).
         title = _("Unfinished Operation")
@@ -196,13 +210,17 @@ class VisionMixin:
         self._last_result_data = (self._open_direct_chat_dialog, ())
         if not is_recall:
             self._last_chat_history = None
+            self._last_chat_attachments = None
+            self._last_chat_id = None
         if self.vision_dlg:
             try: self.vision_dlg.Destroy()
-            except Exception: pass
+            except Exception as e: log.debug(f"Vision dialog destroy failed: {e}")
             self.vision_dlg = None
 
         def cb(atts, q, history, sz):
             lang = get_lang_name("ai_response_language")
+            system_template = get_prompt_text("direct_chat_system")
+            system_instr = apply_prompt_template(system_template, [("response_lang", lang)])
             attached_paths = sz.get('attachments', [])
 
             if not AIHandler.is_gemini():
@@ -215,15 +233,12 @@ class VisionMixin:
                             with open(path, "rb") as f:
                                 data = base64.b64encode(f.read()).decode("utf-8")
                             other_parts.append({"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{data}"}})
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Attachment base64 encode failed: {e}")
                         
-                messages = []
-                for h in history:
-                    r = "assistant" if h.get("role") == "model" else "user"
-                    txt = h["parts"][0]["text"] if h.get("parts") else ""
-                    messages.append({"role": r, "content": txt})
+                messages = [{"role": "system", "content": system_instr}]
+                messages.extend(history_to_openai_messages(history))
                 
-                current_user_msg = {"role": "user", "content": [{"type": "text", "text": f"{q} (Answer strictly in {lang})"}] + other_parts}
+                current_user_msg = {"role": "user", "content": [{"type": "text", "text": q}] + other_parts}
                 messages.append(current_user_msg)
                 return AIHandler.call(messages), None
 
@@ -240,7 +255,7 @@ class VisionMixin:
                     mime_type = get_mime_type(path)
                     
                     if "pdf" in mime_type.lower() or mime_type.startswith("audio/") or mime_type.startswith("video/"):
-                        file_uri = self._upload_file_to_gemini(path, mime_type, api_key=key)
+                        file_uri = self._get_gemini_file_uri(path, mime_type, api_key=key)
                         if file_uri:
                             gemini_parts.append({"file_data": {"mime_type": mime_type, "file_uri": file_uri}})
                     else:
@@ -248,10 +263,10 @@ class VisionMixin:
                             with open(path, "rb") as f:
                                 data = base64.b64encode(f.read()).decode("utf-8")
                             gemini_parts.append({"inline_data": {"mime_type": mime_type, "data": data}})
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Attachment base64 encode failed: {e}")
                         
-                current_user_msg = {"role": "user", "parts": [{"text": f"{q} (Answer strictly in {lang})"}] + gemini_parts}
-                messages = []
+                current_user_msg = {"role": "user", "parts": [{"text": q}] + gemini_parts}
+                messages = [{"role": "user", "parts": [{"text": system_instr}]}]
                 messages.extend(history)
                 messages.append(current_user_msg)
                 
@@ -259,9 +274,9 @@ class VisionMixin:
                 
                 res = AIHandler.call(messages, attachments=atts_for_forcing if atts_for_forcing else None)
                 
-                if atts_for_forcing and res and res.startswith("ERROR:"):
+                if atts_for_forcing and res and is_ai_error(res):
                     err_msg_lower = res.lower()
-                    if "quota" in err_msg_lower or "exhausted" in err_msg_lower or "429" in err_msg_lower or "permission" in err_msg_lower or "403" in err_msg_lower:
+                    if GeminiHandler.is_key_exhausted_error(err_msg_lower):
                         keys_exhausted += 1
                         GeminiHandler._working_key_idx = (GeminiHandler._working_key_idx + 1) % num_keys
                         continue
@@ -282,7 +297,7 @@ class VisionMixin:
             init_msg, 
             None, 
             cb, 
-            extra_info={'skip_init_history': True, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None},
+            extra_info={'skip_init_history': True, 'skip_init_copy': True, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None, 'restore_attachments': getattr(self, "_last_chat_attachments", None) if is_recall else None, 'history_id': getattr(self, "_last_chat_id", None) if is_recall else None},
             raw_content=init_msg,
             status_callback=self.report_status,
             allow_attachments=True
@@ -295,10 +310,11 @@ class VisionMixin:
         self._last_result_data = (self._open_doc_chat_dialog, (init_msg, initial_attachments, doc_text, raw_text_for_save))
         if not is_recall:
             self._last_chat_history = None
-        if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+            self._last_chat_id = None
+        if nvda_config.conf["VisionAssistant"]["copy_to_clipboard"]:
             api.copyToClip(raw_text_for_save if raw_text_for_save else init_msg)
 
-        if config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
+        if nvda_config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
             if not is_recall: tones.beep(1000, 100)
             ui.message(clean_markdown(init_msg))
             return
@@ -306,7 +322,7 @@ class VisionMixin:
         if self.doc_dlg:
             try: 
                 self.doc_dlg.Destroy()
-            except Exception: pass
+            except Exception as e: log.debug(f"Document dialog destroy failed: {e}")
             self.doc_dlg = None
             
         if not is_recall:
@@ -339,10 +355,7 @@ class VisionMixin:
                 messages = []
                 messages.append({"role": "user", "content": f"{system_instr}\n\nContext content:\n{doc_text}"})
                 messages.append({"role": "assistant", "content": get_prompt_text("document_chat_ack") or "Context received."})
-                if history:
-                    for h in history:
-                        role = "assistant" if h["role"] == "model" else "user"
-                        messages.append({"role": role, "content": h["parts"][0]["text"]})
+                messages.extend(history_to_openai_messages(history))
                 messages.append({"role": "user", "content": q})
                 return AIHandler.call(messages), None
             
@@ -353,7 +366,7 @@ class VisionMixin:
             init_msg, 
             initial_attachments, 
             doc_callback, 
-            extra_info={'skip_init_history': True, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None},
+            extra_info={'skip_init_history': True, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None, 'history_id': getattr(self, "_last_chat_id", None) if is_recall else None},
             raw_content=raw_text_for_save,
             status_callback=self.report_status
         )
@@ -364,13 +377,38 @@ class VisionMixin:
     def _open_document_reader(self):
         self._dialog_open = True
         # Translators: File dialog filter for supported files
-        wc = _("Supported Files") + "|*.pdf;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.heic;*.heif"
+        wc = _("Supported Files") + "|*.pdf;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.heic;*.heif;*.txt;*.html;*.htm"
         self._browse_and_run(self._scan_and_open, wc, multiple=True)
         self._dialog_open = False
 
+    def _open_document_reader_with_recent(self):
+        dlg = getattr(self, "_recent_docs_dlg", None)
+        if dlg:
+            try:
+                dlg.Raise()
+                dlg.SetFocus()
+                return
+            except Exception:
+                pass
+        from ..dialogs.history_dialog import RecentDocumentsDialog
+        from ..utils.storage import HistoryStore
+        store = HistoryStore(vision_config.HISTORY_FILE)
+        docs = [i for i in store.load_all() if i.get("type") == "document"]
+        if not docs:
+            self._open_document_reader()
+            return
+        self._recent_docs_dlg = RecentDocumentsDialog(
+            gui.mainFrame,
+            store,
+            on_open_document=self._open_document_from_history,
+            on_browse=self._open_document_reader,
+        )
+        self._recent_docs_dlg.Show()
+        self._recent_docs_dlg.Raise()
 
-    def _open_document_viewer(self, v_doc, settings, resume=None):
-        self.doc_viewer_dlg = DocumentViewerDialog(gui.mainFrame, v_doc, settings, resume=resume)
+
+    def _open_document_viewer(self, v_doc, settings, resume=None, start_at=None):
+        self.doc_viewer_dlg = DocumentViewerDialog(gui.mainFrame, v_doc, settings, resume=resume, start_at=start_at)
         self.doc_viewer_dlg.Show()
 
 
@@ -408,58 +446,61 @@ class VisionMixin:
             if self.refine_menu_dlg:
                 self.refine_menu_dlg.Destroy()
                 self.refine_menu_dlg = None
-
-            file_paths = []
-            needs_file = False
-            wc = "Files|*.*"
-            
-            if "[file_ocr]" in custom_content:
-                needs_file = True
-                wc = "Images/PDF/TIFF|*.png;*.jpg;*.webp;*.pdf;*.tif;*.tiff;*.heic;*.heif"
-            elif "[file_read]" in custom_content:
-                needs_file = True
-                wc = "Documents|*.txt;*.py;*.md;*.html;*.pdf;*.tif;*.tiff"
-            elif "[file_audio]" in custom_content:
-                needs_file = True
-                wc = "Audio|*.mp3;*.wav;*.ogg"
-            
-            if needs_file:
-                gui.mainFrame.prePopup()
-                try:
-                    dlg = wx.FileDialog(gui.mainFrame, _("Open"), wildcard=wc, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
-                    if dlg.ShowModal() == wx.ID_OK:
-                        file_paths = dlg.GetPaths()
-                        file_paths.sort()
-                        wx.CallLater(200, lambda: threading.Thread(target=self._thread_refine, args=(captured_text, custom_content, file_paths), daemon=True).start())
-                    dlg.Destroy()
-                finally:
-                    gui.mainFrame.postPopup()
-            else:
-                # Translators: Message while processing request of the refine text command
-                msg = _("Processing...")
-                self.report_status(msg)
-                wx.CallLater(200, lambda: threading.Thread(target=self._thread_refine, args=(captured_text, custom_content, None), daemon=True).start())
+            self._run_refine_prompt(captured_text, custom_content)
         else:
             if self.refine_menu_dlg:
                 self.refine_menu_dlg.Destroy()
                 self.refine_menu_dlg = None
+
+    def _run_refine_prompt(self, captured_text, prompt_content):
+        file_paths = []
+        needs_file = False
+        wc = "Files|*.*"
+
+        if "[file_ocr]" in prompt_content:
+            needs_file = True
+            wc = "Images/PDF/TIFF|*.png;*.jpg;*.webp;*.pdf;*.tif;*.tiff;*.heic;*.heif"
+        elif "[file_read]" in prompt_content:
+            needs_file = True
+            wc = "Documents|*.txt;*.py;*.md;*.html;*.pdf;*.tif;*.tiff"
+        elif "[file_audio]" in prompt_content:
+            needs_file = True
+            wc = "Audio|*.mp3;*.wav;*.ogg"
+
+        if needs_file:
+            gui.mainFrame.prePopup()
+            try:
+                dlg = wx.FileDialog(gui.mainFrame, _("Open"), wildcard=wc, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+                if dlg.ShowModal() == wx.ID_OK:
+                    file_paths = dlg.GetPaths()
+                    file_paths.sort()
+                    wx.CallLater(200, lambda: threading.Thread(target=self._thread_refine, args=(captured_text, prompt_content, file_paths), daemon=True).start())
+                dlg.Destroy()
+            finally:
+                gui.mainFrame.postPopup()
+        else:
+            # Translators: Message while processing request of the refine text command
+            msg = _("Processing...")
+            self.report_status(msg)
+            wx.CallLater(200, lambda: threading.Thread(target=self._thread_refine, args=(captured_text, prompt_content, None), daemon=True).start())
 
 
     def _open_refine_result_dialog(self, result_text, attachments, original_text, initial_prompt, force_show=False, is_recall=False):
         self._last_result_data = (self._open_refine_result_dialog, (result_text, attachments, original_text, initial_prompt))
         if not is_recall:
             self._last_chat_history = None
-        if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+            self._last_chat_id = None
+        if nvda_config.conf["VisionAssistant"]["copy_to_clipboard"]:
             api.copyToClip(result_text)
 
-        if config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
+        if nvda_config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
             if not is_recall: tones.beep(1000, 100)
             ui.message(clean_markdown(result_text))
             return
 
         if self.refine_dlg:
             try: self.refine_dlg.Destroy()
-            except Exception: pass
+            except Exception as e: log.debug(f"Refine dialog destroy failed: {e}")
             
         if not is_recall:
             tones.beep(1000, 100)
@@ -508,7 +549,7 @@ class VisionMixin:
             result_text, 
             context, 
             refine_callback, 
-            extra_info={'file_context': has_file_context, 'skip_init_history': False, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None},
+            extra_info={'file_context': has_file_context, 'skip_init_history': False, 'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None, 'history_id': getattr(self, "_last_chat_id", None) if is_recall else None},
             raw_content=result_text,
             status_callback=self.report_status
         )
@@ -527,15 +568,15 @@ class VisionMixin:
         self._last_result_data = (self._open_translation_dialog, (text,))
         if not is_recall:
             self._last_chat_history = None
-        if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+        if nvda_config.conf["VisionAssistant"]["copy_to_clipboard"]:
             api.copyToClip(text)
             
-        if config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
+        if nvda_config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
             return
             
         if self.translation_dlg:
             try: self.translation_dlg.Destroy()
-            except Exception: pass
+            except Exception as e: log.debug(f"Translation dialog destroy failed: {e}")
             self.translation_dlg = None
 
         def noop_callback(ctx, q, history, extra):
@@ -562,17 +603,18 @@ class VisionMixin:
         self._last_result_data = (self._open_vision_dialog, (text, atts, size))
         if not is_recall:
             self._last_chat_history = None
-        if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+            self._last_chat_id = None
+        if nvda_config.conf["VisionAssistant"]["copy_to_clipboard"]:
             api.copyToClip(text)
 
-        if config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
+        if nvda_config.conf["VisionAssistant"]["skip_chat_dialog"] and not force_show:
             if not is_recall: tones.beep(1000, 100)
             ui.message(clean_markdown(text))
             return
 
         if self.vision_dlg:
             try: self.vision_dlg.Destroy()
-            except Exception: pass
+            except Exception as e: log.debug(f"Vision dialog destroy failed: {e}")
             self.vision_dlg = None
             
         if not is_recall:
@@ -631,7 +673,7 @@ class VisionMixin:
             text, 
             atts, 
             cb, 
-            extra_info={'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None},
+            extra_info={'restore_history': getattr(self, "_last_chat_history", None) if is_recall else None, 'history_id': getattr(self, "_last_chat_id", None) if is_recall else None},
             raw_content=text,
             status_callback=self.report_status
         )
@@ -646,7 +688,7 @@ class VisionMixin:
 
 
     def _pre_process_smart_file(self, paths, resume=None):
-        engine = config.conf["VisionAssistant"]["ocr_engine"]
+        engine = nvda_config.conf["VisionAssistant"]["ocr_engine"]
         is_single_image = len(paths) == 1 and paths[0].lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif'))
 
         if engine == 'none' and any(p.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif')) for p in paths):
@@ -686,8 +728,8 @@ class VisionMixin:
     def _process_file_ocr(self, v_doc, start_page, end_page, do_translate=False, target_lang=None, resume=None):
         if target_lang is None:
             target_lang = get_lang_name("target_language")
-        engine = config.conf["VisionAssistant"]["ocr_engine"]
-        p = config.conf["VisionAssistant"]["active_provider"]
+        engine = nvda_config.conf["VisionAssistant"]["ocr_engine"]
+        p = nvda_config.conf["VisionAssistant"]["active_provider"]
         progress_key = self._ocr_progress_key("smartfile", list(v_doc.file_paths))
 
         total_pages = end_page - start_page + 1
@@ -722,8 +764,7 @@ class VisionMixin:
             if pending:
                 # Translators: Status message showing page-by-page progress during file OCR.
                 progress_msg = _("Processing page {current} of {total}...").format(current=len(done_pages)+1, total=total_pages)
-                core.callLater(0, ui.message, progress_msg)
-                self.current_status = progress_msg
+                self.report_status(progress_msg)
 
             with ThreadPoolExecutor(max_workers=5) as executor:
                 for page_idx, part in executor.map(fast_worker, pending):
@@ -751,12 +792,11 @@ class VisionMixin:
 
         # Translators: Message reported when extracting text from a file
         msg = _("Extracting Text...")
-        self.current_status = msg
-        core.callLater(0, ui.message, msg)
+        self.report_status(msg)
         
         upload_supported = AIHandler.is_gemini() or p == "mistral"
         if p == "custom":
-            upload_supported = config.conf["VisionAssistant"].get("custom_upload_support", False)
+            upload_supported = nvda_config.conf["VisionAssistant"].get("custom_upload_support", False)
 
         if engine == 'chrome' or not upload_supported or total_pages == 1:
             errors_list = []
@@ -780,9 +820,9 @@ class VisionMixin:
                     if not txt: 
                         return page_idx, ""
                     
-                    if txt.startswith("ERROR:"):
+                    if is_ai_error(txt):
                         with errors_lock:
-                            errors_list.append(txt[6:])
+                            errors_list.append(ai_error_message(txt))
                         log.error(f"SmartFile OCR page {page_idx + 1} failed: {txt}")
                         return page_idx, ""
 
@@ -796,8 +836,7 @@ class VisionMixin:
             pending = [i for i in range(start_page, end_page + 1) if str(i) not in done_pages]
             if pending:
                 progress_msg = _("Processing page {current} of {total}...").format(current=len(done_pages)+1, total=total_pages)
-                core.callLater(0, ui.message, progress_msg)
-                self.current_status = progress_msg
+                self.report_status(progress_msg)
 
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = {executor.submit(page_worker, i): i for i in pending}
@@ -812,8 +851,7 @@ class VisionMixin:
                             
                             completed_count = len(done_pages)
                             progress_msg = _("Processing page {current} of {total}...").format(current=completed_count, total=total_pages)
-                            core.callLater(0, ui.message, progress_msg)
-                            self.current_status = progress_msg
+                            self.report_status(progress_msg)
                     except Exception as e:
                         log.error(f"Error retrieving future result: {e}", exc_info=True)
 
@@ -835,7 +873,7 @@ class VisionMixin:
             wx.CallAfter(self._open_doc_chat_dialog, full_text, [], full_text, full_text)
 
         else:
-            raw_batch_size = config.conf["VisionAssistant"].get("ocr_batch_size", 20)
+            raw_batch_size = nvda_config.conf["VisionAssistant"].get("ocr_batch_size", 20)
             batch_size = total_pages if raw_batch_size == 0 else raw_batch_size
             had_error = False
 
@@ -848,8 +886,7 @@ class VisionMixin:
 
                 # Translators: Status message showing the progress of document scanning. {start} and {end} are page numbers.
                 progress_msg = _("Processing pages {start} to {end}...").format(start=i+1, end=b_end+1)
-                self.current_status = progress_msg
-                core.callLater(0, ui.message, progress_msg)
+                self.report_status(progress_msg)
                 time.sleep(0.1)
 
                 upload_path = v_doc.create_merged_pdf(i, b_end)
@@ -878,24 +915,24 @@ class VisionMixin:
                             GeminiHandler._working_key_idx = (GeminiHandler._working_key_idx + 1) % num_keys
                             continue
                             
-                        p_text = apply_prompt_template(get_prompt_text("ocr_document_translate" if do_translate else "ocr_document_extract"), [("target_lang", target_lang), ("response_lang", config.conf["VisionAssistant"]["ai_response_language"])])
+                        p_text = apply_prompt_template(get_prompt_text("ocr_document_translate" if do_translate else "ocr_document_extract"), [("target_lang", target_lang), ("response_lang", nvda_config.conf["VisionAssistant"]["ai_response_language"])])
                         attachments = [{'mime_type': mime_type, 'file_uri': file_uri}]
                         
                         for attempt in range(2):
                             res = AIHandler.call(p_text, attachments=attachments)
-                            if res and not res.startswith("ERROR:"):
+                            if res and not is_ai_error(res):
                                 break
                             time.sleep(0.5)
                             
-                        if res and res.startswith("ERROR:"):
+                        if res and is_ai_error(res):
                             err_msg_lower = res.lower()
-                            if "quota" in err_msg_lower or "exhausted" in err_msg_lower or "429" in err_msg_lower or "permission" in err_msg_lower or "403" in err_msg_lower:
+                            if "quota" in err_msg_lower or "exhausted" in err_msg_lower or "429" in err_msg_lower:
                                 keys_exhausted += 1
                                 GeminiHandler._working_key_idx = (GeminiHandler._working_key_idx + 1) % num_keys
                                 continue
                         break
                         
-                    if not file_uri or (res and res.startswith("ERROR:")):
+                    if not file_uri or (res and is_ai_error(res)):
                         if os.path.exists(upload_path): os.remove(upload_path)
                         had_error = True
                         # Translators: Error message shown when the upload fails.
@@ -905,7 +942,7 @@ class VisionMixin:
 
                 if os.path.exists(upload_path): os.remove(upload_path)
 
-                if res and not res.startswith("ERROR:"):
+                if res and not is_ai_error(res):
                     if p == "mistral":
                         results = res.split('[[[PAGE_SEP]]]')
                         for j, text_part in enumerate(results):
@@ -921,7 +958,7 @@ class VisionMixin:
                 else:
                     had_error = True
                     # Translators: Error message shown when the connection to the server times out
-                    err_msg = res[6:] if res and res.startswith("ERROR:") else _("Connection Timeout")
+                    err_msg = ai_error_message(res) if res and is_ai_error(res) else _("Connection Timeout")
                     msg = _("Failed to process document batch {start}-{end}: {error}").format(start=i+1, end=b_end+1, error=err_msg)
                     wx.CallAfter(show_error_dialog, msg)
 
@@ -936,31 +973,49 @@ class VisionMixin:
                 wx.CallAfter(self._open_doc_chat_dialog, final_combined, [], final_combined, final_combined)
 
 
-    def _scan_and_open(self, paths, resume=None):
+    def _scan_and_open(self, paths, resume=None, start_at=None):
         try:
-            if not fitz:
+            has_non_text = any(not p.lower().endswith(TEXT_EXTENSIONS) for p in paths)
+            if has_non_text and not fitz:
+                # Translators: Error when PyMuPDF is missing
                 wx.CallAfter(wx.MessageBox, _("PyMuPDF library is missing."), "Error", wx.ICON_ERROR)
                 return
 
-            engine = config.conf["VisionAssistant"]["ocr_engine"]
+            engine = nvda_config.conf["VisionAssistant"]["ocr_engine"]
             image_extensions = ('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif')
             has_images = any(p.lower().endswith(image_extensions) for p in paths)
 
             if engine == 'none' and has_images:
+                # Translators: Message shown when a PDF has no text layer.
                 msg = _("The 'None (Extract Text Layer)' engine cannot process image-based content. Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings.")
+                # Translators: Title of the error dialog shown when the selected OCR engine cannot process the chosen image-based files.
                 wx.CallAfter(gui.messageBox, msg, _("OCR Engine Error"), wx.OK | wx.ICON_ERROR)
                 return
 
             v_doc = VirtualDocument(paths)
             v_doc.scan()
             if v_doc.total_pages == 0:
+                 # Translators: Error when no pages found
                  wx.CallAfter(wx.MessageBox, _("No readable pages found."), "Error", wx.ICON_ERROR)
                  return
+            if not has_non_text:
+                settings = {'start': 0, 'end': v_doc.total_pages - 1, 'translate': False, 'lang': TARGET_NAMES[0]}
+                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings, None, start_at))
+                return
             if resume is None:
                 resume = self._maybe_resume_ocr("document", list(paths))
+            if resume is None:
+                try:
+                    from ..utils.storage import OCRTextCache
+                    resume = OCRTextCache(vision_config.OCR_TEXT_CACHE_FILE).get_valid("document|" + "|".join(sorted(paths)))
+                except Exception:
+                    resume = None
             if resume:
                 settings = {'start': resume['start'], 'end': resume['end'], 'translate': resume['do_translate'], 'lang': resume['target_lang']}
-                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings, resume))
+                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings, resume, start_at))
+            elif start_at is not None:
+                settings = {'start': 0, 'end': v_doc.total_pages - 1, 'translate': False, 'lang': TARGET_NAMES[0]}
+                wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings, None, start_at))
             elif v_doc.total_pages == 1:
                 settings = {'start': 0, 'end': 0, 'translate': False, 'lang': TARGET_NAMES[0]}
                 wx.CallAfter(lambda: self._open_document_viewer(v_doc, settings))
@@ -970,11 +1025,12 @@ class VisionMixin:
             log.error(f"Error opening files: {e}", exc_info=True)
 
 
-    def _show_live_window(self):
+    def _show_live_window(self, force_show=False, is_recall=False):
+        self._last_result_data = (self._show_live_window, ())
         if getattr(self, "live_dlg", None) and LiveAssistantDialog.instance is self.live_dlg:
             self.live_dlg.set_active(bool(self.live_session))
         else:
-            self.live_dlg = LiveAssistantDialog(gui.mainFrame, self._start_live_session, self._end_live_session)
+            self.live_dlg = LiveAssistantDialog(gui.mainFrame, self._start_live_session, self._end_live_session, initial_history=getattr(self, "_live_history", ""))
             self.live_dlg.set_active(bool(self.live_session))
             self.live_dlg.Show()
         self.live_dlg.Raise()
@@ -1011,7 +1067,7 @@ class VisionMixin:
         if self.live_session or not AIHandler.is_gemini():
             return
         tones.beep(660, 120)
-        direct = config.conf["VisionAssistant"]["live_direct_output"]
+        direct = nvda_config.conf["VisionAssistant"]["live_direct_output"]
         self.live_session = LiveSession(
             on_text=lambda line: wx.CallAfter(self._live_append, line),
             on_status=lambda msg: wx.CallAfter(self._live_status, msg),
@@ -1068,8 +1124,8 @@ class VisionMixin:
             res = AIHandler.call(p, attachments=att)
             
             if res:
-                if res.startswith("ERROR:"):
-                    wx.CallAfter(show_error_dialog, res[6:])
+                if is_ai_error(res):
+                    wx.CallAfter(show_error_dialog, ai_error_message(res))
                 else:
                     wx.CallAfter(self._open_vision_dialog, res, att, None)
             
@@ -1082,7 +1138,7 @@ class VisionMixin:
     def _thread_refine(self, captured_text, custom_content, file_paths=None):
         target_lang = get_lang_name("target_language")
         source_lang = get_lang_name("source_language")
-        smart_swap = config.conf["VisionAssistant"]["smart_swap"]
+        smart_swap = nvda_config.conf["VisionAssistant"]["smart_swap"]
         resp_lang = get_lang_name("ai_response_language")
         
         if file_paths and isinstance(file_paths, str):
@@ -1170,7 +1226,7 @@ class VisionMixin:
                             if file_uri:
                                 attachments.append({'mime_type': 'application/pdf', 'file_uri': file_uri})
                             try: os.remove(upload_path)
-                            except Exception: pass
+                            except Exception as e: log.debug(f"Upload temp file removal failed: {e}")
                 else:
                     for f_path in file_paths:
                         mime_type = get_mime_type(f_path)
@@ -1184,7 +1240,7 @@ class VisionMixin:
                                     data = base64.b64encode(pix.tobytes("jpg")).decode('utf-8')
                                     attachments.append({'mime_type': 'image/jpeg', 'data': data})
                                 doc.close()
-                            except Exception: pass
+                            except Exception as e: log.debug(f"PDF doc close failed: {e}")
                         else:
                             if AIHandler.is_gemini():
                                 file_uri = self._upload_file_to_gemini(f_path, mime_type)
@@ -1193,7 +1249,7 @@ class VisionMixin:
                                 try:
                                     with open(f_path, "rb") as f: data = base64.b64encode(f.read()).decode('utf-8')
                                     attachments.append({'mime_type': mime_type, 'data': data})
-                                except Exception: pass
+                                except Exception as e: log.debug(f"Attachment base64 encode failed: {e}")
                                 
             elif "[file_read]" in prompt_text:
                 for f_path in file_paths:
@@ -1206,7 +1262,7 @@ class VisionMixin:
                             with open(f_path, "rb") as f: raw = f.read()
                             txt = raw.decode('utf-8')
                             prompt_text += f"\n\nFile Content ({os.path.basename(f_path)}):\n{txt}\n"
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Text file read/decode failed: {e}")
 
             elif "[file_audio]" in prompt_text:
                 for f_path in file_paths:
@@ -1218,7 +1274,7 @@ class VisionMixin:
                         try:
                             with open(f_path, "rb") as f: data = base64.b64encode(f.read()).decode('utf-8')
                             attachments.append({'mime_type': mime_type, 'data': data})
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Attachment base64 encode failed: {e}")
 
             prompt_text = prompt_text.replace("[file_ocr]", "").replace("[file_read]", "").replace("[file_audio]", "")
             
@@ -1234,10 +1290,10 @@ class VisionMixin:
         res = AIHandler.call(prompt_text, attachments=attachments)
         
         if res:
-             if res.startswith("ERROR:"):
+             if is_ai_error(res):
                  log.error(f"Refine AI call returned error: {res}")
                  self.current_status = _("Idle")
-                 wx.CallAfter(show_error_dialog, res[6:])
+                 wx.CallAfter(show_error_dialog, ai_error_message(res))
                  return
              self.current_status = _("Idle")
              wx.CallAfter(self._open_refine_result_dialog, res, attachments, captured_text, prompt_text)
@@ -1245,10 +1301,10 @@ class VisionMixin:
 
     def _thread_translate(self, text):
         try:
-            p_name = config.conf["VisionAssistant"]["active_provider"]
+            p_name = nvda_config.conf["VisionAssistant"]["active_provider"]
             t = get_lang_name("target_language")
             s = get_lang_name("source_language")
-            swap = config.conf["VisionAssistant"]["smart_swap"]
+            swap = nvda_config.conf["VisionAssistant"]["smart_swap"]
             fallback = "English" if s == "Auto-detect" else s
             
             log.info(f"Smart translate requested: text_len={len(text or '')}, target={t}, provider={p_name}")
@@ -1264,14 +1320,15 @@ class VisionMixin:
             
             res = AIHandler.call(p)
             if res:
-                if res.startswith("ERROR:"):
+                if is_ai_error(res):
                     log.error(f"Translation AI call error: {res}")
                     self.current_status = _("Idle")
-                    wx.CallAfter(show_error_dialog, res[6:])
+                    wx.CallAfter(show_error_dialog, ai_error_message(res))
                     return
                 
                 clean_res = clean_markdown(res)
-                log.info(f"Translation completed successfully: {clean_res[:100]}...")
+                log.info(f"Translation completed successfully ({len(clean_res)} chars).")
+                log.debug(f"Translation result: {clean_res}")
                 self._last_source_text = text
                 self._last_params = current_params
                 self.last_translation = clean_res
@@ -1296,10 +1353,10 @@ class VisionMixin:
         att = [{'mime_type': m, 'data': img}]
         res = AIHandler.call(p, attachments=att)
         if res:
-            if res.startswith("ERROR:"):
+            if is_ai_error(res):
                 log.error(f"Vision analysis AI call failed: {res}")
                 self.current_status = _("Idle")
-                wx.CallAfter(show_error_dialog, res[6:])
+                wx.CallAfter(show_error_dialog, ai_error_message(res))
                 return
             self.current_status = _("Idle")
             wx.CallAfter(self._open_vision_dialog, res, att, None)
@@ -1323,7 +1380,7 @@ class VisionMixin:
 
         focused_paths = get_focused_explorer_files()
 
-        valid_exts = ('.pdf', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.heic', '.heif')
+        valid_exts = ('.pdf', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.heic', '.heif', '.txt', '.html', '.htm')
         valid_paths = [p for p in focused_paths if p.lower().endswith(valid_exts)]
         if valid_paths:
             threading.Thread(target=self._scan_and_open, args=(valid_paths,), daemon=True).start()
@@ -1334,7 +1391,7 @@ class VisionMixin:
             self.report_status(_("Processing clipboard image..."))
             threading.Thread(target=self._scan_and_open, args=([clip_path],), daemon=True).start()
             return
-        wx.CallAfter(self._open_document_reader)
+        wx.CallAfter(self._open_document_reader_with_recent)
 
     # Translators: Script description for 'Describes the current object (Navigator Object).' in Input Gestures dialog.
     @scriptHandler.script(description=_("Describes the current object (Navigator Object)."), category=ADDON_NAME)
@@ -1376,10 +1433,10 @@ class VisionMixin:
     @scriptHandler.script(description=_("Shows the last AI response in a chat dialog for review or follow-up questions."), category=ADDON_NAME)
     def script_showLastResult(self, gesture):
         if self.toggling: self.finish()
-        if self.live_session:
-            self._show_live_window()
-            return
         if not self._last_result_data:
+            if self.live_session:
+                self._show_live_window()
+                return
             # Translators: Message reported when the user tries to show the last result but none is stored.
             ui.message(_("No previous result to show."))
             return

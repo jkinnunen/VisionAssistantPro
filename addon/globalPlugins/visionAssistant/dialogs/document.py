@@ -10,7 +10,7 @@ import wave
 import wx
 
 import addonHandler
-import config
+import config as nvda_config
 import ui
 import core
 
@@ -23,7 +23,7 @@ except ImportError:
 
 from .. import vision_config
 from .. import plugin_state
-from ..ai.core import AIHandler
+from ..ai.core import AIHandler, is_ai_error, ai_error_message, is_server_busy_error
 from ..ai.providers.gemini import GeminiHandler
 from ..ai.ocr import ChromeOCREngine
 from ..ai.translation import GoogleTranslator
@@ -34,7 +34,9 @@ from ..utils.system import (
     markdown_to_html,
     _is_failed_ocr_page,
     OCRProgressStore,
+    TEXT_EXTENSIONS,
 )
+from ..utils.media_capture import GeminiLiveTTS
 from ..prompt_utils import get_prompt_text, apply_prompt_template
 
 log = logging.getLogger(__name__)
@@ -88,15 +90,15 @@ class ChatDialog(wx.Dialog):
 
     def init_upload(self):
         try:
-            p = config.conf["VisionAssistant"]["active_provider"]
+            p = nvda_config.conf["VisionAssistant"]["active_provider"]
             if AIHandler.is_gemini():
                 uri = GeminiHandler.upload_for_chat(self.file_path, self.mime_type)
-                if uri and not str(uri).startswith("ERROR:"):
+                if uri and not is_ai_error(str(uri)):
                     self.file_uri = uri
                     wx.CallAfter(self.on_ready)
                 else:
                     # Translators: Error message shown when uploading a video file fails.
-                    err_msg = str(uri)[6:] if uri else _("Upload failed.")
+                    err_msg = ai_error_message(str(uri)) if uri else _("Upload failed.")
                     wx.CallAfter(show_error_dialog, err_msg)
                     wx.CallAfter(self.Close)
             elif p == "mistral" and "pdf" in self.mime_type.lower():
@@ -106,7 +108,7 @@ class ChatDialog(wx.Dialog):
                     self.file_uri = url_or_err
                     wx.CallAfter(self.on_ready)
                 else:
-                    err_msg = url_or_err[6:] if url_or_err and str(url_or_err).startswith("ERROR:") else _("Upload failed.")
+                    err_msg = ai_error_message(url_or_err) if url_or_err and is_ai_error(str(url_or_err)) else _("Upload failed.")
                     wx.CallAfter(show_error_dialog, err_msg)
                     wx.CallAfter(self.Close)
             else:
@@ -137,12 +139,12 @@ class ChatDialog(wx.Dialog):
         threading.Thread(target=self.do_chat, args=(msg,), daemon=True).start()
 
     def do_chat(self, msg):
-        p = config.conf["VisionAssistant"]["active_provider"]
+        p = nvda_config.conf["VisionAssistant"]["active_provider"]
         if AIHandler.is_gemini():
             f_data = getattr(self, "file_data", None) if not self.file_uri else None
             resp = GeminiHandler.chat(self.history, msg, self.file_uri, self.mime_type, f_data)
-            if str(resp).startswith("ERROR:"):
-                wx.CallAfter(show_error_dialog, resp[6:])
+            if is_ai_error(str(resp)):
+                wx.CallAfter(show_error_dialog, ai_error_message(resp))
                 if plugin_state.plugin_instance:
                     plugin_state.plugin_instance.current_status = _("Idle")
                 return
@@ -197,8 +199,8 @@ class ChatDialog(wx.Dialog):
                     messages.append({"role": "user", "content": msg})
 
             resp = AIHandler.call(messages)
-            if resp and resp.startswith("ERROR:"):
-                wx.CallAfter(show_error_dialog, resp[6:])
+            if is_ai_error(resp):
+                wx.CallAfter(show_error_dialog, ai_error_message(resp))
                 if plugin_state.plugin_instance:
                     plugin_state.plugin_instance.current_status = _("Idle")
                 return
@@ -269,7 +271,7 @@ class RangeDialog(wx.Dialog):
         h_sizer = wx.BoxSizer(wx.HORIZONTAL)
         h_sizer.Add(wx.StaticText(self, label=_("Target:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
         self.cmb_lang = wx.Choice(self, choices=vision_config.TARGET_NAMES)
-        curr_t_code = config.conf["VisionAssistant"]["target_language"]
+        curr_t_code = nvda_config.conf["VisionAssistant"]["target_language"]
         t_idx = next((i for i, x in enumerate(vision_config.TARGET_LIST) if x[1] == curr_t_code), 0)
         self.cmb_lang.SetSelection(t_idx)
         h_sizer.Add(self.cmb_lang, 1)
@@ -278,7 +280,7 @@ class RangeDialog(wx.Dialog):
 
         # Translators: Label for the checkbox that enables image descriptions during OCR in the extraction dialog
         self.chk_describe_images = wx.CheckBox(self, label=_("Describe images inline during OCR"))
-        self.chk_describe_images.SetValue(config.conf["VisionAssistant"].get("describe_images_ocr", True))
+        self.chk_describe_images.SetValue(nvda_config.conf["VisionAssistant"].get("describe_images_ocr", True))
         sizer.Add(self.chk_describe_images, 0, wx.ALL | wx.EXPAND, 10)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -298,7 +300,7 @@ class RangeDialog(wx.Dialog):
         self.cmb_lang.Enable(self.chk_trans.IsChecked())
 
     def get_settings(self):
-        config.conf["VisionAssistant"]["describe_images_ocr"] = self.chk_describe_images.IsChecked()
+        nvda_config.conf["VisionAssistant"]["describe_images_ocr"] = self.chk_describe_images.IsChecked()
         s_val = self.spin_from.GetValue()
         e_val = self.spin_to.GetValue()
         start = min(s_val, e_val) - 1
@@ -311,7 +313,7 @@ class RangeDialog(wx.Dialog):
         }
         
 class DocumentViewerDialog(wx.Dialog):
-    def __init__(self, parent, virtual_doc, settings, resume=None):
+    def __init__(self, parent, virtual_doc, settings, resume=None, start_at=None):
         # Translators: Title of settings group for Document Reader features
         title_text = f"{vision_config.ADDON_NAME} - {_('Document Reader')}"
         super().__init__(parent, title=title_text, size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX)
@@ -321,6 +323,9 @@ class DocumentViewerDialog(wx.Dialog):
         self.do_translate = settings['translate']
         self.target_lang = settings['lang']
         self.range_count = self.end_page - self.start_page + 1
+        self._start_at = start_at
+        self.is_text_doc = any(p.lower().endswith(TEXT_EXTENSIONS) for p in virtual_doc.file_paths)
+        log.info(f"Document Reader opened: files={len(virtual_doc.file_paths)}, pages={self.start_page + 1}-{self.end_page + 1}, text_doc={self.is_text_doc}, translate={self.do_translate}")
         self.page_cache = {}
         if resume:
             for k, v in resume.get("pages", {}).items():
@@ -328,6 +333,7 @@ class DocumentViewerDialog(wx.Dialog):
         self.current_page = self.start_page
         self.thread_pool = ThreadPoolExecutor(max_workers=5)
         self.abort = False
+        self._retry_batches = []
         self._progress_key = "document|" + "|".join(sorted(list(virtual_doc.file_paths)))
 
         self.init_ui()
@@ -364,6 +370,7 @@ class DocumentViewerDialog(wx.Dialog):
         self.lbl_status = wx.StaticText(panel, label=_("Initializing..."))
         vbox.Add(self.lbl_status, 0, wx.ALL, 5)
         self.txt_content = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        self.txt_content.Bind(wx.EVT_KEY_DOWN, self.on_content_key_down)
         vbox.Add(self.txt_content, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
         hbox_nav = wx.BoxSizer(wx.HORIZONTAL)
         # Translators: Button to go to previous page
@@ -384,6 +391,47 @@ class DocumentViewerDialog(wx.Dialog):
 
         show_tts = AIHandler.is_tts_supported()
 
+        if show_tts:
+            hbox_tts = wx.BoxSizer(wx.HORIZONTAL)
+            self.lbl_voice = wx.StaticText(panel, label=_("TTS Voice:"))
+            hbox_tts.Add(self.lbl_voice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+
+            p_name = nvda_config.conf["VisionAssistant"]["active_provider"]
+            voices = AIHandler.get_voices(p_name) or (vision_config.OPENAI_VOICES if p_name in ["openai", "custom"] else vision_config.GEMINI_VOICES)
+            self.voice_sel = wx.Choice(panel)
+            for v in voices:
+                self.voice_sel.Append(f"{v[0]} - {v[1]}", v[0])
+            curr_voice = nvda_config.conf["VisionAssistant"]["tts_voice"]
+            try:
+                v_idx = next(i for i, v in enumerate(voices) if v[0] == curr_voice)
+                self.voice_sel.SetSelection(v_idx)
+            except Exception: self.voice_sel.SetSelection(0)
+            if p_name == "minimax":
+                threading.Thread(target=self._refresh_minimax_voices_in_format_dialog, daemon=True).start()
+
+            hbox_tts.Add(self.voice_sel, 1, wx.EXPAND)
+            vbox.Add(hbox_tts, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+            if p_name == "gemini":
+                hbox_engine = wx.BoxSizer(wx.HORIZONTAL)
+                # Translators: Label for the TTS engine selector in the document reader.
+                self.lbl_engine = wx.StaticText(panel, label=_("TTS Engine:"))
+                hbox_engine.Add(self.lbl_engine, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+                self.engine_sel = wx.Choice(panel)
+                # Translators: Option for the standard TTS engine.
+                self.engine_sel.Append(_("Standard TTS"), "standard")
+                # Translators: Option for the Gemini Live streaming TTS engine.
+                self.engine_sel.Append(_("Gemini Live"), "live")
+                saved_engine = nvda_config.conf["VisionAssistant"].get("tts_engine", "standard")
+                try:
+                    e_idx = next(i for i in range(self.engine_sel.GetCount()) if self.engine_sel.GetClientData(i) == saved_engine)
+                    self.engine_sel.SetSelection(e_idx)
+                except Exception:
+                    self.engine_sel.SetSelection(0)
+                self.engine_sel.Bind(wx.EVT_CHOICE, self.on_engine_change)
+                hbox_engine.Add(self.engine_sel, 1, wx.EXPAND)
+                vbox.Add(hbox_engine, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
         hbox_actions = wx.BoxSizer(wx.HORIZONTAL)
         # Translators: Button to Ask questions about the document
         self.btn_ask = wx.Button(panel, label=_("Ask AI (Alt+A)"))
@@ -394,6 +442,15 @@ class DocumentViewerDialog(wx.Dialog):
         self.btn_gemini = wx.Button(panel, label=_("Re-scan with AI (Alt+R)"))
         self.btn_gemini.Bind(wx.EVT_BUTTON, self.on_gemini_scan)
         hbox_actions.Add(self.btn_gemini, 0, wx.RIGHT, 5)
+
+        # Translators: Button to retry pages that failed due to a temporary server error
+        self.btn_retry = wx.Button(panel, label=_("Retry Failed Pages"))
+        self.btn_retry.Bind(wx.EVT_BUTTON, self.on_retry)
+        self.btn_retry.Hide()
+        hbox_actions.Add(self.btn_retry, 0, wx.RIGHT, 5)
+        if self.is_text_doc:
+            self.btn_ask.Disable()
+            self.btn_gemini.Disable()
 
         # Translators: Button to generate audio
         self.btn_tts = wx.Button(panel, label=_("Generate Audio (Alt+G)"))
@@ -412,26 +469,6 @@ class DocumentViewerDialog(wx.Dialog):
 
         vbox.Add(hbox_actions, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        if show_tts:
-            hbox_tts = wx.BoxSizer(wx.HORIZONTAL)
-            self.lbl_voice = wx.StaticText(panel, label=_("TTS Voice:"))
-            hbox_tts.Add(self.lbl_voice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-
-            p_name = config.conf["VisionAssistant"]["active_provider"]
-            voices = AIHandler.get_voices(p_name) or (vision_config.OPENAI_VOICES if p_name in ["openai", "custom"] else vision_config.GEMINI_VOICES)
-            self.voice_sel = wx.Choice(panel)
-            for v in voices:
-                self.voice_sel.Append(f"{v[0]} - {v[1]}", v[0])
-            curr_voice = config.conf["VisionAssistant"]["tts_voice"]
-            try:
-                v_idx = next(i for i, v in enumerate(voices) if v[0] == curr_voice)
-                self.voice_sel.SetSelection(v_idx)
-            except Exception: self.voice_sel.SetSelection(0)
-            if p_name == "minimax":
-                threading.Thread(target=self._refresh_minimax_voices_in_format_dialog, daemon=True).start()
-
-            hbox_tts.Add(self.voice_sel, 1, wx.EXPAND)
-            vbox.Add(hbox_tts, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         # Translators: Button to close chat dialog
         btn_close = wx.Button(panel, wx.ID_CLOSE, label=_("Close"))
         btn_close.Bind(wx.EVT_BUTTON, self.on_close)
@@ -451,6 +488,9 @@ class DocumentViewerDialog(wx.Dialog):
 
         self.SetAcceleratorTable(wx.AcceleratorTable(accel_list))
         self.cmb_pages.SetSelection(0)
+        if self._start_at is not None and self.start_page <= self._start_at <= self.end_page:
+            self.current_page = self._start_at
+            self.cmb_pages.SetSelection(self._start_at - self.start_page)
 
         self.Bind(wx.EVT_CLOSE, self.on_close)
 
@@ -458,6 +498,8 @@ class DocumentViewerDialog(wx.Dialog):
         self.txt_content.SetFocus()
 
     def on_close(self, event):
+        self._record_history()
+        self._save_text_cache()
         self.abort = True
         self.thread_pool.shutdown(wait=False)
         if plugin_state.plugin_instance:
@@ -467,19 +509,78 @@ class DocumentViewerDialog(wx.Dialog):
                 plugin_state.plugin_instance.doc_viewer_dlg = None
         self.Destroy()
 
+    def _record_history(self):
+        try:
+            from ..utils.storage import HistoryStore
+            paths = list(self.v_doc.file_paths)
+            if not paths:
+                return
+            title = os.path.basename(paths[0])
+            if len(paths) > 1:
+                title += " +{0}".format(len(paths) - 1)
+            item = {
+                "id": "document|" + "|".join(sorted(paths)),
+                "type": "document",
+                "title": title,
+                # Translators: Subtitle for a document history entry showing the current page. {page} is the current page and {total} is the total number of pages.
+                "subtitle": _("Page {page} of {total}").format(page=self.current_page + 1, total=self.end_page + 1),
+                "timestamp": time.time(),
+                "data": {
+                    "paths": paths,
+                    "start": self.start_page,
+                    "end": self.end_page,
+                    "current_page": self.current_page,
+                },
+            }
+            HistoryStore(vision_config.HISTORY_FILE).save(item)
+        except Exception as e:
+            log.debug(f"Document history save failed: {e}")
+
+    def _save_text_cache(self):
+        try:
+            from ..utils.storage import OCRTextCache, file_signature
+            pages = {str(k): v for k, v in self.page_cache.items() if not _is_failed_ocr_page(v)}
+            if not pages:
+                return
+            entry = {
+                "paths": list(self.v_doc.file_paths),
+                "start": self.start_page,
+                "end": self.end_page,
+                "do_translate": self.do_translate,
+                "target_lang": self.target_lang if self.do_translate else "",
+                "pages": pages,
+                "files": {p: file_signature(p) for p in self.v_doc.file_paths},
+                "timestamp": time.time(),
+            }
+            OCRTextCache(vision_config.OCR_TEXT_CACHE_FILE).put(self._progress_key, entry)
+        except Exception as e:
+            log.debug(f"Text cache save failed: {e}")
+
     def start_auto_processing(self):
+        cached_pages = sum(
+            1 for page, text in self.page_cache.items()
+            if self.start_page <= page <= self.end_page and text and not _is_failed_ocr_page(text)
+        )
+        if cached_pages >= self.range_count:
+            OCRProgressStore.clear(self._progress_key)
+            if plugin_state.plugin_instance:
+                plugin_state.plugin_instance._ocr_task_running["document"] = False
+                plugin_state.plugin_instance.current_status = _("Idle")
+            return
+
         self._save_doc_progress()
         if plugin_state.plugin_instance:
             # Translators: Message reported when extracting text from a file
             plugin_state.plugin_instance.current_status = _("Extracting Text...")
-            core.callLater(0, ui.message, plugin_state.plugin_instance.current_status)
+            plugin_state.speak_status(plugin_state.plugin_instance.current_status)
 
-        p = config.conf["VisionAssistant"]["active_provider"]
-        engine = config.conf["VisionAssistant"]["ocr_engine"]
+        p = nvda_config.conf["VisionAssistant"]["active_provider"]
+        engine = nvda_config.conf["VisionAssistant"]["ocr_engine"]
+        log.info(f"Document processing started: provider={p}, engine={engine}, text_doc={self.is_text_doc}, pages={self.range_count}")
 
-        if engine == 'gemini' and AIHandler.is_gemini():
+        if engine == 'gemini' and AIHandler.is_gemini() and not self.is_text_doc:
             threading.Thread(target=self.gemini_scan_batch_thread, daemon=True).start()
-        elif engine == 'gemini' and p == "mistral":
+        elif engine == 'gemini' and p == "mistral" and not self.is_text_doc:
             threading.Thread(target=self.mistral_scan_batch_thread, daemon=True).start()
         else:
             for i in range(self.start_page, self.end_page + 1):
@@ -520,6 +621,7 @@ class DocumentViewerDialog(wx.Dialog):
         text = self._get_page_text_logic(page_num)
         if self.abort: return
         self.page_cache[page_num] = text
+        log.debug(f"Page {page_num + 1} processed ({len(text) if text else 0} chars)")
         self._save_doc_progress()
 
         is_complete = len(self.page_cache) >= self.range_count
@@ -534,17 +636,26 @@ class DocumentViewerDialog(wx.Dialog):
         if page_num == self.current_page:
             wx.CallAfter(self.update_view)
             # Translators: Spoken message when the current page is ready
-            core.callLater(0, ui.message, _("Page {num} ready").format(num=page_num + 1))
+            plugin_state.speak_status(_("Page {num} ready").format(num=page_num + 1))
 
     def _get_page_text_logic(self, page_num):
         file_path, page_idx = self.v_doc.get_page_info(page_num)
         if not file_path: return ""
+        text_pages = getattr(self.v_doc, 'text_pages', {})
+        if file_path in text_pages:
+            final_text = text_pages[file_path][page_idx]
+            if self.do_translate and final_text:
+                if nvda_config.conf["VisionAssistant"]["ocr_engine"] == 'chrome':
+                    final_text = GoogleTranslator.translate(final_text, self.target_lang)
+                else:
+                    final_text = AIHandler.translate(final_text, self.target_lang)
+            return final_text
         doc = None
         try:
             doc = fitz.open(file_path)
             page = doc.load_page(page_idx)
 
-            engine = config.conf["VisionAssistant"]["ocr_engine"]
+            engine = nvda_config.conf["VisionAssistant"]["ocr_engine"]
             text = None
 
             if engine == 'none':
@@ -579,7 +690,7 @@ class DocumentViewerDialog(wx.Dialog):
         except Exception as e:
             if doc:
                 try: doc.close()
-                except Exception: pass
+                except Exception as e: log.debug(f"PDF doc close failed: {e}")
             log.error(f"Page processing failed: {str(e)}")
             # Translators: Error message for page processing failure
             return _("Error processing page.")
@@ -608,6 +719,27 @@ class DocumentViewerDialog(wx.Dialog):
         ui.message(_("Page {num}").format(num=page_num + 1))
         self.update_view()
 
+    def on_content_key_down(self, event):
+        key_code = event.GetKeyCode()
+        if key_code not in (wx.WXK_DOWN, wx.WXK_UP):
+            event.Skip()
+            return
+        text = self.txt_content.GetValue()
+        pos = self.txt_content.GetInsertionPoint()
+        if key_code == wx.WXK_DOWN:
+            last_newline = text.rfind("\n")
+            if pos > last_newline:
+                if self.current_page < self.end_page:
+                    self.on_next(event)
+                    return
+        else:
+            first_newline = text.find("\n")
+            if first_newline == -1 or pos <= first_newline:
+                if self.current_page > self.start_page:
+                    self.on_prev(event)
+                    return
+        event.Skip()
+
     def on_prev(self, event):
         if self.current_page > self.start_page: self.load_page(self.current_page - 1)
 
@@ -618,7 +750,7 @@ class DocumentViewerDialog(wx.Dialog):
         self.load_page(self.start_page + self.cmb_pages.GetSelection())
 
     def on_view(self, event):
-        include_page_nums = config.conf["VisionAssistant"].get("document_export_page_numbers", True)
+        include_page_nums = nvda_config.conf["VisionAssistant"].get("document_export_page_numbers", True)
         full_html = []
         for i in range(self.start_page, self.end_page + 1):
             if i in self.page_cache:
@@ -646,7 +778,9 @@ class DocumentViewerDialog(wx.Dialog):
             show_error_dialog(str(e))
 
     def on_gemini_scan(self, event):
-        p = config.conf["VisionAssistant"]["active_provider"]
+        if getattr(self, "is_text_doc", False):
+            return
+        p = nvda_config.conf["VisionAssistant"]["active_provider"]
         keys = AIHandler.get_keys(p)
         if not keys:
             # Translators: Message box content for successful save
@@ -666,7 +800,11 @@ class DocumentViewerDialog(wx.Dialog):
         if self.current_page in self.page_cache: del self.page_cache[self.current_page]
         self.update_view()
         # Translators: Message during manual scan
-        ui.message(_("Scanning with AI..."))
+        msg = _("Scanning with AI...")
+        if plugin_state.plugin_instance:
+            plugin_state.plugin_instance.report_status(msg)
+        else:
+            ui.message(msg)
         threading.Thread(target=self.gemini_scan_single_thread, args=(self.current_page,), daemon=True).start()
 
     def gemini_scan_single_thread(self, page_num):
@@ -680,9 +818,9 @@ class DocumentViewerDialog(wx.Dialog):
                 img_b64 = base64.b64encode(img_bytes).decode('utf-8')
                 text = AIHandler.ocr(img_b64, "image/jpeg")
 
-                if text and text.startswith("ERROR:"):
+                if is_ai_error(text):
                     # Translators: Error shown when a specific page scan fails.
-                    self.page_cache[page_num] = _("[Scan failed: {err}]").format(err=text[6:])
+                    self.page_cache[page_num] = _("[Scan failed: {err}]").format(err=ai_error_message(text))
                 else:
                     if self.do_translate:
                         text = AIHandler.translate(text, self.target_lang)
@@ -692,11 +830,14 @@ class DocumentViewerDialog(wx.Dialog):
                 if self.current_page == page_num:
                     wx.CallAfter(self.update_view)
                     # Translators: Message when scan is complete
-                    core.callLater(0, ui.message, _("Scan complete"))
+                    plugin_state.speak_status(_("Scan complete"))
             except Exception as e:
                 # Translators: Generic system error message inside the document viewer.
                 self.page_cache[page_num] = _("[Error: {msg}]").format(msg=str(e))
                 wx.CallAfter(self.update_view)
+            finally:
+                if plugin_state.plugin_instance:
+                    plugin_state.plugin_instance.current_status = _("Idle")
 
         self.thread_pool.submit(_run)
 
@@ -704,12 +845,13 @@ class DocumentViewerDialog(wx.Dialog):
         threading.Thread(target=self.gemini_scan_batch_thread, daemon=True).start()
 
     def gemini_scan_batch_thread(self):
-        engine = config.conf["VisionAssistant"]["ocr_engine"]
+        engine = nvda_config.conf["VisionAssistant"]["ocr_engine"]
+        log.info(f"Gemini batch scan started: engine={engine}, pages={self.end_page - self.start_page + 1}")
 
         if engine == 'none':
             # Translators: Status message for local text extraction
             msg = _("Extracting text layer...")
-            core.callLater(0, ui.message, msg)
+            plugin_state.speak_status(msg)
             for i in range(self.start_page, self.end_page + 1):
                 self.thread_pool.submit(self.process_page_worker, i)
             return
@@ -718,9 +860,9 @@ class DocumentViewerDialog(wx.Dialog):
         msg = _("Batch Processing Started")
         if plugin_state.plugin_instance:
             plugin_state.plugin_instance.current_status = msg
-        core.callLater(0, ui.message, msg)
+        plugin_state.speak_status(msg)
 
-        raw_batch_size = config.conf["VisionAssistant"].get("ocr_batch_size", 20)
+        raw_batch_size = nvda_config.conf["VisionAssistant"].get("ocr_batch_size", 20)
         total_pages = self.end_page - self.start_page + 1
 
         batch_size = total_pages if raw_batch_size == 0 else raw_batch_size
@@ -729,63 +871,120 @@ class DocumentViewerDialog(wx.Dialog):
             if self.abort:
                 break
             batch_end = min(i + batch_size - 1, self.end_page)
-            if all((idx in self.page_cache) for idx in range(i, batch_end + 1)):
-                continue
-            current_batch_count = batch_end - i + 1
-
-            # Translators: Status message showing the progress of document scanning. {start} and {end} are page numbers.
-            progress_msg = _("Processing pages {start} to {end}...").format(start=i+1, end=batch_end+1)
-            if plugin_state.plugin_instance:
-                plugin_state.plugin_instance.current_status = progress_msg
-            core.callLater(0, ui.message, progress_msg)
-            time.sleep(0.1)
-
-            upload_path = self.v_doc.create_merged_pdf(i, batch_end)
-            if not upload_path: continue
-
-            try:
-                p_text = apply_prompt_template(
-                    get_prompt_text("ocr_document_translate" if self.do_translate else "ocr_document_extract"),
-                    [("target_lang", self.target_lang), ("response_lang", config.conf["VisionAssistant"]["ai_response_language"])]
-                )
-                range_str = f"{i+1}-{batch_end+1}"
-                results = GeminiHandler.upload_and_process_batch(upload_path, "application/pdf", current_batch_count, prompt=p_text, page_range_text=range_str, abort_checker=lambda: self.abort)
-                if self.abort:
-                    break
-                if results and not str(results[0]).startswith("ERROR:"):
-                    for j, text_part in enumerate(results):
-                        page_idx = i + j
-                        if page_idx <= self.end_page:
-                            self.page_cache[page_idx] = text_part.strip()
-                    self._save_doc_progress()
-                    self._on_extraction_complete()
-                    wx.CallAfter(self.update_view)
-                else:
-                    err_msg = results[0][6:] if results else "Unknown"
-                    for j in range(i, batch_end + 1):
-                        # Translators: Error shown in the document reader when a page is dropped because the AI output exceeded its limit during batch processing.
-                        self.page_cache[j] = _("[Scan failed: {err}]").format(err=err_msg)
-                    wx.CallAfter(self.update_view)
-            finally:
-                if upload_path and os.path.exists(upload_path):
-                    try: os.remove(upload_path)
-                    except Exception: pass
+            self._process_ocr_batch(i, batch_end)
 
         if plugin_state.plugin_instance:
             plugin_state.plugin_instance.current_status = _("Idle")
         if self.abort:
             return
         self._on_extraction_complete()
-        # Translators: Success message shown when all batches of the document have been processed.
-        core.callLater(0, ui.message, _("All document pages have been processed."))
+        wx.CallAfter(self._update_retry_button)
+        if not self._retry_batches:
+            # Translators: Success message shown when all batches of the document have been processed.
+            plugin_state.speak_status(_("All document pages have been processed."))
+
+    def _process_ocr_batch(self, i, batch_end):
+        if self.abort:
+            return
+        if all((idx in self.page_cache) for idx in range(i, batch_end + 1)):
+            return
+        current_batch_count = batch_end - i + 1
+
+        # Translators: Status message showing the progress of document scanning. {start} and {end} are page numbers.
+        progress_msg = _("Processing pages {start} to {end}...").format(start=i+1, end=batch_end+1)
+        if plugin_state.plugin_instance:
+            plugin_state.plugin_instance.current_status = progress_msg
+        plugin_state.speak_status(progress_msg)
+        time.sleep(0.1)
+
+        upload_path = self.v_doc.create_merged_pdf(i, batch_end)
+        if not upload_path: return
+
+        try:
+            p_text = apply_prompt_template(
+                get_prompt_text("ocr_document_translate" if self.do_translate else "ocr_document_extract"),
+                [("target_lang", self.target_lang), ("response_lang", nvda_config.conf["VisionAssistant"]["ai_response_language"])]
+            )
+            range_str = f"{i+1}-{batch_end+1}"
+            results = GeminiHandler.upload_and_process_batch(upload_path, "application/pdf", current_batch_count, prompt=p_text, page_range_text=range_str, abort_checker=lambda: self.abort)
+            if self.abort:
+                return
+            if results and not is_ai_error(str(results[0])):
+                while results and not results[-1].strip():
+                    results.pop()
+                for j in range(current_batch_count):
+                    page_idx = i + j
+                    if page_idx > self.end_page:
+                        break
+                    if j < len(results):
+                        self.page_cache[page_idx] = results[j].strip()
+                    else:
+                        self.page_cache.pop(page_idx, None)
+                self._save_doc_progress()
+                self._on_extraction_complete()
+                wx.CallAfter(self.update_view)
+                return
+            err_msg = ai_error_message(results[0]) if results else "Unknown"
+            if is_server_busy_error(err_msg):
+                for j in range(i, batch_end + 1):
+                    self.page_cache.pop(j, None)
+                self._retry_batches.append((i, batch_end))
+                # Translators: Status message when a temporary server error interrupts a batch of pages. {range} is the page range that can be retried.
+                retry_msg = _("Server busy for pages {range}. Retry available.").format(range=range_str)
+                if plugin_state.plugin_instance:
+                    plugin_state.plugin_instance.current_status = retry_msg
+                plugin_state.speak_status(retry_msg)
+            else:
+                for j in range(i, batch_end + 1):
+                    # Translators: Error shown in the document reader when a page is dropped because the AI output exceeded its limit during batch processing.
+                    self.page_cache[j] = _("[Scan failed: {err}]").format(err=err_msg)
+            wx.CallAfter(self.update_view)
+        finally:
+            if upload_path and os.path.exists(upload_path):
+                try: os.remove(upload_path)
+                except Exception as e: log.debug(f"Upload temp file removal failed: {e}")
+
+    def on_retry(self, event):
+        if not getattr(self, "_retry_batches", []):
+            return
+        batches = self._retry_batches[:]
+        self._retry_batches = []
+        self._update_retry_button()
+        # Translators: Status message when the user retries pages that previously failed.
+        msg = _("Retrying failed pages...")
+        if plugin_state.plugin_instance:
+            plugin_state.plugin_instance.current_status = msg
+        plugin_state.speak_status(msg)
+        threading.Thread(target=self._retry_scan_thread, args=(batches,), daemon=True).start()
+
+    def _retry_scan_thread(self, batches):
+        try:
+            for i, batch_end in batches:
+                if self.abort:
+                    break
+                self._process_ocr_batch(i, batch_end)
+        finally:
+            if plugin_state.plugin_instance:
+                plugin_state.plugin_instance.current_status = _("Idle")
+            if not self.abort:
+                self._on_extraction_complete()
+                wx.CallAfter(self._update_retry_button)
+
+    def _update_retry_button(self):
+        has = bool(getattr(self, "_retry_batches", []))
+        if hasattr(self, "btn_retry"):
+            self.btn_retry.Show(has)
+            self.btn_retry.Enable(has)
+            self.Layout()
 
     def mistral_scan_batch_thread(self):
+        log.info(f"Mistral batch scan started: pages={self.end_page - self.start_page + 1}")
         msg = _("Batch Processing Started")
         if plugin_state.plugin_instance:
             plugin_state.plugin_instance.current_status = msg
-        core.callLater(0, ui.message, msg)
+        plugin_state.speak_status(msg)
 
-        raw_batch_size = config.conf["VisionAssistant"].get("ocr_batch_size", 20)
+        raw_batch_size = nvda_config.conf["VisionAssistant"].get("ocr_batch_size", 20)
         total_pages = self.end_page - self.start_page + 1
         batch_size = total_pages if raw_batch_size == 0 else raw_batch_size
 
@@ -800,7 +999,7 @@ class DocumentViewerDialog(wx.Dialog):
             progress_msg = _("Processing pages {start} to {end}...").format(start=i+1, end=batch_end+1)
             if plugin_state.plugin_instance:
                 plugin_state.plugin_instance.current_status = progress_msg
-            core.callLater(0, ui.message, progress_msg)
+            plugin_state.speak_status(progress_msg)
             time.sleep(0.1)
 
             upload_path = self.v_doc.create_merged_pdf(i, batch_end)
@@ -811,7 +1010,7 @@ class DocumentViewerDialog(wx.Dialog):
                 if self.abort:
                     break
 
-                if res and not res.startswith("ERROR:"):
+                if res and not is_ai_error(res):
                     results = res.split('[[[PAGE_SEP]]]')
                     is_empty_response = len(results) == 1 and not results[0].strip()
 
@@ -833,7 +1032,7 @@ class DocumentViewerDialog(wx.Dialog):
                     self._on_extraction_complete()
                     wx.CallAfter(self.update_view)
                 else:
-                    err_msg = res[6:] if res else "Unknown"
+                    err_msg = ai_error_message(res) if res else "Unknown"
                     for j in range(i, batch_end + 1):
                         self.page_cache[j] = _("[Scan failed: {err}]").format(err=err_msg)
                     wx.CallAfter(self.update_view)
@@ -848,14 +1047,18 @@ class DocumentViewerDialog(wx.Dialog):
             finally:
                 if upload_path and os.path.exists(upload_path):
                     try: os.remove(upload_path)
-                    except Exception: pass
+                    except Exception as e: log.debug(f"Upload temp file removal failed: {e}")
 
         if plugin_state.plugin_instance:
             plugin_state.plugin_instance.current_status = _("Idle")
         if self.abort:
             return
         self._on_extraction_complete()
-        core.callLater(0, ui.message, _("All document pages have been processed."))
+        plugin_state.speak_status(_("All document pages have been processed."))
+
+    def on_engine_change(self, event):
+        nvda_config.conf["VisionAssistant"]["tts_engine"] = self.engine_sel.GetClientData(self.engine_sel.GetSelection())
+        event.Skip()
 
     def on_tts(self, event):
         if not AIHandler.is_tts_supported():
@@ -863,7 +1066,7 @@ class DocumentViewerDialog(wx.Dialog):
             wx.MessageBox(_("TTS is not supported by the current provider or configuration."), _("Error"), wx.ICON_ERROR)
             return
 
-        p = config.conf["VisionAssistant"]["active_provider"]
+        p = nvda_config.conf["VisionAssistant"]["active_provider"]
         keys = AIHandler.get_keys(p)
         if not keys and p != "custom":
             wx.MessageBox(_("No API Keys configured."), _("Error"), wx.ICON_ERROR)
@@ -891,50 +1094,88 @@ class DocumentViewerDialog(wx.Dialog):
         threading.Thread(target=self.tts_batch_thread, daemon=True).start()
 
     def tts_batch_thread(self):
-        full_text = []
+        page_texts = []
         # Translators: Message while gathering text
-        core.callLater(0, ui.message, _("Gathering text for audio..."))
+        plugin_state.speak_status(_("Gathering text for audio..."))
         for i in range(self.start_page, self.end_page + 1):
             wait_count = 0
             while i not in self.page_cache and wait_count < 600:
                 time.sleep(0.1)
                 wait_count += 1
             # Translators: Placeholder text shown in the document reader when processing takes too long
-            full_text.append(self.page_cache.get(i, _("[Processing timeout]")))
-        final_text = "\n".join(full_text).strip()
-        if not final_text: return
-        wx.CallAfter(self._save_tts, final_text)
+            page_texts.append(self.page_cache.get(i, _("[Processing timeout]")))
+        if not any((p or "").strip() for p in page_texts): return
+        wx.CallAfter(self._save_tts, page_texts)
 
     def _save_tts(self, text):
         # Translators: File dialog title for saving audio
         path = get_file_path(_("Save Audio"), "MP3 Files (*.mp3)|*.mp3|WAV Files (*.wav)|*.wav", mode="save")
         if path:
-            voice = config.conf["VisionAssistant"]["tts_voice"]
+            voice = nvda_config.conf["VisionAssistant"]["tts_voice"]
             if hasattr(self, "voice_sel") and self.voice_sel:
                 sel = self.voice_sel.GetSelection()
                 if sel != wx.NOT_FOUND:
                     voice = self.voice_sel.GetClientData(sel)
-            threading.Thread(target=self.tts_worker, args=(text, voice, path), daemon=True).start()
+            engine = "standard"
+            if hasattr(self, "engine_sel") and self.engine_sel:
+                engine = self.engine_sel.GetClientData(self.engine_sel.GetSelection())
+            threading.Thread(target=self.tts_worker, args=(text, voice, path, engine), daemon=True).start()
 
-    def tts_worker(self, text, voice, path):
+    def tts_worker(self, text, voice, path, engine="standard"):
+        pages = text if isinstance(text, list) else [text]
+        total_chars = sum(len(p or "") for p in pages)
+        log.info(f"TTS started: engine={engine}, voice={voice}, chars={total_chars}, pages={len(pages)}, output={path}")
         # Translators: Message while generating audio
         msg = _("Generating Audio...")
         if plugin_state.plugin_instance:
             plugin_state.plugin_instance.current_status = msg
-        core.callLater(0, ui.message, msg)
+        plugin_state.speak_status(msg)
         try:
-            audio_b64, is_raw_pcm = AIHandler.generate_speech(text, voice)
-            if not audio_b64 or audio_b64.startswith("ERROR:"):
-                 # Translators: Fallback error message during text-to-speech generation.
-                 err_msg = audio_b64[6:] if audio_b64 else _("Unknown Error")
-                 wx.CallAfter(wx.MessageBox, _("TTS Error: {error}").format(error=err_msg), _("Error"), wx.ICON_ERROR)
-                 if plugin_state.plugin_instance:
-                     plugin_state.plugin_instance.current_status = _("Idle")
-                 return
+            if engine == "live":
+                live_tts = GeminiLiveTTS(voice)
+                pcm_parts = []
+                try:
+                    for idx, page_text in enumerate(pages, 1):
+                        page_text = (page_text or "").strip()
+                        if not page_text:
+                            continue
+                        # Translators: Status message showing per-page audio generation progress. {current} and {total} are page numbers.
+                        page_msg = _("Generating audio for page {current} of {total}...").format(current=idx, total=len(pages))
+                        if plugin_state.plugin_instance:
+                            plugin_state.plugin_instance.current_status = page_msg
+                        plugin_state.speak_status(page_msg)
+                        data = live_tts.generate(page_text, timeout=180)
+                        if not data:
+                            # Translators: Error message when the Gemini Live TTS engine returns no audio.
+                            wx.CallAfter(wx.MessageBox, _("TTS Error: Gemini Live returned no audio."), _("Error"), wx.ICON_ERROR)
+                            if plugin_state.plugin_instance:
+                                plugin_state.plugin_instance.current_status = _("Idle")
+                            return
+                        pcm_parts.append(data)
+                finally:
+                    live_tts.close()
+                audio_data = b"".join(pcm_parts)
+                if not audio_data:
+                    # Translators: Error message when the Gemini Live TTS engine returns no audio.
+                    wx.CallAfter(wx.MessageBox, _("TTS Error: Gemini Live returned no audio."), _("Error"), wx.ICON_ERROR)
+                    if plugin_state.plugin_instance:
+                        plugin_state.plugin_instance.current_status = _("Idle")
+                    return
+                is_raw_pcm = True
+            else:
+                full_text = "\n".join(p for p in pages if p and p.strip()).strip()
+                audio_b64, is_raw_pcm = AIHandler.generate_speech(full_text, voice)
+                if not audio_b64 or is_ai_error(audio_b64):
+                    # Translators: Fallback error message during text-to-speech generation.
+                    err_msg = ai_error_message(audio_b64) if audio_b64 else _("Unknown Error")
+                    wx.CallAfter(wx.MessageBox, _("TTS Error: {error}").format(error=err_msg), _("Error"), wx.ICON_ERROR)
+                    if plugin_state.plugin_instance:
+                        plugin_state.plugin_instance.current_status = _("Idle")
+                    return
 
-            missing_padding = len(audio_b64) % 4
-            if missing_padding: audio_b64 += '=' * (4 - missing_padding)
-            audio_data = base64.b64decode(audio_b64)
+                missing_padding = len(audio_b64) % 4
+                if missing_padding: audio_b64 += '=' * (4 - missing_padding)
+                audio_data = base64.b64decode(audio_b64)
 
             if not is_raw_pcm:
                 with open(path, "wb") as f:
@@ -961,17 +1202,20 @@ class DocumentViewerDialog(wx.Dialog):
             res_msg = _("Audio Saved")
             if plugin_state.plugin_instance:
                 plugin_state.plugin_instance.current_status = _("Idle")
-            core.callLater(0, ui.message, res_msg)
+            plugin_state.speak_status(res_msg)
             # Translators: Success message shown when narration generation is successfully completed with silence detection.
             wx.CallAfter(wx.MessageBox, _("Audio file generated and saved successfully."), _("Success"), wx.OK | wx.ICON_INFORMATION)
         except Exception as e:
+            log.error(f"TTS generation failed: {e}", exc_info=True)
             if plugin_state.plugin_instance:
                 plugin_state.plugin_instance.current_status = _("Idle")
             # Translators: Success message after generating TTS audio.
             wx.CallAfter(wx.MessageBox, _("TTS Error: {error}").format(error=e), _("Error"), wx.ICON_ERROR)
 
     def on_ask(self, event):
-        p = config.conf["VisionAssistant"]["active_provider"]
+        if getattr(self, "is_text_doc", False):
+            return
+        p = nvda_config.conf["VisionAssistant"]["active_provider"]
         keys = AIHandler.get_keys(p)
         if not keys and p != "custom":
             wx.MessageBox(_("No API Keys configured."), _("Error"), wx.ICON_ERROR)
@@ -1001,6 +1245,7 @@ class DocumentViewerDialog(wx.Dialog):
 
     def save_thread(self, path, is_html):
         full_content = []
+        log.info(f"Document save started: path={path}, format={'html' if is_html else 'txt'}, pages={self.start_page + 1}-{self.end_page + 1}")
         try:
             for i in range(self.start_page, self.end_page + 1):
                 if i not in self.page_cache:
@@ -1013,7 +1258,7 @@ class DocumentViewerDialog(wx.Dialog):
                     wait_count += 1
                 txt = self.page_cache.get(i, _("[Processing timeout]"))
 
-                include_page_nums = config.conf["VisionAssistant"].get("document_export_page_numbers", True)
+                include_page_nums = nvda_config.conf["VisionAssistant"].get("document_export_page_numbers", True)
 
                 if is_html:
                     h = markdown_to_html(txt)
@@ -1038,13 +1283,14 @@ class DocumentViewerDialog(wx.Dialog):
             wx.CallAfter(self.lbl_status.SetLabel, _("Saved"))
             wx.CallAfter(wx.MessageBox, _("File saved successfully."), _("Success"), wx.OK | wx.ICON_INFORMATION)
         except Exception as e:
+            log.error(f"Document save failed: {e}", exc_info=True)
             wx.CallAfter(wx.MessageBox, _("Save Error: {error}").format(error=e), _("Error"), wx.ICON_ERROR)
         finally: wx.CallAfter(self.btn_save.Enable)
 
     def _refresh_minimax_voices_in_format_dialog(self):
         try:
-            config.conf["VisionAssistant"]["minimax_voices_cache"] = ""
-            config.conf["VisionAssistant"]["minimax_voices_cache_time"] = 0
+            nvda_config.conf["VisionAssistant"]["minimax_voices_cache"] = ""
+            nvda_config.conf["VisionAssistant"]["minimax_voices_cache_time"] = 0
             voices = AIHandler.get_voices("minimax")
             if voices and hasattr(self, 'voice_sel') and self.voice_sel:
                 wx.CallAfter(self._populate_format_voice_sel, voices)
@@ -1058,7 +1304,7 @@ class DocumentViewerDialog(wx.Dialog):
             self.voice_sel.Clear()
             for v in voices:
                 self.voice_sel.Append(f"{v[0]} - {v[1]}", v[0])
-            curr_voice = config.conf["VisionAssistant"].get("tts_voice", "English_expressive_narrator")
+            curr_voice = nvda_config.conf["VisionAssistant"].get("tts_voice", "English_expressive_narrator")
             for i in range(self.voice_sel.GetCount()):
                 if self.voice_sel.GetClientData(i) == curr_voice:
                     self.voice_sel.SetSelection(i)

@@ -2,13 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-<<<<<<< Updated upstream
-"POT-Creation-Date: 2026-08-06 21:29+0330\n"
-"PO-Revision-Date: 2026-08-07 11:35+0300\n"
-=======
 "POT-Creation-Date: 2026-08-21 00:36+0330\n"
 "PO-Revision-Date: 2026-08-21 10:21+0300\n"
->>>>>>> Stashed changes
 "Last-Translator: Volodymyr Pyrih <vp88.mobile@gmail.com>\n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -396,22 +391,12 @@ msgstr "Аналіз всього екрана"
 
 #. Translators: Section header for video analysis prompts in Prompt Manager.
 #. Translators: Labels for the AI and User in chat history
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\vision_config.py:415
-#: addon\globalPlugins\visionAssistant\vision_config.py:483
-#: addon\globalPlugins\visionAssistant\vision_config.py:527
-#: addon\globalPlugins\visionAssistant\__init__.py:518
-#: addon\globalPlugins\visionAssistant\dialogs\settings.py:360
-#: addon\globalPlugins\visionAssistant\dialogs\settings.py:667
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:248
-=======
 #: addon\globalPlugins\visionAssistant\vision_config.py:445
 #: addon\globalPlugins\visionAssistant\vision_config.py:513
 #: addon\globalPlugins\visionAssistant\vision_config.py:557
 #: addon\globalPlugins\visionAssistant\__init__.py:466
 #: addon\globalPlugins\visionAssistant\dialogs\settings.py:393
 #: addon\globalPlugins\visionAssistant\dialogs\settings.py:725
->>>>>>> Stashed changes
 msgid "Video"
 msgstr "Відео"
 
@@ -467,18 +452,10 @@ msgstr "Голосовий переклад"
 
 #. Translators: Section header for OCR-related prompts in Prompt Manager.
 #. Translators: Prefix for main model status
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\vision_config.py:587
-#: addon\globalPlugins\visionAssistant\vision_config.py:599
-#: addon\globalPlugins\visionAssistant\vision_config.py:635
-#: addon\globalPlugins\visionAssistant\__init__.py:511
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:241
-=======
 #: addon\globalPlugins\visionAssistant\vision_config.py:617
 #: addon\globalPlugins\visionAssistant\vision_config.py:629
 #: addon\globalPlugins\visionAssistant\vision_config.py:665
 #: addon\globalPlugins\visionAssistant\__init__.py:459
->>>>>>> Stashed changes
 msgid "OCR"
 msgstr "OCR"
 
@@ -566,14 +543,8 @@ msgid "Visual CAPTCHA Solver"
 msgstr "Розпізнавання КАПЧІ"
 
 #. Translators: Section header for the Live Assistant prompt in Prompt Manager.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\vision_config.py:779
-#: addon\globalPlugins\visionAssistant\__init__.py:519
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:249
-=======
 #: addon\globalPlugins\visionAssistant\vision_config.py:809
 #: addon\globalPlugins\visionAssistant\__init__.py:467
->>>>>>> Stashed changes
 msgid "Live"
 msgstr "Live"
 
@@ -683,32 +654,6 @@ msgid "Smart swap translation instruction"
 msgstr "Інструкція з перекладу Smart Swap"
 
 #. Translators: Error message shown when uploading a video file fails.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:105
-#: addon\globalPlugins\visionAssistant\__init__.py:224
-#: addon\globalPlugins\visionAssistant\__init__.py:396
-#: addon\globalPlugins\visionAssistant\__init__.py:967
-#: addon\globalPlugins\visionAssistant\__init__.py:980
-#: addon\globalPlugins\visionAssistant\__init__.py:1073
-#: addon\globalPlugins\visionAssistant\__init__.py:1089
-#: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:185
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:147
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:203
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:241
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:358
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:465
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:775
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:854
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:932
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:949
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:963
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:969
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1599
-#: addon\globalPlugins\visionAssistant\features\audio.py:139
-#: addon\globalPlugins\visionAssistant\features\audio.py:251
-#: addon\globalPlugins\visionAssistant\features\audio.py:367
-#: addon\globalPlugins\visionAssistant\features\audio.py:659
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:132
 #: addon\globalPlugins\visionAssistant\__init__.py:314
 #: addon\globalPlugins\visionAssistant\dialogs\chat_dialog.py:151
@@ -734,7 +679,6 @@ msgstr "Інструкція з перекладу Smart Swap"
 #: addon\globalPlugins\visionAssistant\features\audio.py:175
 #: addon\globalPlugins\visionAssistant\features\audio.py:293
 #: addon\globalPlugins\visionAssistant\features\audio.py:589
->>>>>>> Stashed changes
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:274
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:492
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:516
@@ -745,30 +689,6 @@ msgstr "Інструкція з перекладу Smart Swap"
 #: addon\globalPlugins\visionAssistant\features\video.py:395
 #: addon\globalPlugins\visionAssistant\features\video.py:411
 #: addon\globalPlugins\visionAssistant\features\video.py:419
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\video.py:637
-#: addon\globalPlugins\visionAssistant\features\video.py:642
-#: addon\globalPlugins\visionAssistant\features\video.py:650
-#: addon\globalPlugins\visionAssistant\features\video.py:657
-#: addon\globalPlugins\visionAssistant\features\video.py:778
-#: addon\globalPlugins\visionAssistant\features\video.py:802
-#: addon\globalPlugins\visionAssistant\features\vision.py:819
-#: addon\globalPlugins\visionAssistant\features\vision.py:926
-#: addon\globalPlugins\visionAssistant\features\vision.py:1048
-#: addon\globalPlugins\visionAssistant\features\vision.py:1073
-#: addon\globalPlugins\visionAssistant\features\vision.py:1076
-#: addon\globalPlugins\visionAssistant\features\vision.py:1094
-#: addon\globalPlugins\visionAssistant\features\vision.py:1233
-#: addon\globalPlugins\visionAssistant\features\vision.py:1236
-#: addon\globalPlugins\visionAssistant\features\vision.py:1263
-#: addon\globalPlugins\visionAssistant\features\vision.py:1274
-#: addon\globalPlugins\visionAssistant\features\vision.py:1278
-#: addon\globalPlugins\visionAssistant\features\vision.py:1295
-#: addon\globalPlugins\visionAssistant\features\vision.py:1298
-#: addon\globalPlugins\visionAssistant\features\vision.py:1302
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:205
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:213
-=======
 #: addon\globalPlugins\visionAssistant\features\video.py:639
 #: addon\globalPlugins\visionAssistant\features\video.py:644
 #: addon\globalPlugins\visionAssistant\features\video.py:652
@@ -791,161 +711,50 @@ msgstr "Інструкція з перекладу Smart Swap"
 #: addon\globalPlugins\visionAssistant\features\vision.py:1365
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:206
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:214
->>>>>>> Stashed changes
 msgid "Idle"
 msgstr "Неактивний"
 
 #. Translators: Menu item for Document Reader
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:128
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:162
->>>>>>> Stashed changes
 msgid "&Document Reader..."
 msgstr "&Читач документів..."
 
 #. Translators: Menu item for media transcription and dubbing
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:132
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:166
->>>>>>> Stashed changes
 msgid "Media Transcription and &Dubbing..."
 msgstr "&Транскрипція та дубляж медіафайлів..."
 
 #. Translators: Menu item for Video Analysis
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:136
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:170
->>>>>>> Stashed changes
 msgid "Analyze &Video..."
 msgstr "&Аналіз відео..."
 
 #. Translators: Menu item to open settings
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:142
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:176
->>>>>>> Stashed changes
 msgid "&Settings..."
 msgstr "&Налаштування..."
 
 #. Translators: Menu item to check for updates
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:146
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:180
->>>>>>> Stashed changes
 msgid "Check for &Update"
 msgstr "Перевірити &оновлення"
 
 #. Translators: Menu item to open documentation
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:150
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:184
->>>>>>> Stashed changes
 msgid "Docu&mentation"
 msgstr "&Документація"
 
 #. Translators: Menu item for donations
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:154
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:188
->>>>>>> Stashed changes
 msgid "D&onate"
 msgstr "&Пожертвувати"
 
 #. Translators: Menu item to open the Telegram channel
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:158
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:192
->>>>>>> Stashed changes
 msgid "Telegram &Channel"
 msgstr "Канал &Telegram"
 
 #. Translators: The name of the addon's sub-menu in the NVDA Tools menu.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:163
-msgid "Vision Assistant"
-msgstr "Vision Assistant"
-
-#. Translators: Announcement when an in-progress OCR extraction is stopped by the user.
-#: addon\globalPlugins\visionAssistant\__init__.py:226
-#: addon\globalPlugins\visionAssistant\features\vision.py:1050
-msgid "OCR operation stopped."
-msgstr "Операцію OCR зупинено."
-
-#. Translators: Title of the dialog asking whether to resume an OCR operation
-#. Translators: Title of the dialog asking whether to resume an OCR operation that did not finish (for example after NVDA closed unexpectedly).
-#: addon\globalPlugins\visionAssistant\__init__.py:240
-#: addon\globalPlugins\visionAssistant\features\vision.py:157
-msgid "Unfinished Operation"
-msgstr "Незавершена операція"
-
-#. Translators: Message asking whether to continue an interrupted OCR extraction.
-#. Translators: Message asking whether to continue an interrupted OCR extraction. {done} is the number of pages already processed, {total} is the total number of pages, and {files} is the number of files involved.
-#: addon\globalPlugins\visionAssistant\__init__.py:242
-#: addon\globalPlugins\visionAssistant\features\vision.py:159
-#, python-brace-format
-msgid ""
-"You have an unfinished operation: {done} of {total} pages processed across "
-"{files} file(s). Would you like to continue from where it stopped?"
-msgstr ""
-"У вас є незавершена операція: оброблено {done} з {total} сторінок у файлах "
-"{files}. Бажаєте продовжити з того місця, де вона була зупинена?"
-
-#. Translators: File dialog filter for supported files
-#: addon\globalPlugins\visionAssistant\__init__.py:267
-#: addon\globalPlugins\visionAssistant\features\vision.py:367
-msgid "Supported Files"
-msgstr "Підтримувані файли"
-
-#. Translators: Error when PyMuPDF is missing
-#: addon\globalPlugins\visionAssistant\__init__.py:275
-#: addon\globalPlugins\visionAssistant\features\vision.py:663
-#: addon\globalPlugins\visionAssistant\features\vision.py:939
-msgid "PyMuPDF library is missing."
-msgstr "Бібліотека PyMuPDF відсутня."
-
-#. Translators: Message shown when a PDF has no text layer.
-#: addon\globalPlugins\visionAssistant\__init__.py:284
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:554
-#: addon\globalPlugins\visionAssistant\features\vision.py:651
-#: addon\globalPlugins\visionAssistant\features\vision.py:741
-#: addon\globalPlugins\visionAssistant\features\vision.py:947
-msgid ""
-"The 'None (Extract Text Layer)' engine cannot process image-based content. "
-"Please change the OCR Engine to 'Chrome' or 'AI (Advanced)' in settings."
-msgstr ""
-"Механізм «None (Extract Text Layer)» не підтримує обробку зображень. Будь "
-"ласка, у налаштуваннях змініть механізм OCR на «Chrome» або «ШІ (розширений)»."
-
-#. Translators: Title of the error dialog shown when the selected OCR engine cannot process the chosen image-based files.
-#: addon\globalPlugins\visionAssistant\__init__.py:286
-#: addon\globalPlugins\visionAssistant\features\vision.py:653
-#: addon\globalPlugins\visionAssistant\features\vision.py:948
-msgid "OCR Engine Error"
-msgstr "Помилка механізму OCR"
-
-#. Translators: Error when no pages found
-#: addon\globalPlugins\visionAssistant\__init__.py:293
-#: addon\globalPlugins\visionAssistant\features\vision.py:669
-#: addon\globalPlugins\visionAssistant\features\vision.py:954
-msgid "No readable pages found."
-msgstr "Читабельних сторінок не знайдено."
-
-#. Translators: Script description for 'Shows a list of available commands in the layer.' in Input Gestures dialog.
-#: addon\globalPlugins\visionAssistant\__init__.py:344
-#: addon\globalPlugins\visionAssistant\__init__.py:380
-msgid "Shows a list of available commands in the layer."
-msgstr "Показує список доступних команд у командному шарі."
-
-#: addon\globalPlugins\visionAssistant\__init__.py:348
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:197
 msgid "Vision Assistant"
 msgstr "Vision Assistant"
@@ -957,50 +766,30 @@ msgid "Shows a list of available commands in the layer."
 msgstr "Показує список доступних команд у командному шарі."
 
 #: addon\globalPlugins\visionAssistant\__init__.py:258
->>>>>>> Stashed changes
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:135
 msgid "Asks the AI Operator to perform an action or describe the screen."
 msgstr "Просить оператора ШІ виконати дію або описати екран."
 
 #. Translators: Script description for 'Shows a list of available commands in the layer.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:349
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:259
->>>>>>> Stashed changes
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:40
 msgid "Toggles the interactive UI elements explorer."
 msgstr "Перемикає досліджувача інтерактивних елементів інтерфейсу."
 
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:350
-#: addon\globalPlugins\visionAssistant\features\vision.py:1428
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:260
 #: addon\globalPlugins\visionAssistant\features\vision.py:1491
->>>>>>> Stashed changes
 msgid "Translates the selected text or navigator object."
 msgstr "Перекладає вибраний текст або об'єкт навігатора."
 
 #. Translators: Script description for 'Shows a list of available commands in the layer.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:351
-#: addon\globalPlugins\visionAssistant\features\vision.py:1411
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:261
 #: addon\globalPlugins\visionAssistant\features\vision.py:1474
->>>>>>> Stashed changes
 msgid "Translates the text currently in the clipboard."
 msgstr "Перекладає текст, який зараз є у буфері обміну."
 
 #. Translators: Script description for 'Shows a list of available commands in the layer.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:352
-#: addon\globalPlugins\visionAssistant\features\audio.py:143
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:262
 #: addon\globalPlugins\visionAssistant\features\audio.py:45
->>>>>>> Stashed changes
 msgid ""
 "Records voice, transcribes and translates it using AI, and types the result."
 msgstr ""
@@ -1008,47 +797,27 @@ msgstr ""
 "результат."
 
 #. Translators: Script description for 'Opens a menu to Explain, Summarize, or Fix the selected text.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:354
-#: addon\globalPlugins\visionAssistant\features\vision.py:1356
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:264
 #: addon\globalPlugins\visionAssistant\features\vision.py:1419
->>>>>>> Stashed changes
 msgid "Opens a menu to Explain, Summarize, or Fix the selected text."
 msgstr ""
 "Відкриває меню для пояснення, підсумовування або виправлення вибраного тексту."
 
 #. Translators: Script description for 'Performs OCR and description on the entire screen.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:356
-#: addon\globalPlugins\visionAssistant\features\vision.py:1342
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:266
 #: addon\globalPlugins\visionAssistant\features\vision.py:1405
->>>>>>> Stashed changes
 msgid "Performs OCR and description on the entire screen."
 msgstr "Виконує OCR та опис для всього екрана."
 
 #. Translators: Script description for 'Describes the current object (Navigator Object).' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:358
-#: addon\globalPlugins\visionAssistant\features\vision.py:1334
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:268
 #: addon\globalPlugins\visionAssistant\features\vision.py:1397
->>>>>>> Stashed changes
 msgid "Describes the current object (Navigator Object)."
 msgstr "Описує поточний об'єкт (об'єкт навігатора)."
 
 #. Translators: Script description for 'Opens the Document Reader for detailed page-by-page analysis (PDF/Images).' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:360
-#: addon\globalPlugins\visionAssistant\features\vision.py:1305
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:270
 #: addon\globalPlugins\visionAssistant\features\vision.py:1368
->>>>>>> Stashed changes
 msgid ""
 "Opens the Document Reader for detailed page-by-page analysis (PDF/Images)."
 msgstr ""
@@ -1056,13 +825,8 @@ msgstr ""
 "зображення)."
 
 #. Translators: Script description for 'Performs smart actions (OCR or Description) on a selected image or PDF file.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:362
-#: addon\globalPlugins\visionAssistant\features\vision.py:1385
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:272
 #: addon\globalPlugins\visionAssistant\features\vision.py:1448
->>>>>>> Stashed changes
 msgid ""
 "Performs smart actions (OCR or Description) on a selected image or PDF file."
 msgstr ""
@@ -1070,101 +834,55 @@ msgstr ""
 "PDF."
 
 #. Translators: Script description for 'Transcribes or dubs a selected media file.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:364
-#: addon\globalPlugins\visionAssistant\features\audio.py:266
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:274
 #: addon\globalPlugins\visionAssistant\features\audio.py:191
->>>>>>> Stashed changes
 msgid "Transcribes or dubs a selected media file."
 msgstr "Транскрибує або дублює вибраний медіафайл."
 
 #. Translators: Script description for 'Analyzes a local video file or an online video URL.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:366
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:276
->>>>>>> Stashed changes
 #: addon\globalPlugins\visionAssistant\features\video.py:45
 msgid "Analyzes a local video file or an online video URL."
 msgstr "Аналізує локальний відеофайл або URL онлайн-відео."
 
 #. Translators: Script description for 'Starts or stops local video recording of the screen.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:368
-#: addon\globalPlugins\visionAssistant\features\video.py:659
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:278
 #: addon\globalPlugins\visionAssistant\features\video.py:661
->>>>>>> Stashed changes
 msgid "Starts or stops local video recording of the screen."
 msgstr "Починає або зупиняє локальний відеозапис екрана."
 
 #. Translators: Script description for 'Attempts to solve a CAPTCHA on the screen or navigator object.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:370
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:651
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:280
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:659
->>>>>>> Stashed changes
 msgid "Attempts to solve a CAPTCHA on the screen or navigator object."
 msgstr "Спроби вирішити КАПЧУ на екрані або в об'єкті навігатора."
 
 #. Translators: Script description for 'Opens a chat dialog to directly prompt the AI with text or files.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:371
-#: addon\globalPlugins\visionAssistant\__init__.py:844
-#: addon\globalPlugins\visionAssistant\features\vision.py:1350
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:281
 #: addon\globalPlugins\visionAssistant\features\vision.py:1413
->>>>>>> Stashed changes
 msgid "Opens a chat dialog to directly prompt the AI with text or files."
 msgstr "Відкриває діалог чату для прямого введення тексту або файлів до ШІ."
 
 #. Translators: Script description for 'Records voice, transcribes it using AI, and types the result.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:373
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:283
->>>>>>> Stashed changes
 #: addon\globalPlugins\visionAssistant\features\audio.py:40
 msgid "Records voice, transcribes it using AI, and types the result."
 msgstr "Записує голос, транскрибує його за допомогою ШІ та друкує результат."
 
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:374
-#: addon\globalPlugins\visionAssistant\__init__.py:393
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:284
 #: addon\globalPlugins\visionAssistant\__init__.py:311
->>>>>>> Stashed changes
 msgid "Announces the current status of the add-on."
 msgstr "Повідомляє про поточний стан додатка."
 
 #. Translators: Script description for 'Labels the current navigator object using AI.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:375
-#: addon\globalPlugins\visionAssistant\__init__.py:929
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:447
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:285
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:451
->>>>>>> Stashed changes
 msgid "Labels the current navigator object using AI."
 msgstr "Підписує поточний об’єкт навігатора за допомогою ШІ."
 
 #. Translators: Script description for 'Manages existing labels or scans the entire app to label unnamed elements.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:376
-#: addon\globalPlugins\visionAssistant\__init__.py:1002
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:517
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:286
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:521
->>>>>>> Stashed changes
 msgid ""
 "Manages existing labels or scans the entire app to label unnamed elements."
 msgstr ""
@@ -1172,25 +890,14 @@ msgstr ""
 "елементи."
 
 #. Translators: Script description for 'Checks for updates manually.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:377
-#: addon\globalPlugins\visionAssistant\__init__.py:418
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:287
 #: addon\globalPlugins\visionAssistant\__init__.py:378
->>>>>>> Stashed changes
 msgid "Checks for updates manually."
 msgstr "Перевірити наявність оновлень вручну."
 
 #. Translators: Script description for 'Shows the last AI response in a chat dialog for review or follow-up questions.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:379
-#: addon\globalPlugins\visionAssistant\__init__.py:849
-#: addon\globalPlugins\visionAssistant\features\vision.py:1370
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:289
 #: addon\globalPlugins\visionAssistant\features\vision.py:1433
->>>>>>> Stashed changes
 msgid ""
 "Shows the last AI response in a chat dialog for review or follow-up questions."
 msgstr ""
@@ -1204,36 +911,20 @@ msgid "Opens the History dialog to review past chats and documents."
 msgstr "Відкриває діалог Історії для перегляду попередніх чатів і документів."
 
 #. Translators: Script description for 'Starts or ends a live voice conversation with the AI assistant.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:382
-#: addon\globalPlugins\visionAssistant\__init__.py:400
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:294
 #: addon\globalPlugins\visionAssistant\__init__.py:318
->>>>>>> Stashed changes
 msgid "Starts or ends a live voice conversation with the AI assistant."
 msgstr "Почати або завершити голосову розмову в режимі Live з ШІ."
 
 #. Translators: Script description for 'Opens the Vision Assistant settings dialog.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:384
-#: addon\globalPlugins\visionAssistant\__init__.py:412
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:296
 #: addon\globalPlugins\visionAssistant\__init__.py:330
->>>>>>> Stashed changes
 msgid "Opens the Vision Assistant settings dialog."
 msgstr "Відкриває діалог налаштувань Vision Assistant."
 
 #. Translators: Script description for 'Reports the number of Gemini API keys that have exceeded their daily quota and their reset time.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:386
-#: addon\globalPlugins\visionAssistant\__init__.py:426
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:159
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:298
 #: addon\globalPlugins\visionAssistant\__init__.py:388
->>>>>>> Stashed changes
 msgid ""
 "Reports the number of Gemini API keys that have exceeded their daily quota "
 "and their reset time."
@@ -1242,14 +933,8 @@ msgstr ""
 "та час їх скидання."
 
 #. Translators: Script description for 'Reports the AI models selected in advanced routing.' in Input Gestures dialog.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:388
-#: addon\globalPlugins\visionAssistant\__init__.py:493
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:225
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:300
 #: addon\globalPlugins\visionAssistant\__init__.py:446
->>>>>>> Stashed changes
 msgid "Reports the AI models selected in advanced routing."
 msgstr "Повідомляє про моделі ШІ, вибрані в розширеній маршрутизації."
 
@@ -1259,21 +944,13 @@ msgid "Custom Prompts:"
 msgstr "Користувацькі підказки:"
 
 #. Translators: Title of the help dialog
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:391
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:309
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "{name} Help"
 msgstr "Довідка {name}"
 
 #. Translators: Error shown when the Live Assistant is used with a non-Gemini provider.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:408
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:326
->>>>>>> Stashed changes
 msgid ""
 "The Live Assistant is only supported with the Gemini provider (or a Custom "
 "provider with API type set to Gemini)."
@@ -1282,52 +959,28 @@ msgstr ""
 "провайдером, для якого тип API встановлено як Gemini)."
 
 #. Translators: Message reported when calling the update command
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:422
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:382
->>>>>>> Stashed changes
 msgid "Checking for updates..."
 msgstr "Перевірка оновлень..."
 
 #. Translators: Message shown when a user tries to check Gemini API quotas but another provider is active.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:431
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:164
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:393
->>>>>>> Stashed changes
 msgid "This feature is only available for Google Gemini."
 msgstr "Ця функція доступна лише для Google Gemini."
 
 #. Translators: Message when no API keys are out of quota
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:459
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:192
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:417
->>>>>>> Stashed changes
 msgid "No API keys have exceeded their daily quota."
 msgstr "Жоден ключ API не перевищив свою добову квоту."
 
 #. Translators: Prefix for time when the daily quota resets on the next day
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:472
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:204
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:428
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "tomorrow at {time}"
 msgstr "завтра о {time}"
 
 #. Translators: Shows detailed information for a banned API key. {key} is the API key, {model} is the model name, {time_str} is the reset time.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:474
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:206
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:430
->>>>>>> Stashed changes
 #, python-brace-format
 msgid ""
 "Key: {key}\n"
@@ -1339,211 +992,44 @@ msgstr ""
 "Оновлюється приблизно через: {time_str}\n"
 
 #. Translators: Shows how many API keys have exceeded their quota for a specific model. {count} is the number of keys, {model} is the model name.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:485
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:216
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:438
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "{count} keys for model {model}"
 msgstr "{count} ключів для моделі {model}"
 
 #. Translators: Message shown when API keys run out of quota.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:488
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:219
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:440
->>>>>>> Stashed changes
 msgid "have exceeded their daily quota."
 msgstr "перевищили свою добову квоту."
 
 #. Translators: Title of the browseable message dialog showing exhausted API keys
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:491
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:222
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:443
->>>>>>> Stashed changes
 msgid "Exhausted API Keys"
 msgstr "Ключі API вичерпано"
 
 #. Translators: Prefix for main model status
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:504
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:235
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:455
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Main: {model}"
 msgstr "Головна: {model}"
 
 #. Translators: Abbreviation for Speech-to-Text.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:513
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:243
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:461
->>>>>>> Stashed changes
 msgid "STT"
 msgstr "STT"
 
 #. Translators: Abbreviation for Text-to-Speech.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:515
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:245
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:463
->>>>>>> Stashed changes
 msgid "TTS"
 msgstr "TTS"
 
 #. Translators: Labels for the AI and User in chat history
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:517
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:312
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:247
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:465
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:314
->>>>>>> Stashed changes
 msgid "Operator"
 msgstr "Оператор"
 
 #. Translators: Message when no specific AI models are selected in advanced routing
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\__init__.py:523
-#: addon\globalPlugins\visionAssistant\features\quick_settings.py:252
-msgid "No specific models selected."
-msgstr "Не вибрано жодних конкретних моделей."
-
-#. Translators: Line appended to the conversation when the live session has ended.
-#: addon\globalPlugins\visionAssistant\__init__.py:602
-#: addon\globalPlugins\visionAssistant\features\vision.py:123
-msgid "--- Session ended ---"
-msgstr "--- Сеанс закінчено ---"
-
-#. Translators: Message announced by NVDA when the live voice conversation ends.
-#: addon\globalPlugins\visionAssistant\__init__.py:608
-#: addon\globalPlugins\visionAssistant\features\vision.py:128
-msgid "Live conversation ended."
-msgstr "Live чат завершено."
-
-#. Translators: Message announced by NVDA when the live voice conversation ends.
-#: addon\globalPlugins\visionAssistant\__init__.py:611
-#: addon\globalPlugins\visionAssistant\features\screen_capture.py:203
-#: addon\globalPlugins\visionAssistant\features\vision.py:96
-#: addon\globalPlugins\visionAssistant\features\vision.py:426
-msgid "Open"
-msgstr "Відкрити"
-
-#. Translators: Message of a dialog which may pop up while performing an AI call
-#: addon\globalPlugins\visionAssistant\__init__.py:658
-#: addon\globalPlugins\visionAssistant\features\upload.py:68
-#, python-brace-format
-msgid "File Upload Error: {error}"
-msgstr "Помилка відвантаження файлу: {error}"
-
-#. Translators: Script description for 'Activates the Command Layer for quick access to all features.' in Input Gestures dialog.
-#: addon\globalPlugins\visionAssistant\__init__.py:733
-msgid "Activates the Command Layer for quick access to all features."
-msgstr "Активує командний шар для швидкого доступу до всіх функцій."
-
-#. Translators: Error when all available API keys fail
-#: addon\globalPlugins\visionAssistant\__init__.py:823
-#: addon\globalPlugins\visionAssistant\ai\providers\gemini.py:550
-#: addon\globalPlugins\visionAssistant\features\vision.py:272
-msgid "All API Keys failed (Quota/Server)."
-msgstr "Усі ключі API не спрацювали (квота вичерпана/помилка сервера)."
-
-#. Translators: Initial greeting message for the Direct Chat dialog.
-#: addon\globalPlugins\visionAssistant\__init__.py:826
-#: addon\globalPlugins\visionAssistant\features\vision.py:276
-msgid "Hello! I am Vision Assistant Pro. How can I help you today?"
-msgstr "Вітаю! Я — Vision Assistant Pro. Чим я можу вам допомогти сьогодні?"
-
-#. Translators: Dialog title for Direct Chat
-#: addon\globalPlugins\visionAssistant\__init__.py:831
-#: addon\globalPlugins\visionAssistant\features\vision.py:281
-#, python-brace-format
-msgid "{name} - Direct Chat"
-msgstr "{name} - Прямий чат"
-
-#. Translators: Message shown when a user tries to use AI labeling in a web browser.
-#: addon\globalPlugins\visionAssistant\__init__.py:941
-#: addon\globalPlugins\visionAssistant\__init__.py:1008
-#: addon\globalPlugins\visionAssistant\dialogs\ui_elements.py:268
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:457
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:524
-msgid "AI Labeling is currently not supported in web browsers."
-msgstr "Наразі функція підпису за допомогою ШІ не підтримується у браузерах."
-
-#. Translators: Message spoken by NVDA when the current object already has a custom or AI-generated label. {name} is replaced with the existing label text.
-#: addon\globalPlugins\visionAssistant\__init__.py:956
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:476
-#, python-brace-format
-msgid "Already labeled as: {name}"
-msgstr "Вже підписано як: {name}"
-
-#. Translators: Progress message spoken when the add-on starts taking a screenshot of the current focused object.
-#: addon\globalPlugins\visionAssistant\__init__.py:961
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:481
-msgid "Identifying object..."
-msgstr "Ідентифікація об'єкта..."
-
-#. Translators: Progress message spoken when the add-on starts taking a screenshot of the current focused object.
-#: addon\globalPlugins\visionAssistant\__init__.py:969
-#: addon\globalPlugins\visionAssistant\features\audio.py:355
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:490
-#: addon\globalPlugins\visionAssistant\features\vision.py:1226
-msgid "Analyzing..."
-msgstr "Аналіз..."
-
-#. Translators: Success message spoken when the AI successfully assigns a new label to the object. {name} is replaced with the AI-generated label.
-#: addon\globalPlugins\visionAssistant\__init__.py:993
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:508
-#, python-brace-format
-msgid "Labeled as: {name}"
-msgstr "Підписано як: {name}Файл: {name}"
-
-#. Translators: Confirmation message shown after labels are deleted or renamed.
-#: addon\globalPlugins\visionAssistant\__init__.py:1027
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:544
-msgid "Labels updated."
-msgstr "Підписи оновлено."
-
-#. Translators: Progress message spoken when the add-on begins scanning the current application window to find UI elements (like buttons or icons) that do not have accessibility names.
-#: addon\globalPlugins\visionAssistant\__init__.py:1046
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:561
-msgid "Scanning application UI..."
-msgstr "Сканування інтерфейсу програми..."
-
-#. Translators: Message spoken when the add-on finishes the UI scan but finds no unnamed elements to label (everything already has a name).
-#: addon\globalPlugins\visionAssistant\__init__.py:1075
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:586
-msgid "No unnamed elements found."
-msgstr "Елементів без підпису не знайдено."
-
-#. Translators: Progress message spoken when the add-on has found unnamed elements and is now sending the full application screenshot to AI for batch labeling.
-#: addon\globalPlugins\visionAssistant\__init__.py:1079
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:590
-msgid "Analyzing application..."
-msgstr "Аналіз програми..."
-
-#. Translators: Success message spoken when the AI finishes analyzing the app and successfully names multiple elements in the background.
-#: addon\globalPlugins\visionAssistant\__init__.py:1143
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:638
-msgid "Application labeling complete."
-msgstr "Підпис елементів програми завершено."
-
-#. Translators: Error message spoken when the add-on fails to parse or map the labels returned by the AI (e.g., due to invalid AI response format).
-#: addon\globalPlugins\visionAssistant\__init__.py:1148
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:643
-msgid "Batch labeling failed."
-msgstr "Помилка пакетного підпису."
-=======
 #: addon\globalPlugins\visionAssistant\__init__.py:469
 msgid "No specific models selected."
 msgstr "Не вибрано жодних конкретних моделей."
@@ -1558,7 +1044,6 @@ msgstr "Активує командний шар для швидкого дос�
 #, python-brace-format
 msgid "Runs the custom prompt \"{name}\"."
 msgstr "Запускає користувацьку підказку «{name}»."
->>>>>>> Stashed changes
 
 #. Translators: Error message when TTS is not supported by the provider
 #: addon\globalPlugins\visionAssistant\ai\core.py:321
@@ -1753,15 +1238,6 @@ msgstr "Помилка всіх API-ключів або вичерпано до�
 #. Translators: Error message when TTS is not supported by the provider
 #: addon\globalPlugins\visionAssistant\ai\providers\mistral.py:23
 #: addon\globalPlugins\visionAssistant\ai\providers\mistral.py:118
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\ai\providers\openai.py:26
-#: addon\globalPlugins\visionAssistant\ai\providers\openai.py:199
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:653
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:869
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:977
-#: addon\globalPlugins\visionAssistant\features\audio.py:393
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1019
-=======
 #: addon\globalPlugins\visionAssistant\ai\providers\openai.py:27
 #: addon\globalPlugins\visionAssistant\ai\providers\openai.py:200
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:787
@@ -1769,7 +1245,6 @@ msgstr "Помилка всіх API-ключів або вичерпано до�
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:1221
 #: addon\globalPlugins\visionAssistant\features\audio.py:321
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1063
->>>>>>> Stashed changes
 msgid "No API Keys configured."
 msgstr "Ключі API не налаштовано."
 
@@ -1976,15 +1451,9 @@ msgid "[Text extraction in progress or empty]"
 msgstr "[Видобування тексту в процесі]"
 
 #. Translators: Prefix for an AI message line in the Live Assistant history.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:237
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1290
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1306
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:239
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1375
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1391
->>>>>>> Stashed changes
 msgid "AI: "
 msgstr "ШІ: "
 
@@ -2126,30 +1595,17 @@ msgid "Page {page} of {total}"
 msgstr "Сторінка {page} з {total}"
 
 #. Translators: Message reported when extracting text from a file
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:474
-#: addon\globalPlugins\visionAssistant\features\vision.py:750
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:574
 #: addon\globalPlugins\visionAssistant\features\vision.py:794
->>>>>>> Stashed changes
 msgid "Extracting Text..."
 msgstr "Видобування тексту..."
 
 #. Translators: Status message showing page-by-page progress during file OCR.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:529
-#: addon\globalPlugins\visionAssistant\features\vision.py:721
-#: addon\globalPlugins\visionAssistant\features\vision.py:733
-#: addon\globalPlugins\visionAssistant\features\vision.py:795
-#: addon\globalPlugins\visionAssistant\features\vision.py:811
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:631
 #: addon\globalPlugins\visionAssistant\features\vision.py:766
 #: addon\globalPlugins\visionAssistant\features\vision.py:777
 #: addon\globalPlugins\visionAssistant\features\vision.py:838
 #: addon\globalPlugins\visionAssistant\features\vision.py:853
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Processing page {current} of {total}..."
 msgstr "Обробка сторінки {current} із {total}..."
@@ -2278,17 +1734,6 @@ msgstr "Видобування текстового шару..."
 msgid "Batch Processing Started"
 msgstr "Розпочато пакетну обробку"
 
-<<<<<<< Updated upstream
-#. Translators: Status message showing the progress of document scanning. {start} and {end} are page numbers.
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:737
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:800
-#: addon\globalPlugins\visionAssistant\features\vision.py:847
-#, python-brace-format
-msgid "Processing pages {start} to {end}..."
-msgstr "Обробка сторінок {start} до {end}..."
-
-=======
->>>>>>> Stashed changes
 #. Translators: Success message shown when all batches of the document have been processed.
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:884
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:1057
@@ -2404,17 +1849,10 @@ msgid "Audio file generated and saved successfully."
 msgstr "Аудіофайл створено та успішно збережено."
 
 #. Translators: Title for the success message box.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:966
-#: addon\globalPlugins\visionAssistant\dialogs\document.py:1039
-#: addon\globalPlugins\visionAssistant\dialogs\donate.py:55
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1568
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:1207
 #: addon\globalPlugins\visionAssistant\dialogs\document.py:1284
 #: addon\globalPlugins\visionAssistant\dialogs\donate.py:64
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1448
->>>>>>> Stashed changes
 msgid "Success"
 msgstr "Успіх"
 
@@ -3050,29 +2488,17 @@ msgid "Splicing audio based on natural pauses..."
 msgstr "Об'єднання аудіо на основі природних пауз..."
 
 #. Translators: Status message shown when converting the final raw WAV mix to MP3 format.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1550
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1430
->>>>>>> Stashed changes
 msgid "Converting final audio to MP3..."
 msgstr "Конвертування кінцевого аудіо в MP3..."
 
 #. Translators: Message spoken on successful save of the synced narration.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1567
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1447
->>>>>>> Stashed changes
 msgid "Synced extended narration with silence detection saved successfully."
 msgstr ""
 "Синхронізоване розширене озвучування із виявленням пауз успішно збережено."
 
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1568
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1448
->>>>>>> Stashed changes
 msgid ""
 "Synced extended audio narration file generated successfully with smart "
 "silence matching."
@@ -3081,30 +2507,18 @@ msgstr ""
 "пауз успішно згенеровано."
 
 #. Translators: Error message shown when the final MP3 conversion fails.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1571
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1451
->>>>>>> Stashed changes
 msgid "Failed to generate the final MP3 file."
 msgstr "Не вдалося створити остаточний MP3-файл."
 
 #. Translators: Error message shown when narration generation fails.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1576
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1456
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Narration Error: {error}"
 msgstr "Помилка озвучування: {error}"
 
 #. Translators: Message announced when user cancels the process
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\dialogs\media.py:1601
-=======
 #: addon\globalPlugins\visionAssistant\dialogs\media.py:1480
->>>>>>> Stashed changes
 msgid "Process cancelled."
 msgstr "Виконання скасовано."
 
@@ -4061,13 +3475,8 @@ msgid "Typing..."
 msgstr "Друкую..."
 
 #. Translators: Message reported when calling translation command
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\audio.py:204
-#: addon\globalPlugins\visionAssistant\features\vision.py:1439
-=======
 #: addon\globalPlugins\visionAssistant\features\audio.py:118
 #: addon\globalPlugins\visionAssistant\features\vision.py:1502
->>>>>>> Stashed changes
 msgid "Translating..."
 msgstr "Переклад..."
 
@@ -4216,11 +3625,7 @@ msgstr "Що мені зробити, або яке у вас питання?"
 
 #. Translators: Message while processing request of the refine text command
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:162
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:436
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:483
->>>>>>> Stashed changes
 msgid "Processing..."
 msgstr "Обробка..."
 
@@ -4296,13 +3701,8 @@ msgstr "Розв'язувач візуальної КАПЧІ перервано
 msgid "Solving..."
 msgstr "Вирішення..."
 
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\operator_captcha.py:682
-#: addon\globalPlugins\visionAssistant\features\vision.py:1041
-=======
 #: addon\globalPlugins\visionAssistant\features\operator_captcha.py:690
 #: addon\globalPlugins\visionAssistant\features\vision.py:1100
->>>>>>> Stashed changes
 msgid "Capture failed."
 msgstr "Захоплення не вдалося."
 
@@ -4629,31 +4029,19 @@ msgid "Supported Files"
 msgstr "Підтримувані файли"
 
 #. Translators: Title of Refine Result dialog
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:504
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:548
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "{name} - Refine Result"
 msgstr "{name} - Уточнити результат"
 
 #. Translators: Dialog title for Translation results
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:544
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:588
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "{name} - Translation"
 msgstr "{name} - Переклад"
 
 #. Translators: Dialog title for Image Analysis
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:627
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:672
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "{name} - Image Analysis"
 msgstr "{name} – Аналіз зображень"
@@ -4677,48 +4065,28 @@ msgid "No readable pages found."
 msgstr "Читабельних сторінок не знайдено."
 
 #. Translators: Error message shown when the OCR process fails to detect any text in the file or an unknown error occurs during extraction.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:829
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:870
->>>>>>> Stashed changes
 msgid "No text detected or error occurred."
 msgstr "Текст не виявлено або сталася помилка."
 
 #. Translators: Error message shown when the upload fails.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:899
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:939
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Failed to process document batch {start}-{end} after multiple attempts."
 msgstr "Не вдалося обробити пакет документів {start}-{end} після кількох спроб."
 
 #. Translators: Error message shown when the connection to the server times out
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:921
-msgid "Connection Timeout"
-msgstr "Час очікування підключення"
-
-#: addon\globalPlugins\visionAssistant\features\vision.py:922
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:961
 msgid "Connection Timeout"
 msgstr "Час очікування підключення"
 
 #: addon\globalPlugins\visionAssistant\features\vision.py:962
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Failed to process document batch {start}-{end}: {error}"
 msgstr "Не вдалося обробити пакет документів {start}-{end}: {error}"
 
 #. Translators: Message reported when calling an image analysis command
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1037
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1096
->>>>>>> Stashed changes
 msgid "Scanning..."
 msgstr "Сканування..."
 
@@ -4728,58 +4096,33 @@ msgid "OCR operation stopped."
 msgstr "Операцію OCR зупинено."
 
 #. Translators: Message reported when executing the refine command
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1153
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1215
->>>>>>> Stashed changes
 msgid "Uploading file..."
 msgstr "Відвантаження файлу..."
 
 #. Translators: Status reported when an image found in the clipboard is being processed.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1328
-#: addon\globalPlugins\visionAssistant\features\vision.py:1405
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1391
 #: addon\globalPlugins\visionAssistant\features\vision.py:1468
->>>>>>> Stashed changes
 msgid "Processing clipboard image..."
 msgstr "Обробка зображення буфера обміну..."
 
 #. Translators: Message reported when the user tries to show the last result but none is stored.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1378
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1441
->>>>>>> Stashed changes
 msgid "No previous result to show."
 msgstr "Немає попередніх результатів для показу."
 
 #. Translators: Message when calling the command to translate from clipboard
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1420
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1483
->>>>>>> Stashed changes
 msgid "Translating Clipboard..."
 msgstr "Переклад буфера обміну..."
 
 #. Translators: Message when the clipboard contains no text to translate
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1425
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1488
->>>>>>> Stashed changes
 msgid "Clipboard empty."
 msgstr "Буфер обміну порожній."
 
 #. Translators: Message reported when calling translation command
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\features\vision.py:1435
-=======
 #: addon\globalPlugins\visionAssistant\features\vision.py:1498
->>>>>>> Stashed changes
 msgid "No text found."
 msgstr "Текст не знайдено."
 
@@ -4889,11 +4232,7 @@ msgid "Error: Download failed."
 msgstr "Помилка: Помилка завантаження."
 
 #. Translators: Error message displayed when access to the Live voice service is blocked or forbidden (HTTP 403 Forbidden).
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1109
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1153
->>>>>>> Stashed changes
 msgid ""
 "Access denied (HTTP 403 Forbidden). Please check your Proxy/VPN or API key."
 msgstr ""
@@ -4901,149 +4240,85 @@ msgstr ""
 "VPN або ключ API."
 
 #. Translators: Error message announced when connecting to the Live service fails. {error} is replaced with the technical connection error details.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1118
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1162
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Could not connect to the Live service: {error}"
 msgstr "Не вдалося підключитися до служби Live: {error}"
 
 #. Translators: Error shown when the microphone cannot be opened for the live session.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1164
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1209
->>>>>>> Stashed changes
 msgid "Could not open the microphone."
 msgstr "Не вдалося відкрити мікрофон."
 
 #. Translators: Line shown when the live server unexpectedly closes the connection. {reason} is the server's reason.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1220
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1305
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "[Connection closed: {reason}]"
 msgstr "[Підключення закрито: {reason}]"
 
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1220
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1305
->>>>>>> Stashed changes
 msgid "unknown"
 msgstr "невідомий"
 
 #. Translators: Message announced by NVDA when the live voice conversation starts.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1239
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1324
->>>>>>> Stashed changes
 msgid "Live conversation started. You can speak now."
 msgstr "Розмова в режимі Live розпочалася. Тепер ви можете говорити."
 
 #. Translators: Prefix for the user's transcribed speech line in the Live Assistant history.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\media_capture.py:1286
-=======
 #: addon\globalPlugins\visionAssistant\utils\media_capture.py:1371
->>>>>>> Stashed changes
 msgid "You: "
 msgstr "Ви: "
 
 #. Translators: Title of update confirmation dialog
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:30
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:28
->>>>>>> Stashed changes
 msgid "Update Available"
 msgstr "Доступне оновлення"
 
 #. Translators: Message asking user to update. {version} is version number.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:37
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:35
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "A new version ({version}) of {name} is available."
 msgstr "Доступна нова версія ({version}) {name}."
 
 #. Translators: Label for the changes text box
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:42
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:40
->>>>>>> Stashed changes
 msgid "Changes:"
 msgstr "Зміни:"
 
 #. Translators: Question to download and install
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:49
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:47
->>>>>>> Stashed changes
 msgid "Download and Install?"
 msgstr "Завантажити та встановити?"
 
 #. Translators: Button to accept update
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:54
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:52
->>>>>>> Stashed changes
 msgid "&Yes"
 msgstr "&Так"
 
 #. Translators: Button to reject update
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:56
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:54
->>>>>>> Stashed changes
 msgid "&No"
 msgstr "&Ні"
 
 #. Translators: Error message when an update is found but the addon file is missing from GitHub.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:100
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:98
->>>>>>> Stashed changes
 msgid "Update found but no .nvda-addon file in release."
 msgstr "Оновлення знайдено, але у випуску немає файлу .nvda-addon."
 
 #. Translators: Status message informing the user they are already on the latest version.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:104
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:102
->>>>>>> Stashed changes
 msgid "You have the latest version."
 msgstr "У вас остання версія."
 
 #. Translators: Error message shown when the add-on fails to check for updates. The {error} placeholder is replaced with specific error details.
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:109
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:107
->>>>>>> Stashed changes
 #, python-brace-format
 msgid "Update check failed: {error}"
 msgstr "Не вдалося перевірити оновлення: {error}"
 
 #. Translators: Message shown while downloading update
-<<<<<<< Updated upstream
-#: addon\globalPlugins\visionAssistant\utils\updater.py:137
-=======
 #: addon\globalPlugins\visionAssistant\utils\updater.py:135
->>>>>>> Stashed changes
 msgid "Downloading update, please wait..."
 msgstr "Завантаження оновлення, зачекайте..."
 

@@ -1,19 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
-import logging
-import time
-import datetime
 import core
 import ui
-import scriptHandler
 import addonHandler
 import config as nvda_config
 
 from .. import vision_config
-from ..vision_config import ADDON_NAME
 from ..ai.core import AIHandler
-
-log = logging.getLogger(__name__)
 
 addonHandler.initTranslation()
 
@@ -51,13 +44,17 @@ class QuickSettingsMixin:
         elif c == "Text CAPTCHA Method": return _("Full Screen") if nvda_config.conf["VisionAssistant"].get("captcha_mode", "navigator") == "fullscreen" else _("Navigator Object")
         elif c == "Image Description in OCR": return _("On") if nvda_config.conf["VisionAssistant"].get("describe_images_ocr", True) else _("Off")
         elif c == "Document Export Page Numbers": return _("On") if nvda_config.conf["VisionAssistant"].get("document_export_page_numbers", True) else _("Off")
+        elif c == "Copy AI responses to clipboard": return _("On") if nvda_config.conf["VisionAssistant"].get("copy_to_clipboard", False) else _("Off")
+        elif c == "Direct Output (No Chat Window)": return _("On") if nvda_config.conf["VisionAssistant"].get("skip_chat_dialog", False) else _("Off")
+        elif c == "Clean Markdown in Chat": return _("On") if nvda_config.conf["VisionAssistant"].get("clean_markdown_chat", True) else _("Off")
+        elif c == "Smart Swap": return _("On") if nvda_config.conf["VisionAssistant"].get("smart_swap", True) else _("Off")
             
         p = nvda_config.conf["VisionAssistant"]["active_provider"]
         k = "model_name" if c == "AI Model" and p == "gemini" else f"{p}_model_name" if c == "AI Model" else f"{p}_{c.split(' ')[0].lower()}_model"
         return nvda_config.conf["VisionAssistant"].get(k, "")
 
     def _announce_current_quick_setting(self, value_only=False):
-        cats = ["AI Provider", "AI Model", "TTS Voice", "OCR Model", "STT Model", "TTS Model", "Operator / CAPTCHA Model", "Video Model", "Live Model", "Source Language", "Target Language", "AI Response Language", "Visual CAPTCHA Solver", "Text CAPTCHA Method", "OCR Engine", "Image Description in OCR", "Document Export Page Numbers"]
+        cats = ["AI Provider", "AI Model", "TTS Voice", "OCR Model", "STT Model", "TTS Model", "Operator / CAPTCHA Model", "Video Model", "Live Model", "Source Language", "Target Language", "AI Response Language", "Visual CAPTCHA Solver", "Text CAPTCHA Method", "OCR Engine", "Image Description in OCR", "Document Export Page Numbers", "Copy AI responses to clipboard", "Direct Output (No Chat Window)", "Clean Markdown in Chat", "Smart Swap"]
         idx = getattr(self, "_quick_settings_idx", 0)
         c = cats[idx]
         val = self._get_quick_setting_value(c) or "Default"
@@ -69,7 +66,7 @@ class QuickSettingsMixin:
             core.callLater(0, ui.message, msg)
 
     def _change_quick_setting(self, direction):
-        cats = ["AI Provider", "AI Model", "TTS Voice", "OCR Model", "STT Model", "TTS Model", "Operator / CAPTCHA Model", "Video Model", "Live Model", "Source Language", "Target Language", "AI Response Language", "Visual CAPTCHA Solver", "Text CAPTCHA Method", "OCR Engine", "Image Description in OCR", "Document Export Page Numbers"]
+        cats = ["AI Provider", "AI Model", "TTS Voice", "OCR Model", "STT Model", "TTS Model", "Operator / CAPTCHA Model", "Video Model", "Live Model", "Source Language", "Target Language", "AI Response Language", "Visual CAPTCHA Solver", "Text CAPTCHA Method", "OCR Engine", "Image Description in OCR", "Document Export Page Numbers", "Copy AI responses to clipboard", "Direct Output (No Chat Window)", "Clean Markdown in Chat", "Smart Swap"]
         idx = getattr(self, "_quick_settings_idx", 0)
         c = cats[idx]
         
@@ -116,6 +113,14 @@ class QuickSettingsMixin:
             nvda_config.conf["VisionAssistant"]["describe_images_ocr"] = not nvda_config.conf["VisionAssistant"].get("describe_images_ocr", True)
         elif c == "Document Export Page Numbers":
             nvda_config.conf["VisionAssistant"]["document_export_page_numbers"] = not nvda_config.conf["VisionAssistant"].get("document_export_page_numbers", True)
+        elif c == "Copy AI responses to clipboard":
+            nvda_config.conf["VisionAssistant"]["copy_to_clipboard"] = not nvda_config.conf["VisionAssistant"].get("copy_to_clipboard", False)
+        elif c == "Direct Output (No Chat Window)":
+            nvda_config.conf["VisionAssistant"]["skip_chat_dialog"] = not nvda_config.conf["VisionAssistant"].get("skip_chat_dialog", False)
+        elif c == "Clean Markdown in Chat":
+            nvda_config.conf["VisionAssistant"]["clean_markdown_chat"] = not nvda_config.conf["VisionAssistant"].get("clean_markdown_chat", True)
+        elif c == "Smart Swap":
+            nvda_config.conf["VisionAssistant"]["smart_swap"] = not nvda_config.conf["VisionAssistant"].get("smart_swap", True)
         else:
             p = nvda_config.conf["VisionAssistant"]["active_provider"]
             models = self._get_models_for_provider(p)
@@ -138,12 +143,12 @@ class QuickSettingsMixin:
         self._announce_current_quick_setting(value_only=True)
 
     def script_layerDown(self, gesture):
-        self._quick_settings_idx = (getattr(self, '_quick_settings_idx', 0) + 1) % 17
+        self._quick_settings_idx = (getattr(self, '_quick_settings_idx', 0) + 1) % 21
         self._announce_current_quick_setting()
     script_layerDown.keep_layer_alive = True
 
     def script_layerUp(self, gesture):
-        self._quick_settings_idx = (getattr(self, '_quick_settings_idx', 0) - 1) % 17
+        self._quick_settings_idx = (getattr(self, '_quick_settings_idx', 0) - 1) % 21
         self._announce_current_quick_setting()
     script_layerUp.keep_layer_alive = True
 
@@ -154,100 +159,3 @@ class QuickSettingsMixin:
     def script_layerLeft(self, gesture):
         self._change_quick_setting(-1)
     script_layerLeft.keep_layer_alive = True
-
-    # Translators: Script description for 'Reports the number of Gemini API keys that have exceeded their daily quota and their reset time.' in Input Gestures dialog.
-    @scriptHandler.script(description=_("Reports the number of Gemini API keys that have exceeded their daily quota and their reset time."), category=ADDON_NAME)
-    def script_reportQuotaExhaustedKeys(self, gesture):
-        if getattr(self, "toggling", False): self.finish()
-        if not AIHandler.is_gemini():
-            # Translators: Message shown when a user tries to check Gemini API quotas but another provider is active.
-            core.callLater(0, ui.message, _("This feature is only available for Google Gemini."))
-            return
-        try:
-            banned_str = nvda_config.conf["VisionAssistant"].get("banned_gemini_keys", "{}")
-            banned = json.loads(banned_str)
-        except Exception as e:
-            log.warning(f"Parse banned keys failed: {e}")
-            banned = {}
-            
-        now = time.time()
-        unique_keys = {}
-        max_time_per_key = {}
-        
-        for k_m, ban_time in list(banned.items()):
-            if now < ban_time:
-                parts = k_m.split("::")
-                k = parts[0]
-                m = parts[1] if len(parts) > 1 else "Unknown"
-                if k not in unique_keys: unique_keys[k] = []
-                unique_keys[k].append(m)
-                max_time_per_key[k] = max(max_time_per_key.get(k, 0), ban_time)
-            else:
-                del banned[k_m]
-                
-        nvda_config.conf["VisionAssistant"]["banned_gemini_keys"] = json.dumps(banned)
-        
-        if not unique_keys:
-            # Translators: Message when no API keys are out of quota
-            ui.message(_("No API keys have exceeded their daily quota."))
-            return
-            
-        today = datetime.date.today()
-        msg_parts = []
-        for k, models in unique_keys.items():
-            models.sort()
-            max_time = max_time_per_key[k]
-            model_str = ", ".join(models)
-            ban_date = datetime.datetime.fromtimestamp(max_time).date()
-            time_str = time.strftime("%H:%M", time.localtime(max_time))
-            # Translators: Prefix for time when the daily quota resets on the next day
-            if ban_date > today: time_str = _("tomorrow at {time}").format(time=time_str)
-            # Translators: Shows detailed information for a banned API key. {key} is the API key, {model} is the model name, {time_str} is the reset time.
-            key_info = _("Key: {key}\nModel: {model}\nResets around: {time_str}\n").format(key=k, model=model_str, time_str=time_str)
-            msg_parts.append(key_info)
-
-        model_counts = {}
-        for models in unique_keys.values():
-            for m in models: model_counts[m] = model_counts.get(m, 0) + 1
-                
-        summary_parts = []
-        for m, count in model_counts.items():
-            # Translators: Shows how many API keys have exceeded their quota for a specific model. {count} is the number of keys, {model} is the model name.
-            summary_parts.append(_("{count} keys for model {model}").format(count=count, model=m))
-            
-        # Translators: Message shown when API keys run out of quota.
-        summary_msg = ", ".join(summary_parts) + " " + _("have exceeded their daily quota.")
-        final_msg = summary_msg + "\n\n" + "\n".join(msg_parts).strip()
-        # Translators: Title of the browseable message dialog showing exhausted API keys
-        ui.browseableMessage(final_msg, _("Exhausted API Keys"))
-
-    # Translators: Script description for 'Reports the AI models selected in advanced routing.' in Input Gestures dialog.
-    @scriptHandler.script(description=_("Reports the AI models selected in advanced routing."), category=ADDON_NAME)
-    def script_reportSelectedModels(self, gesture):
-        if getattr(self, "toggling", False): self.finish()
-        models = []
-        conf = nvda_config.conf["VisionAssistant"]
-        p = conf.get("active_provider", "gemini")
-        
-        m_key = "model_name" if p == "gemini" else f"{p}_model_name"
-        main_m = conf.get(m_key, "")
-        # Translators: Prefix for main model status
-        if main_m: models.append(_("Main: {model}").format(model=main_m))
-        
-        def add_adv(task, name):
-            m = conf.get(f"{p}_{task}_model", "")
-            if m and "Default" not in m and "Auto" not in m: models.append(f"{name}: {m}")
-                
-        add_adv("ocr", _("OCR"))
-        # Translators: Abbreviation for Speech-to-Text.
-        add_adv("stt", _("STT"))
-        # Translators: Abbreviation for Text-to-Speech.
-        add_adv("tts", _("TTS"))
-        # Translators: Labels for the AI and User in chat history
-        add_adv("operator", _("Operator"))
-        add_adv("video", _("Video"))
-        add_adv("live", _("Live"))
-        
-        # Translators: Message when no specific AI models are selected in advanced routing
-        if not models: ui.message(_("No specific models selected."))
-        else: ui.message(". ".join(models))

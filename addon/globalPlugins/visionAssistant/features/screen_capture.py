@@ -34,7 +34,7 @@ class ScreenCaptureMixin:
                         os.close(fd)
                         if not bmp.SaveFile(path, wx.BITMAP_TYPE_PNG):
                             try: os.remove(path)
-                            except Exception: pass
+                            except Exception as e: log.debug(f"Screenshot temp file removal failed: {e}")
                             path = None
         except Exception as e:
             log.error(f"Clipboard image extraction failed: {e}")

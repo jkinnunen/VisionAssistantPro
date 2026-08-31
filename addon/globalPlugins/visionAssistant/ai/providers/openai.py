@@ -8,6 +8,7 @@ from urllib import request, error
 import config as nvda_config
 import addonHandler
 
+from ...utils import error_contract
 from ...utils.media_capture import get_proxy_opener
 from ...utils.system import strip_thinking_tags
 
@@ -53,7 +54,7 @@ class OpenAIHandler:
             
             for key in keys:
                 res = AIHandler._transcribe_helper(key, audio_att, url, model)
-                if not res.startswith("ERROR:"):
+                if not error_contract.is_ai_error(res):
                     return res
             return res
 

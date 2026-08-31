@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import json
+import re
 import logging
 
 import addonHandler
 import languageHandler
-import config
+import config as nvda_config
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +30,14 @@ CHROME_OCR_KEYS = [
 ]
 
 addonHandler.initTranslation()
+
+LAYER_BUSY_GESTURES = frozenset({
+    "t", "r", "o", "v", "d", "f", "m", "c", "i", "s", "u", "h", "e", "l",
+    "shift+c", "shift+t", "shift+v", "shift+a", "shift+l",
+    "control+v", "control+l", "control+t", "control+h",
+    "alt+s", "alt+q", "alt+m",
+    "nvda+shift+v",
+})
 
 MODELS = [
     # --- 1. Recommended (Auto-Updating) ---
@@ -135,11 +144,58 @@ OPENAI_VOICES = [
 
 try:
     import globalVars
-    LABELS_FILE = os.path.join(globalVars.appArgs.configPath, f"{ADDON_NAME}_labels.json")
-    OCR_PROGRESS_FILE = os.path.join(globalVars.appArgs.configPath, f"{ADDON_NAME}_ocr_progress.json")
+    DATA_DIR = os.path.join(globalVars.appArgs.configPath, "VisionAssistant")
+    LABELS_FILE = os.path.join(DATA_DIR, "labels.json")
+    OCR_PROGRESS_FILE = os.path.join(DATA_DIR, "ocr_progress.json")
+    HISTORY_FILE = os.path.join(DATA_DIR, "history.json")
+    GEMINI_FILE_CACHE_FILE = os.path.join(DATA_DIR, "gemini_file_cache.json")
+    OCR_TEXT_CACHE_FILE = os.path.join(DATA_DIR, "ocr_text_cache.json")
 except Exception:
     LABELS_FILE = f"{ADDON_NAME}_labels.json"
     OCR_PROGRESS_FILE = f"{ADDON_NAME}_ocr_progress.json"
+    HISTORY_FILE = f"{ADDON_NAME}_history.json"
+    GEMINI_FILE_CACHE_FILE = f"{ADDON_NAME}_gemini_file_cache.json"
+    OCR_TEXT_CACHE_FILE = f"{ADDON_NAME}_ocr_text_cache.json"
+
+_MIGRATION_DONE = False
+
+def _migrate_data_dir():
+    global _MIGRATION_DONE
+    if _MIGRATION_DONE:
+        return
+    _MIGRATION_DONE = True
+    try:
+        import shutil
+        import globalVars
+        config_path = globalVars.appArgs.configPath
+        old_prefix = ADDON_NAME + "_"
+        target = os.path.join(config_path, "VisionAssistant")
+        file_map = {
+            f"{ADDON_NAME}_labels.json": "labels.json",
+            f"{ADDON_NAME}_history.json": "history.json",
+            f"{ADDON_NAME}_ocr_progress.json": "ocr_progress.json",
+            f"{ADDON_NAME}_gemini_file_cache.json": "gemini_file_cache.json",
+            f"{ADDON_NAME}_ocr_text_cache.json": "ocr_text_cache.json",
+        }
+        if not os.path.isdir(target):
+            os.makedirs(target, exist_ok=True)
+        for old_name, new_name in file_map.items():
+            src = os.path.join(config_path, old_name)
+            dst = os.path.join(target, new_name)
+            if os.path.isfile(src) and not os.path.isfile(dst):
+                try:
+                    shutil.move(src, dst)
+                except Exception:
+                    pass
+        old_log_dir = os.path.join(config_path, "VisionAssistant_logs")
+        new_log_dir = os.path.join(target, "logs")
+        if os.path.isdir(old_log_dir) and not os.path.isdir(new_log_dir):
+            try:
+                shutil.move(old_log_dir, new_log_dir)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 _LANG_CODES = [
     "af", "ar", "bg", "bn", "bs", "ca", "cs", "da", "de", "el", 
@@ -168,7 +224,7 @@ TARGET_NAMES = [x[0] for x in TARGET_LIST]
 TARGET_CODES = {x[0]: x[1] for x in BASE_LANGUAGES}
 
 def get_lang_name(conf_key):
-    code = config.conf["VisionAssistant"][conf_key]
+    code = nvda_config.conf["VisionAssistant"][conf_key]
     if code == "auto":
         return "Auto-detect"
     return languageHandler.getLanguageDescription(code) or "English"
@@ -261,6 +317,8 @@ confspec = {
     "copy_to_clipboard": "boolean(default=False)",
     "skip_chat_dialog": "boolean(default=False)",
     "live_direct_output": "boolean(default=False)",
+    "live_push_to_talk": "boolean(default=False)",
+    "live_ptt_key": "string(default='')",
     "enable_visual_captcha_solver": "boolean(default=True)",
     "describe_images_ocr": "boolean(default=True)",
     "live_model": "string(default='gemini-3.1-flash-live-preview')",
@@ -273,10 +331,11 @@ confspec = {
     "enable_file_logging": "boolean(default=False)",
     "log_level": "string(default='DEBUG')",
     "log_retention_hours": "integer(default=168, min=1, max=2160)",
-    "tts_voice": "string(default='Puck')"
+    "tts_voice": "string(default='Puck')",
+    "tts_engine": "string(default='standard')"
 }
 
-config.conf.spec["VisionAssistant"] = confspec
+nvda_config.conf.spec["VisionAssistant"] = confspec
 
 LOG_RETENTION_OPTIONS = [
     # Translators: Log retention option: 1 hour
@@ -360,6 +419,18 @@ DEFAULT_SYSTEM_PROMPTS = (
         # Translators: Label for the initial context prompt in document chat.
         "label": _("Document Chat Context"),
         "prompt": "STRICTLY Respond in {response_lang}. Use Markdown formatting. Analyze the attached content to answer.",
+    },
+    {
+        "key": "direct_chat_system",
+        # Translators: Section header for direct chat prompts in Prompt Manager.
+        "section": _("Chat"),
+        # Translators: Label for the Direct Chat system instruction prompt in the Prompt Manager.
+        "label": _("Direct Chat Instruction"),
+        "prompt": (
+            "You are Vision Assistant Pro, a helpful, knowledgeable AI assistant for a blind user "
+            "who relies on the NVDA screen reader. Answer questions clearly and accurately. "
+            "Use Markdown formatting for readability. ALWAYS respond STRICTLY in {response_lang}."
+        ),
     },
     {
         "key": "document_chat_ack",
@@ -471,7 +542,7 @@ DEFAULT_SYSTEM_PROMPTS = (
         "label": "Video Previous Segment Context",
         "internal": True,
         "prompt": (
-            "PREVIOUS SEGMENT DESCRIPTIONS (for context only â€” do NOT repeat these):\n"
+            "PREVIOUS SEGMENT DESCRIPTIONS (for context only — do NOT repeat these):\n"
             "{prev_descriptions}\n\n"
             "You MUST continue describing from where the previous segment ended. "
             "Do NOT re-describe events, scenes, or characters already covered above."
@@ -757,7 +828,7 @@ DEFAULT_SYSTEM_PROMPTS = (
         "section": _("Advanced"),
         # Translators: Label for the advanced visual CAPTCHA solver prompt.
         "label": _("Visual CAPTCHA Solver"),
-        "internal": False,
+        "internal": True,
         "prompt": (
             "You are a UI analysis assistant helping a blind user navigate complex interfaces. Look at the full-screen image. "
             "Coordinates MUST be exact in 0-1000 format. Return coordinates natively as [y, x] where y is the vertical axis (0=top, 1000=bottom) and x is the horizontal axis (0=left, 1000=right). "
@@ -881,6 +952,50 @@ def get_builtin_default_prompts():
 def get_builtin_default_prompt_map():
     return {item["key"]: item for item in get_builtin_default_prompts()}
 
+_HOTKEY_MODIFIER_ALIASES = {"ctrl": "control", "win": "windows", "insert": "nvda"}
+_HOTKEY_ALLOWED_MODIFIERS = frozenset({"alt", "shift", "control", "nvda", "windows"})
+_HOTKEY_MODIFIER_DISPLAY = {
+    "control": "Ctrl",
+    "shift": "Shift",
+    "alt": "Alt",
+    "nvda": "NVDA",
+    "windows": "Win",
+}
+
+
+def _normalize_hotkey(value):
+    if not isinstance(value, str):
+        return ""
+    spec = value.strip().lower()
+    if not spec:
+        return ""
+    parts = spec.split("+")
+    if not parts:
+        return ""
+    key = parts[-1]
+    if not re.fullmatch(r"[a-z0-9]|f(?:1[0-2]|[1-9])", key):
+        return ""
+    modifiers = []
+    for token in parts[:-1]:
+        token = _HOTKEY_MODIFIER_ALIASES.get(token, token)
+        if token not in _HOTKEY_ALLOWED_MODIFIERS:
+            return ""
+        if token not in modifiers:
+            modifiers.append(token)
+    if not modifiers:
+        return key
+    modifiers.sort()
+    return "+".join(modifiers) + "+" + key
+
+
+def _format_hotkey_display(hotkey):
+    if not hotkey:
+        return ""
+    parts = hotkey.split("+")
+    key = parts[-1].upper()
+    display_parts = [_HOTKEY_MODIFIER_DISPLAY.get(token, token.title()) for token in parts[:-1]]
+    return "+".join(display_parts + [key])
+
 def _normalize_custom_prompt_items(items):
     normalized = []
     if not isinstance(items, list):
@@ -896,7 +1011,11 @@ def _normalize_custom_prompt_items(items):
         name = name.strip()
         content = content.strip()
         if name and content:
-            normalized.append({"name": name, "content": content})
+            normalized.append({
+                "name": name,
+                "content": content,
+                "hotkey": _normalize_hotkey(item.get("hotkey")),
+            })
     return normalized
 
 def parse_custom_prompts_v2(raw_value):
@@ -917,7 +1036,7 @@ def serialize_custom_prompts_v2(items):
 
 def load_configured_custom_prompts():
     try:
-        raw_v2 = config.conf["VisionAssistant"]["custom_prompts_v2"]
+        raw_v2 = nvda_config.conf["VisionAssistant"]["custom_prompts_v2"]
     except Exception:
         raw_v2 = ""
     items_v2 = parse_custom_prompts_v2(raw_v2)
@@ -947,7 +1066,7 @@ def _sanitize_default_prompt_overrides(data):
 
 def load_default_prompt_overrides():
     try:
-        raw = config.conf["VisionAssistant"]["default_refine_prompts"]
+        raw = nvda_config.conf["VisionAssistant"]["default_refine_prompts"]
     except Exception:
         raw = ""
     if not isinstance(raw, str) or not raw.strip():
@@ -1020,8 +1139,8 @@ def apply_prompt_template(template, replacements):
         text = text.replace("{" + key + "}", str(value))
         
     if "{image_desc_instruction}" in text:
-        if config.conf["VisionAssistant"].get("describe_images_ocr", True):
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+        if nvda_config.conf["VisionAssistant"].get("describe_images_ocr", True):
+            lang = nvda_config.conf["VisionAssistant"]["ai_response_language"]
             desc_text = get_prompt_text("ocr_image_desc_instruction")
             desc_text = desc_text.replace("{response_lang}", lang)
             text = text.replace("{image_desc_instruction}", desc_text)

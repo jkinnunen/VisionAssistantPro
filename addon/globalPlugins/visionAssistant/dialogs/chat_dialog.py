@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 import os
+import time
 import logging
 import threading
 
 import wx
 import addonHandler
-import config
+import config as nvda_config
 import api
 import ui
 
 from .. import plugin_state
 from ..prompt_utils import clean_markdown, markdown_to_html
+from ..utils.error_contract import is_ai_error, ai_error_message
 from ..utils.system import show_error_dialog, get_file_path
 
 log = logging.getLogger(__name__)
@@ -30,6 +32,9 @@ class VisionQADialog(wx.Dialog):
         self.allow_questions = allow_questions
         self.allow_attachments = allow_attachments
         self.attached_files = []
+        self._session_attachments = []
+        self._nav_messages = []
+        self._nav_index = -1
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         # Translators: Label for the AI response text area in a chat dialog
@@ -39,7 +44,7 @@ class VisionQADialog(wx.Dialog):
         self.outputArea = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
         mainSizer.Add(self.outputArea, 1, wx.EXPAND | wx.ALL, 5)
 
-        self.should_clean = config.conf["VisionAssistant"]["clean_markdown_chat"]
+        self.should_clean = nvda_config.conf["VisionAssistant"]["clean_markdown_chat"]
 
         display_text = None
         history_to_restore = extra_info.get('restore_history') if extra_info else None
@@ -51,18 +56,21 @@ class VisionQADialog(wx.Dialog):
                 if role == "user":
                     # Translators: Format for displaying User message in a chat dialog
                     msg = _("\nYou: {text}\n").format(text=text)
+                    self._add_nav_message(text, "user")
                 else:
                     disp = clean_markdown(text) if self.should_clean else text
                     # Translators: Format for displaying AI message in a chat dialog
                     msg = _("AI: {text}\n").format(text=disp)
                     display_text = disp
+                    self._add_nav_message(disp, "model")
                 self.outputArea.AppendText(msg)
         else:
             display_text = clean_markdown(initial_text) if self.should_clean else initial_text
             if display_text:
                 init_msg = _("AI: {text}\n").format(text=display_text)
                 self.outputArea.AppendText(init_msg)
-                if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+                self._add_nav_message(display_text, "model")
+                if nvda_config.conf["VisionAssistant"]["copy_to_clipboard"] and not (extra_info and extra_info.get('skip_init_copy')):
                     api.copyToClip(raw_content if raw_content else display_text)
 
             if not (extra_info and extra_info.get('skip_init_history')):
@@ -71,13 +79,18 @@ class VisionQADialog(wx.Dialog):
             if plugin_state.plugin_instance:
                 plugin_state.plugin_instance._last_chat_history = self.chat_history[:]
 
+        restore_attachments = extra_info.get('restore_attachments') if extra_info else None
+        if restore_attachments:
+            self._session_attachments = [a.get("path") for a in restore_attachments if a.get("path") and os.path.exists(a.get("path"))]
+            self.attached_files = list(self._session_attachments)
+
         self.inputArea = None
         if allow_questions:
             # Translators: Label for user input field in a chat dialog
             ask_text = _("Ask:")
             inputLbl = wx.StaticText(self, label=ask_text)
             mainSizer.Add(inputLbl, 0, wx.ALL, 5)
-            self.inputArea = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_PROCESS_TAB, size=(-1, 60))
+            self.inputArea = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 60))
             mainSizer.Add(self.inputArea, 0, wx.EXPAND | wx.ALL, 5)
 
         btnSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -88,6 +101,8 @@ class VisionQADialog(wx.Dialog):
                 # Translators: Button to attach files in a chat dialog
                 self.attachBtn = wx.Button(self, label=_("&Attach File"))
                 self.attachBtn.Bind(wx.EVT_BUTTON, self.on_attach_file)
+                if self._session_attachments:
+                    self.attachBtn.SetLabel(_("Attach File ({count})").format(count=len(self._session_attachments)))
             # Translators: Button to send message in a chat dialog
             self.askBtn = wx.Button(self, label=_("Send"))
         # Translators: Button to view the content in a formatted HTML window
@@ -116,6 +131,8 @@ class VisionQADialog(wx.Dialog):
         mainSizer.Add(btnSizer, 0, wx.ALIGN_RIGHT)
 
         self.SetSizer(mainSizer)
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
         if self.inputArea:
             self.inputArea.SetFocus()
         else:
@@ -128,6 +145,49 @@ class VisionQADialog(wx.Dialog):
         if display_text and self.announce_on_open:
             wx.CallLater(300, ui.message, display_text)
             
+    def on_close(self, event):
+        self._save_to_history()
+        if plugin_state.plugin_instance:
+            plugin_state.plugin_instance.current_status = _("Idle")
+        event.Skip()
+
+    def _save_to_history(self):
+        try:
+            if not any(m.get("role") == "user" for m in self.chat_history):
+                return
+            from .. import vision_config
+            from ..utils.storage import HistoryStore
+            user_msgs = [m for m in self.chat_history if m.get("role") == "user"]
+            first_text = user_msgs[0].get("parts", [{}])[0].get("text", "")
+            subtitle = " ".join(first_text.split())[:60]
+            attachments = []
+            for path in self._session_attachments:
+                if not os.path.exists(path):
+                    continue
+                rec = {"path": path}
+                try:
+                    from ..utils.system import get_mime_type
+                    rec["mime_type"] = get_mime_type(path)
+                except Exception:
+                    pass
+                attachments.append(rec)
+            item_id = (self.extra_info or {}).get("history_id")
+            if not item_id:
+                item_id = "chat|" + str(time.time())
+            item = {
+                "id": item_id,
+                "type": "chat",
+                "title": self.GetTitle(),
+                "subtitle": subtitle,
+                "timestamp": time.time(),
+                "data": {"history": self.chat_history[-40:], "attachments": attachments},
+            }
+            HistoryStore(vision_config.HISTORY_FILE).save(item)
+            if plugin_state.plugin_instance:
+                plugin_state.plugin_instance._last_chat_id = item_id
+        except Exception as e:
+            log.debug(f"Chat history save failed: {e}")
+
     def onInputKeyDown(self, event):
 
         if event.GetKeyCode() == wx.WXK_RETURN and not event.ShiftDown():
@@ -135,7 +195,69 @@ class VisionQADialog(wx.Dialog):
         
         else:
             event.Skip()
-            
+
+    def on_char_hook(self, event):
+        if event.AltDown():
+            key = event.GetKeyCode()
+            if key == wx.WXK_UP:
+                self._read_prev_message()
+                return
+            if key == wx.WXK_DOWN:
+                self._read_next_message()
+                return
+            if key == ord('C'):
+                self._copy_current_message()
+                return
+        event.Skip()
+
+    def _add_nav_message(self, text, role="model"):
+        if not text:
+            return
+        self._nav_messages.append((role, text))
+        self._nav_index = len(self._nav_messages) - 1
+
+    def _read_prev_message(self):
+        if not self._nav_messages:
+            return
+        if self._nav_index > 0:
+            self._nav_index -= 1
+        self._speak_nav_message(self._nav_index)
+
+    def _read_next_message(self):
+        if not self._nav_messages:
+            return
+        if self._nav_index < len(self._nav_messages) - 1:
+            self._nav_index += 1
+        self._speak_nav_message(self._nav_index)
+
+    def _speak_nav_message(self, index):
+        role, text = self._nav_messages[index]
+        if role == "user":
+            prefix = _("\nYou: {text}\n").format(text="").strip()
+        else:
+            prefix = _("AI: {text}\n").format(text="").strip()
+        if prefix:
+            prefix += " "
+        if index == 0:
+            # Translators: Announced before the first message when reviewing a chat conversation with Alt+Up/Down.
+            boundary = _("First message")
+            ui.message(boundary + ". " + prefix + text)
+        elif index == len(self._nav_messages) - 1:
+            # Translators: Announced before the last message when reviewing a chat conversation with Alt+Up/Down.
+            boundary = _("Last message")
+            ui.message(boundary + ". " + prefix + text)
+        else:
+            ui.message(prefix + text)
+
+    def _copy_current_message(self):
+        if not self._nav_messages or self._nav_index < 0:
+            return
+        _role, text = self._nav_messages[self._nav_index]
+        if text:
+            api.copyToClip(text)
+            # Translators: Announced when the currently selected chat message is copied to the clipboard.
+            ui.message(_("Copied."))
+
     def onAsk(self, event):
         if not self.inputArea:
             return
@@ -143,6 +265,7 @@ class VisionQADialog(wx.Dialog):
         if not (question.strip() or self.attached_files): return
         user_msg = _("\nYou: {text}\n").format(text=question)
         self.outputArea.AppendText(user_msg)
+        self._add_nav_message(question, "user")
         self.inputArea.Clear()
         # Translators: Message shown while processing in a chat dialog
         msg = _("Thinking...")
@@ -167,6 +290,8 @@ class VisionQADialog(wx.Dialog):
             if fileDialog.ShowModal() == wx.ID_OK:
                 path = fileDialog.GetPath()
                 self.attached_files.append(path)
+                if path not in self._session_attachments:
+                    self._session_attachments.append(path)
                 # Translators: Label for attach button when files are attached
                 self.attachBtn.SetLabel(_("Attach File ({count})").format(count=len(self.attached_files)))
                 ui.message(_("File attached: {name}").format(name=os.path.basename(path)))
@@ -178,8 +303,8 @@ class VisionQADialog(wx.Dialog):
 
             response_text, _unused = result_tuple if result_tuple else (None, None)
             if response_text:
-                if response_text.startswith("ERROR:"):
-                    wx.CallAfter(show_error_dialog, response_text[6:])
+                if is_ai_error(response_text):
+                    wx.CallAfter(show_error_dialog, ai_error_message(response_text))
                     if plugin_state.plugin_instance:
                         # Translators: Error message shown when uploading a video file fails.
                         plugin_state.plugin_instance.current_status = _("Idle")
@@ -192,6 +317,8 @@ class VisionQADialog(wx.Dialog):
                 
                 final_text = clean_markdown(response_text) if self.should_clean else response_text
                 wx.CallAfter(self.update_response, final_text, response_text)
+                if plugin_state.plugin_instance:
+                    plugin_state.plugin_instance.current_status = _("Idle")
         except Exception as e:
             log.error(f"Process question failed: {e}", exc_info=True)
             wx.CallAfter(show_error_dialog, str(e))
@@ -213,8 +340,9 @@ class VisionQADialog(wx.Dialog):
             self.saveContentBtn.Enable(True)
         ai_msg = _("AI: {text}\n").format(text=display_text)
         self.outputArea.AppendText(ai_msg)
+        self._add_nav_message(display_text, "model")
         self.saveBtn.Enable(True)
-        if config.conf["VisionAssistant"]["copy_to_clipboard"]:
+        if nvda_config.conf["VisionAssistant"]["copy_to_clipboard"]:
             api.copyToClip(raw_text if raw_text else display_text)
         self.outputArea.ShowPosition(self.outputArea.GetLastPosition())
         ui.message(display_text)

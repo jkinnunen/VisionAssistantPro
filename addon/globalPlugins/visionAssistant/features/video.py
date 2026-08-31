@@ -25,7 +25,7 @@ import config as nvda_config
 
 from .. import vision_config
 from ..vision_config import ADDON_NAME
-from ..ai.core import AIHandler
+from ..ai.core import AIHandler, is_ai_error, ai_error_message
 from ..ai.providers.gemini import GeminiHandler
 from ..utils.media_capture import (
     _LocalVideoSource, _DownloadVideoSource, _YouTubeVideoSource, _InvalidVideoSource, get_proxy_opener,
@@ -330,12 +330,13 @@ class VideoMixin:
                 try:
                     if len(parts) == 2: return float(parts[0])*60 + float(parts[1])
                     if len(parts) >= 3: return float(parts[0])*3600 + float(parts[1])*60 + float(parts[2])
-                except Exception: pass
+                except Exception as e: log.debug(f"Timestamp HH:MM:SS parse failed for {val!r}: {e}")
             try: return float(val)
-            except Exception: pass
+            except Exception as e: log.debug(f"Timestamp float parse failed for {val!r}: {e}")
         return 0.0
 
     def _run_video_analysis(self, source, is_srt_mode=False, prog_dlg=None, manual_duration_sec=None):
+        log.info(f"Video analysis started: srt={is_srt_mode}, source={getattr(source, 'log_label', source.__class__.__name__)}")
         intervals = []
         master_data_list = []
         final_res_string = ""
@@ -357,13 +358,41 @@ class VideoMixin:
             if h > 0: return f"{h:02d}:{m:02d}:{s:02d}"
             return f"{m:02d}:{s:02d}"
 
-        def is_char_in_segment(c_obj, seg_start, seg_end):
-            if seg_end == -1: return True
-            if not isinstance(c_obj, dict): return True
+        def char_ranges(c_obj):
+            if not isinstance(c_obj, dict):
+                return None
+            out = []
+            ranges = c_obj.get('appearance_ranges') or c_obj.get('appearanceRanges')
+            if isinstance(ranges, list):
+                for r in ranges:
+                    if isinstance(r, (list, tuple)) and len(r) >= 2:
+                        s, e = self.parse_sec(r[0]), self.parse_sec(r[1])
+                    elif isinstance(r, dict):
+                        s, e = self.parse_sec(r.get('start', 0)), self.parse_sec(r.get('end', 0))
+                    else:
+                        continue
+                    if s <= 0 or e <= 0 or e < s:
+                        continue
+                    out.append((s, e))
+            if out:
+                return out
             first_s = self.parse_sec(c_obj.get('first_appeared_sec', 0))
             last_s = self.parse_sec(c_obj.get('last_appeared_sec', 999999))
-            if last_s <= 0: last_s = 999999
-            return (first_s <= seg_end) and (last_s >= seg_start)
+            if last_s <= 0:
+                last_s = 999999
+            return [(first_s, last_s)]
+
+        def char_first_last(c_obj):
+            ranges = char_ranges(c_obj)
+            if not ranges:
+                return (0, 999999)
+            return (min(s for s, e in ranges), max(e for s, e in ranges))
+
+        def is_char_in_segment(c_obj, seg_start, seg_end):
+            if seg_end == -1: return True
+            ranges = char_ranges(c_obj)
+            if not ranges: return True
+            return any((s <= seg_end) and (e >= seg_start) for s, e in ranges)
 
         def report(msg, speak=True):
             if abort_check(): return
@@ -382,12 +411,11 @@ class VideoMixin:
 
             if prog_dlg is not None:
                 try: wx.CallAfter(prog_dlg.txt_status.SetValue, display_text)
-                except Exception: pass
+                except Exception as e: log.debug(f"Progress dialog update failed: {e}")
                 if speak:
-                    self.current_status = msg
-                    core.callLater(0, ui.message, msg)
+                    self.report_status(msg)
             else:
-                if speak: core.callLater(0, self.report_status, msg)
+                if speak: self.report_status(msg)
 
         try:
             if not source.prepare(report, abort_check):
@@ -453,7 +481,7 @@ class VideoMixin:
                     prog_dlg.file_uri = file_uri
                     prog_dlg.current_key = current_key
 
-                if char_res and not char_res.startswith("ERROR:"):
+                if char_res and not is_ai_error(char_res):
                     try:
                         clean_json = char_res.strip()
                         if "```json" in clean_json: clean_json = clean_json.split("```json")[1].split("```")[0].strip()
@@ -465,7 +493,7 @@ class VideoMixin:
                                 for v in char_data.values():
                                     if isinstance(v, list): chars = v; break
                             if not chars and isinstance(char_data, list): chars = char_data
-                        except Exception: pass
+                        except Exception as e: log.debug(f"Character extraction JSON parse failed: {e}")
 
                         if not chars:
                             names = re.findall(r'"name"\s*:\s*"([^"]+)"', clean_json, re.IGNORECASE)
@@ -479,12 +507,11 @@ class VideoMixin:
                                 if isinstance(c, dict):
                                     n = c.get('name') or c.get('Name') or 'Unknown'
                                     d = c.get('description') or c.get('Description') or ''
-                                    first_s = self.parse_sec(c.get('first_appeared_sec', 0))
-                                    last_s = self.parse_sec(c.get('last_appeared_sec', 0))
+                                    first_s, last_s = char_first_last(c)
                                     
                                     time_tag = ""
-                                    if first_s > 0 and last_s > 0: time_tag = f" [{fmt_time_short(first_s)}-{fmt_time_short(last_s)}]"
-                                    elif first_s > 0: time_tag = f" [{fmt_time_short(first_s)}]"
+                                    if 0 < first_s < 999999 and 0 < last_s < 999999: time_tag = f" [{fmt_time_short(first_s)}-{fmt_time_short(last_s)}]"
+                                    elif 0 < first_s < 999999: time_tag = f" [{fmt_time_short(first_s)}]"
 
                                     full_ctx_lines.append(f"- {n}{time_tag}: {d}")
                                 elif isinstance(c, str):
@@ -572,7 +599,7 @@ class VideoMixin:
                     prog_dlg.file_uri = file_uri
                     prog_dlg.current_key = current_key
 
-                if not seg_res or seg_res.startswith("ERROR:"):
+                if not seg_res or is_ai_error(seg_res):
                     segment_success = False
                     break
 
@@ -599,9 +626,11 @@ class VideoMixin:
                                             label = d.get("label", d.get("text", "")).strip()
                                             s = d.get("start", "")
                                             if label: recent.append(f"[{s}] {label}")
-                                except Exception: continue
+                                except Exception as e:
+                                    log.debug(f"Description timestamp parse skipped: {e}")
+                                    continue
                             if recent: prev_descriptions = "\n".join(recent[-10:])
-                    except Exception: pass
+                    except Exception as e: log.debug(f"Previous descriptions build failed: {e}")
                 else:
                     if len(intervals) > 1:
                         final_res_string += f"\n\n--- [Part {seg_idx + 1}: {start_str} - {end_str}] ---\n" + seg_res
@@ -642,7 +671,7 @@ class VideoMixin:
                     wx.CallAfter(setattr, self, 'current_status', _("Idle"))
             else:
                 # Translators: Error message reported when video segment analysis fails after multiple retries due to network issues.
-                report_err = seg_res[6:] if seg_res and seg_res.startswith("ERROR:") else _("Connection failed after retries.")
+                report_err = ai_error_message(seg_res) if seg_res and is_ai_error(seg_res) else _("Connection failed after retries.")
                 log.error(f"Video analysis failed permanently: {report_err}")
                 if prog_dlg: wx.CallAfter(prog_dlg.on_error, report_err)
                 else: wx.CallAfter(show_error_dialog, report_err)
@@ -748,7 +777,7 @@ class VideoMixin:
             try: self.recording_process.communicate(input=b'q', timeout=5)
             except Exception:
                 try: self.recording_process.terminate()
-                except Exception: pass
+                except Exception as e: log.debug(f"Recording process terminate failed: {e}")
             time.sleep(0.5)
             duration = time.time() - self.recording_start_time if self.recording_start_time else 0
             tones.beep(400, 100)
@@ -790,7 +819,7 @@ class VideoMixin:
             )
 
             if res:
-                if res.startswith("ERROR:"): wx.CallAfter(show_error_dialog, res[6:])
+                if is_ai_error(res): wx.CallAfter(show_error_dialog, ai_error_message(res))
                 else:
                     wx.CallAfter(self._open_doc_chat_dialog, res, [{'mime_type': 'video/mp4', 'file_uri': file_uri}], res, res)
 
@@ -803,7 +832,7 @@ class VideoMixin:
             self.recording_process = None
             if self.recording_output_path and os.path.exists(self.recording_output_path):
                 try: os.remove(self.recording_output_path)
-                except Exception: pass
+                except Exception as e: log.debug(f"Recording temp file removal failed: {e}")
             self.recording_output_path = None
             self.recording_start_time = None
 

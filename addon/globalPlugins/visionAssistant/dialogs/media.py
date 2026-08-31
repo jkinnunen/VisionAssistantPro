@@ -3,10 +3,7 @@ import os
 import sys
 import threading
 import logging
-import base64
-import json
 import re
-import time
 import subprocess
 import wave
 import shutil
@@ -16,7 +13,7 @@ import zipfile
 import wx
 
 import addonHandler
-import config
+import config as nvda_config
 import ui
 import core
 import gui
@@ -28,9 +25,8 @@ import comtypes.client
 from .. import vision_config
 from .. import plugin_state
 from ..ai.core import AIHandler
-from ..ai.providers.gemini import GeminiHandler
 from ..utils.system import show_error_dialog
-from ..utils.media_capture import get_proxy_opener, _MinimalWebSocket, ensure_ffmpeg
+from ..utils.media_capture import get_proxy_opener, GeminiLiveTTS, ensure_ffmpeg
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +38,7 @@ lib_dir = os.path.join(os.path.dirname(__file__), "..", "lib")
 class LiveAssistantDialog(wx.Dialog):
     instance = None
 
-    def __init__(self, parent, start_callback, end_callback):
+    def __init__(self, parent, start_callback, end_callback, initial_history=""):
         # Translators: Title of the Live Assistant conversation window.
         title_text = _("{name} - Live Assistant").format(name=vision_config.ADDON_NAME)
         super().__init__(parent, title=title_text, size=(500, 500), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -57,6 +53,9 @@ class LiveAssistantDialog(wx.Dialog):
         # Translators: Label for the conversation history area in the Live Assistant window.
         sizer.Add(wx.StaticText(panel, label=_("Conversation:")), 0, wx.ALL, 5)
         self.history = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        if initial_history:
+            self.history.SetValue(initial_history)
+            self.history.SetInsertionPointEnd()
         sizer.Add(self.history, 1, wx.EXPAND | wx.ALL, 5)
 
         hbox_voice = wx.BoxSizer(wx.HORIZONTAL)
@@ -64,7 +63,7 @@ class LiveAssistantDialog(wx.Dialog):
         hbox_voice.Add(wx.StaticText(panel, label=_("&TTS Voice:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
         self.voice_sel = wx.Choice(panel, choices=[f"{v[0]} - {v[1]}" for v in vision_config.GEMINI_VOICES])
-        curr_voice = config.conf["VisionAssistant"].get("tts_voice", "Puck")
+        curr_voice = nvda_config.conf["VisionAssistant"].get("tts_voice", "Puck")
         for i, v in enumerate(vision_config.GEMINI_VOICES):
             if v[0] == curr_voice:
                 self.voice_sel.SetSelection(i)
@@ -92,7 +91,7 @@ class LiveAssistantDialog(wx.Dialog):
             (_("High (Deep)"), "high")
         ]
         self.thinking_sel = wx.Choice(panel, choices=[x[0] for x in self.thinking_choices])
-        curr_thinking = config.conf["VisionAssistant"].get("live_thinking_level", "medium")
+        curr_thinking = nvda_config.conf["VisionAssistant"].get("live_thinking_level", "medium")
         for i, x in enumerate(self.thinking_choices):
             if x[1] == curr_thinking:
                 self.thinking_sel.SetSelection(i)
@@ -103,6 +102,17 @@ class LiveAssistantDialog(wx.Dialog):
         self.thinking_sel.Bind(wx.EVT_CHOICE, self.on_thinking_change)
         hbox_thinking.Add(self.thinking_sel, 1, wx.EXPAND)
         sizer.Add(hbox_thinking, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Translators: Checkbox in the Live Assistant window to enable push-to-talk mode.
+        self.ptt_check = wx.CheckBox(panel, label=_("Push to &Talk"))
+        self.ptt_check.Value = bool(nvda_config.conf["VisionAssistant"].get("live_push_to_talk", False))
+        self.ptt_check.Bind(wx.EVT_CHECKBOX, self.on_ptt_change)
+        sizer.Add(self.ptt_check, 0, wx.ALL, 5)
+
+        # Translators: Read-only label showing the assigned push-to-talk key in the Live Assistant window.
+        self.ptt_key_label = wx.StaticText(panel, label="")
+        sizer.Add(self.ptt_key_label, 0, wx.LEFT | wx.RIGHT, 5)
+        self._update_ptt_key_label()
 
         # Translators: Button that ends the live voice conversation.
         self.toggle_btn = wx.Button(panel, label=_("&End"))
@@ -122,7 +132,7 @@ class LiveAssistantDialog(wx.Dialog):
     def on_voice_change(self, event):
         sel = self.voice_sel.GetSelection()
         if sel != wx.NOT_FOUND:
-            config.conf["VisionAssistant"]["tts_voice"] = vision_config.GEMINI_VOICES[sel][0]
+            nvda_config.conf["VisionAssistant"]["tts_voice"] = vision_config.GEMINI_VOICES[sel][0]
             if self.is_active:
                 # Translators: Message shown in conversation log when voice is changed
                 self.append_line(_("--- Changing voice, reconnecting... ---"))
@@ -131,11 +141,30 @@ class LiveAssistantDialog(wx.Dialog):
     def on_thinking_change(self, event):
         sel = self.thinking_sel.GetSelection()
         if sel != wx.NOT_FOUND:
-            config.conf["VisionAssistant"]["live_thinking_level"] = self.thinking_choices[sel][1]
+            nvda_config.conf["VisionAssistant"]["live_thinking_level"] = self.thinking_choices[sel][1]
             if self.is_active:
                 # Translators: Message shown in conversation log when thinking depth is changed
                 self.append_line(_("--- Changing thinking depth, reconnecting... ---"))
                 self._restart_session()
+
+    def on_ptt_change(self, event):
+        enabled = bool(self.ptt_check.Value)
+        nvda_config.conf["VisionAssistant"]["live_push_to_talk"] = enabled
+        inst = plugin_state.plugin_instance
+        if inst and getattr(inst, "live_session", None):
+            inst.live_session.set_push_to_talk(enabled)
+
+    def _update_ptt_key_label(self):
+        from ..prompt_utils import ptt_key_display
+        key = nvda_config.conf["VisionAssistant"].get("live_ptt_key", "")
+        display = ptt_key_display(key)
+        if display:
+            # Translators: Label showing the assigned push-to-talk key in the Live Assistant window. {key} is replaced with the key name.
+            self.ptt_key_label.SetLabel(_("Push to Talk Key: {key}").format(key=display))
+            self.ptt_key_label.Show()
+        else:
+            self.ptt_key_label.SetLabel("")
+            self.ptt_key_label.Hide()
 
     def _restart_session(self):
         if self.end_callback:
@@ -196,14 +225,14 @@ class DubbingDialog(wx.Dialog):
         if not is_dubbing:
             g_sizer.Add(wx.StaticText(self, label=_("Source:")), 0, wx.ALIGN_CENTER_VERTICAL)
             self.cmb_source = wx.Choice(self, choices=vision_config.SOURCE_NAMES)
-            curr_s_code = config.conf["VisionAssistant"]["source_language"]
+            curr_s_code = nvda_config.conf["VisionAssistant"]["source_language"]
             s_idx = next((i for i, x in enumerate(vision_config.SOURCE_LIST) if x[1] == curr_s_code), 0)
             self.cmb_source.SetSelection(s_idx)
             g_sizer.Add(self.cmb_source, 1, wx.EXPAND)
 
         g_sizer.Add(wx.StaticText(self, label=_("Target:")), 0, wx.ALIGN_CENTER_VERTICAL)
         self.cmb_target = wx.Choice(self, choices=vision_config.TARGET_NAMES)
-        curr_t_code = config.conf["VisionAssistant"]["target_language"]
+        curr_t_code = nvda_config.conf["VisionAssistant"]["target_language"]
         t_idx = next((i for i, x in enumerate(vision_config.TARGET_LIST) if x[1] == curr_t_code), 0)
         self.cmb_target.SetSelection(t_idx)
         g_sizer.Add(self.cmb_target, 1, wx.EXPAND)
@@ -270,13 +299,13 @@ class VideoSourceDialog(wx.Dialog):
 
         # Translators: Checkbox label to add character list as the first subtitle in video SRT output.
         self.chars_as_sub_check = wx.CheckBox(self, label=_("Add character list as first subtitle"))
-        self.chars_as_sub_check.SetValue(config.conf["VisionAssistant"].get("video_chars_as_subtitle", True))
+        self.chars_as_sub_check.SetValue(nvda_config.conf["VisionAssistant"].get("video_chars_as_subtitle", True))
         sizer.Add(self.chars_as_sub_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         self.chars_as_sub_check.Show(False)
 
         # Translators: Checkbox label to add an AI warning disclaimer at the beginning of the video SRT output.
         self.disclaimer_check = wx.CheckBox(self, label=_("Add AI disclaimer at the beginning"))
-        self.disclaimer_check.SetValue(config.conf["VisionAssistant"].get("video_add_disclaimer", True))
+        self.disclaimer_check.SetValue(nvda_config.conf["VisionAssistant"].get("video_add_disclaimer", True))
         sizer.Add(self.disclaimer_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         self.disclaimer_check.Show(False)
 
@@ -370,7 +399,7 @@ class VideoSRTProgressDialog(wx.Dialog):
         self.gemini_voice_sel = wx.Choice(self, choices=gemini_choices)
         self.hbox_gemini_voice.Add(self.gemini_voice_sel, 1, wx.EXPAND)
 
-        curr_g_voice = config.conf["VisionAssistant"].get("tts_voice", "Puck")
+        curr_g_voice = nvda_config.conf["VisionAssistant"].get("tts_voice", "Puck")
         g_idx = next((i for i, v in enumerate(vision_config.GEMINI_VOICES) if v[0] == curr_g_voice), 0)
         if self.gemini_voice_sel.GetCount() > 0:
             self.gemini_voice_sel.SetSelection(g_idx)
@@ -668,7 +697,7 @@ class VideoSRTProgressDialog(wx.Dialog):
                             status_msg = _("Downloading eSpeak-NG: {percent}%").format(percent=percent)
                             wx.CallAfter(self.txt_status.SetValue, status_msg)
                             if downloaded % (2 * 1024 * 1024) < 1024 * 1024:
-                                core.callLater(0, ui.message, status_msg)
+                                plugin_state.speak_status(status_msg)
 
             # Translators: Status message when extracting eSpeak-NG
             core.callLater(0, self.update_status, _("Extracting eSpeak-NG..."))
@@ -676,7 +705,7 @@ class VideoSRTProgressDialog(wx.Dialog):
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(espeak_dir)
             try: os.remove(zip_path)
-            except Exception: pass
+            except Exception as e: log.debug(f"eSpeak zip removal failed: {e}")
 
             if os.path.exists(exe_path):
                 # Translators: Success message after eSpeak-NG download completes
@@ -772,8 +801,9 @@ class VideoSRTProgressDialog(wx.Dialog):
         if self.abort: return
         self.txt_status.SetValue(msg)
         if plugin_state.plugin_instance:
-            plugin_state.plugin_instance.current_status = msg
-        ui.message(msg)
+            plugin_state.plugin_instance.report_status(msg)
+        else:
+            ui.message(msg)
 
     def on_finished(self, srt_content):
         if self.abort: return
@@ -926,7 +956,7 @@ class VideoSRTProgressDialog(wx.Dialog):
             g_sel = self.gemini_voice_sel.GetSelection()
             if g_sel != wx.NOT_FOUND:
                 gemini_voice = vision_config.GEMINI_VOICES[g_sel][0]
-                config.conf["VisionAssistant"]["tts_voice"] = gemini_voice
+                nvda_config.conf["VisionAssistant"]["tts_voice"] = gemini_voice
 
         espeak_variant = ""
         if str(voice_id).startswith("espeak"):
@@ -1035,7 +1065,7 @@ class VideoSRTProgressDialog(wx.Dialog):
         ui.message(_("Generating offline synced narration. This may take a few moments..."))
         threading.Thread(target=self._offline_tts_worker, args=(blocks, output_path, voice_id, espeak_variant, ffmpeg_path, video_path, mode_selection, apply_ducking, gemini_voice), daemon=True).start()
 
-    def _detect_silences(self, ffmpeg_path, video_path, noise_db=-32, duration_sec=0.3):
+    def _detect_silences_ffmpeg(self, ffmpeg_path, video_path, duration_sec=0.3):
         startupinfo = None
         creationflags = 0
         if sys.platform == "win32":
@@ -1101,11 +1131,9 @@ class VideoSRTProgressDialog(wx.Dialog):
                 return (start + end) // 2
 
         best_time = target_ms
-        min_diff = float('inf')
+        best_score = None
 
         for start, end in silences:
-            midpoint = (start + end) // 2
-
             if target_ms < start:
                 dist = start - target_ms
             elif target_ms > end:
@@ -1113,9 +1141,16 @@ class VideoSRTProgressDialog(wx.Dialog):
             else:
                 dist = 0
 
-            if dist < min_diff and dist <= max_shift_ms:
-                min_diff = dist
-                best_time = midpoint
+            if dist > max_shift_ms:
+                continue
+
+            dur_sec = (end - start) / 1000.0
+            duration_bonus = min(dur_sec * 1000.0, 2500.0)
+            score = dist - duration_bonus
+
+            if best_score is None or score < best_score:
+                best_score = score
+                best_time = (start + end) // 2
 
         return best_time
 
@@ -1172,121 +1207,17 @@ class VideoSRTProgressDialog(wx.Dialog):
                 if mode_selection == 1:
                     # Translators: Status message shown when analyzing the video's audio to detect periods of silence.
                     core.callLater(0, self.update_status, _("Analyzing video for natural silences..."))
-                    silences = self._detect_silences(ffmpeg_path, video_path, noise_db=-32, duration_sec=0.3)
+                    silences = self._detect_silences_ffmpeg(ffmpeg_path, video_path, duration_sec=0.3)
             else:
                 total_orig_ms = blocks[-1]['end_ms'] + 2000
 
-            gemini_ws_state = {"ws": None}
-
-            def ensure_gemini_connection():
-                if gemini_ws_state["ws"] and not getattr(gemini_ws_state["ws"], "closed", True):
-                    return True
-
-                if gemini_ws_state["ws"]:
-                    try: gemini_ws_state["ws"].close()
-                    except: pass
-                    gemini_ws_state["ws"] = None
-
-                ws_url = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
-                conf = config.conf["VisionAssistant"]
-                default_live = "gemini-3.1-flash-live-preview"
-                provider = conf.get("active_provider", "gemini")
-                live_model = ""
-                if conf.get("advanced_model_routing", False):
-                    live_model = conf.get(f"{provider}_live_model", "").strip()
-                if not live_model:
-                    live_model = conf.get("live_model", default_live).strip()
-                if not live_model:
-                    live_model = default_live
-                if "live" not in live_model.lower():
-                    live_model = default_live
-
-                api_keys = AIHandler.get_keys("gemini")
-                if not api_keys:
-                    return False
-
-                num_keys = len(api_keys)
-                start_idx = getattr(GeminiHandler, '_working_key_idx', 0)
-
-                for k_i in range(num_keys):
-                    idx = (start_idx + k_i) % num_keys
-                    api_key = api_keys[idx]
-                    base_host = vision_config.DEFAULT_API_URLS["gemini"].replace("https://", "")
-                    try:
-                        base = AIHandler.get_base_url("gemini")
-                        from urllib.parse import urlparse as _urlparse
-                        host = _urlparse(base).hostname
-                        if host: base_host = host
-                    except: pass
-
-                    ws_path = f"/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={api_key}"
-
-                    max_retries = getattr(GeminiHandler, '_max_retries', 3)
-                    attempt = 0
-                    while attempt < max_retries:
-                        try:
-                            ws_candidate = _MinimalWebSocket(base_host, ws_path)
-                            ws_candidate.connect()
-
-                            setup_msg = {
-                                "setup": {
-                                    "model": f"models/{live_model}",
-                                    "generationConfig": {
-                                        "responseModalities": ["AUDIO"],
-                                        "speechConfig": {
-                                            "voiceConfig": {
-                                                "prebuiltVoiceConfig": {
-                                                    "voiceName": gemini_voice or "Puck"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "systemInstruction": {
-                                        "parts": [{"text": "You are a strict Text-to-Speech engine. You will receive text segments. Your ONLY job is to read them out loud exactly as written. Do not add any conversational fillers, greetings, or extra words. Do not acknowledge instructions. Just speak the text provided. Speak at a very fast and urgent pace."}]
-                                    }
-                                }
-                            }
-                            ws_candidate.send_text(json.dumps(setup_msg))
-
-                            start_wait = time.time()
-                            setup_success = False
-                            while time.time() - start_wait < 10:
-                                setup_res = ws_candidate.recv()
-                                if setup_res:
-                                    op, pay = setup_res
-                                    if op is None:
-                                        break
-                                    if op in (0x1, 0x2):
-                                        try:
-                                            setup_data = json.loads(pay.decode('utf-8', 'replace'))
-                                            if "setupComplete" in setup_data:
-                                                setup_success = True
-                                                break
-                                        except: pass
-                                    elif op == 0x9:
-                                        try: ws_candidate._send_frame(0xA, pay or b"")
-                                        except: pass
-                                time.sleep(0.05)
-
-                            if setup_success:
-                                gemini_ws_state["ws"] = ws_candidate
-                                setattr(GeminiHandler, '_working_key_idx', idx)
-                                return True
-                            else:
-                                ws_candidate.close()
-
-                        except Exception as e:
-                            log.error(f"VisionAssistant Offline TTS WebSocket exception: {e}")
-
-                        attempt += 1
-                        time.sleep(1)
-
-                return False
+            live_tts = None
 
             if voice_id == "gemini_tts":
                 # Translators: Status message shown when starting connection to Gemini Live API
                 core.callLater(0, self.update_status, _("Connecting to Gemini Live API..."))
-                if not ensure_gemini_connection():
+                live_tts = GeminiLiveTTS(gemini_voice or "Puck")
+                if not live_tts.ensure_connection():
                     # Translators: Error message shown when connection to Gemini Live API fails
                     wx.CallAfter(show_error_dialog, _("Failed to connect to Gemini Live API."))
                     return
@@ -1317,68 +1248,18 @@ class VideoSRTProgressDialog(wx.Dialog):
                         success = self._generate_sapi5_wav(text, real_id, wav_path)
                     elif voice_id == "gemini_tts":
                         pcm_path = os.path.join(temp_dir, f"block_{i:04d}.pcm")
-                        req = {
-                            "clientContent": {
-                                "turns": [
-                                    {
-                                        "role": "user",
-                                        "parts": [{"text": text}]
-                                    }
-                                ],
-                                "turnComplete": True
-                            }
-                        }
-
-                        for tts_attempt in range(3):
-                            if not ensure_gemini_connection():
-                                break
-
-                            current_ws = gemini_ws_state["ws"]
-                            try:
-                                current_ws.send_text(json.dumps(req))
-                                with open(pcm_path, "wb") as pf:
-                                    start_wait = time.time()
-                                    while time.time() - start_wait < 30:
-                                        opcode, payload = current_ws.recv()
-                                        if opcode is None:
-                                            raise ConnectionError("WebSocket dropped during receive.")
-                                        if opcode in (0x1, 0x2) and payload:
-                                            try:
-                                                resp = json.loads(payload.decode('utf-8', 'replace'))
-                                                if "serverContent" in resp:
-                                                    turn = resp["serverContent"].get("modelTurn") or resp["serverContent"].get("model_turn")
-                                                    if turn:
-                                                        for part in turn.get("parts", []):
-                                                            inline = part.get("inlineData") or part.get("inline_data")
-                                                            if inline and inline.get("data"):
-                                                                chunk = base64.b64decode(inline["data"])
-                                                                pf.write(chunk)
-                                                    if resp["serverContent"].get("turnComplete") or resp["serverContent"].get("turn_complete"):
-                                                        break
-                                            except Exception:
-                                                pass
-                                        elif opcode == 0x9:
-                                            try: current_ws._send_frame(0xA, payload or b"")
-                                            except Exception: pass
-                                        time.sleep(0.01)
-
-                                if os.path.exists(pcm_path) and os.path.getsize(pcm_path) > 0:
-                                    subprocess.run([
-                                        ffmpeg_path, "-y",
-                                        "-f", "s16le", "-ar", "24000", "-ac", "1",
-                                        "-i", pcm_path,
-                                        wav_path
-                                    ], capture_output=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-                                    if os.path.exists(wav_path):
-                                        success = True
-                                        break
-                            except Exception as e:
-                                log.warning(f"Gemini TTS generation failed on attempt {tts_attempt+1}: {e}")
-                                if gemini_ws_state["ws"]:
-                                    try: gemini_ws_state["ws"].close()
-                                    except: pass
-                                    gemini_ws_state["ws"] = None
-                                time.sleep(1)
+                        pcm_bytes = live_tts.generate(text)
+                        if pcm_bytes:
+                            with open(pcm_path, "wb") as pf:
+                                pf.write(pcm_bytes)
+                            subprocess.run([
+                                ffmpeg_path, "-y",
+                                "-f", "s16le", "-ar", "24000", "-ac", "1",
+                                "-i", pcm_path,
+                                wav_path
+                            ], capture_output=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                            if os.path.exists(wav_path):
+                                success = True
 
                     if success:
                         cache_path = os.path.join(self.cache_dir, f"cache_{hash(cache_key)}.wav")
@@ -1399,11 +1280,6 @@ class VideoSRTProgressDialog(wx.Dialog):
                     actual_dur_sec = self._get_wav_duration(wav_path)
 
                     af_filter = []
-                    if mode_selection == 0 and voice_id == "gemini_tts":
-                        if actual_dur_sec > target_dur_sec and target_dur_sec > 0:
-                            ratio = actual_dur_sec / target_dur_sec
-                            ratio = min(ratio, 2.5)
-                            af_filter = ["-af", f"atempo={ratio:.3f}"]
 
                     cmd = [
                         ffmpeg_path, "-y",
@@ -1523,14 +1399,7 @@ class VideoSRTProgressDialog(wx.Dialog):
 
                     raw_start_ms = block['start_ms']
                     
-                    tts_dur_ms = 2000
-                    try:
-                        with wave.open(block['wav_path'], 'rb') as wf_b:
-                            tts_dur_ms = int((wf_b.getnframes() / wf_b.getframerate()) * 1000)
-                    except Exception:
-                        pass
-
-                    smart_start_ms = self._find_best_pause_time(raw_start_ms, silences, req_duration_ms=tts_dur_ms, max_shift_ms=3000)
+                    smart_start_ms = self._find_best_pause_time(raw_start_ms, silences, max_shift_ms=3000)
 
                     if smart_start_ms > total_orig_ms:
                         smart_start_ms = total_orig_ms
@@ -1575,7 +1444,7 @@ class VideoSRTProgressDialog(wx.Dialog):
             if os.path.exists(output_path):
                 core.callLater(0, self.update_status, self.srt_content)
                 # Translators: Message spoken on successful save of the synced narration.
-                ui.message(_("Synced extended narration with silence detection saved successfully."))
+                plugin_state.speak_status(_("Synced extended narration with silence detection saved successfully."))
                 wx.CallAfter(wx.MessageBox, _("Synced extended audio narration file generated successfully with smart silence matching."), _("Success"), wx.OK | wx.ICON_INFORMATION)
             else:
                 # Translators: Error message shown when the final MP3 conversion fails.
@@ -1586,9 +1455,8 @@ class VideoSRTProgressDialog(wx.Dialog):
             # Translators: Error message shown when narration generation fails.
             wx.CallAfter(show_error_dialog, _("Narration Error: {error}").format(error=e))
         finally:
-            if 'gemini_ws_state' in locals() and gemini_ws_state.get("ws"):
-                try: gemini_ws_state["ws"].close()
-                except: pass
+            if 'live_tts' in locals() and live_tts:
+                live_tts.close()
             try:
                 comtypes.CoUninitialize()
             except Exception:

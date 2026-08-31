@@ -6,9 +6,10 @@ import re
 from functools import wraps
 
 import addonHandler
-import config
+import config as nvda_config
 
 from . import vision_config
+from .utils.error_contract import history_to_openai_messages
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +75,123 @@ def get_builtin_default_prompts():
 def get_builtin_default_prompt_map():
     return {item["key"]: item for item in get_builtin_default_prompts()}
 
+_HOTKEY_MODIFIER_ALIASES = {"ctrl": "control", "win": "windows", "insert": "nvda"}
+_HOTKEY_ALLOWED_MODIFIERS = frozenset({"alt", "shift", "control", "nvda", "windows"})
+_HOTKEY_MODIFIER_DISPLAY = {
+    "control": "Ctrl",
+    "shift": "Shift",
+    "alt": "Alt",
+    "nvda": "NVDA",
+    "windows": "Win",
+    "leftcontrol": "Left Ctrl",
+    "rightcontrol": "Right Ctrl",
+    "leftshift": "Left Shift",
+    "rightshift": "Right Shift",
+    "leftalt": "Left Alt",
+    "rightalt": "Right Alt",
+    "leftwindows": "Left Win",
+    "rightwindows": "Right Win",
+}
+_HOTKEY_MODIFIER_DISPLAY_TO_SPEC = {v.lower(): k for k, v in _HOTKEY_MODIFIER_DISPLAY.items()}
+
+
+def _normalize_hotkey(value):
+    if not isinstance(value, str):
+        return ""
+    spec = value.strip().lower()
+    if not spec:
+        return ""
+    parts = spec.split("+")
+    if not parts:
+        return ""
+    key = parts[-1]
+    if not re.fullmatch(r"[a-z0-9]|f(?:1[0-2]|[1-9])", key):
+        return ""
+    modifiers = []
+    for token in parts[:-1]:
+        token = _HOTKEY_MODIFIER_ALIASES.get(token, token)
+        if token not in _HOTKEY_ALLOWED_MODIFIERS:
+            return ""
+        if token not in modifiers:
+            modifiers.append(token)
+    if not modifiers:
+        return key
+    modifiers.sort()
+    return "+".join(modifiers) + "+" + key
+
+
+def _format_hotkey_display(hotkey):
+    if not hotkey:
+        return ""
+    parts = hotkey.split("+")
+    key = parts[-1].upper()
+    display_parts = [_HOTKEY_MODIFIER_DISPLAY.get(token, token.title()) for token in parts[:-1]]
+    return "+".join(display_parts + [key])
+
+
+_HOTKEY_MODIFIER_VKS = {
+    "control": 0x11,
+    "shift": 0x10,
+    "alt": 0x12,
+    "windows": 0x5B,
+    "leftcontrol": 0xA2,
+    "rightcontrol": 0xA3,
+    "leftshift": 0xA0,
+    "rightshift": 0xA1,
+    "leftalt": 0xA4,
+    "rightalt": 0xA5,
+    "leftwindows": 0x5B,
+    "rightwindows": 0x5C,
+}
+_NVDA_VK_CANDIDATES = (0x2D, 0x14)
+
+
+def normalize_ptt_key(value):
+    if not isinstance(value, str):
+        return ""
+    spec = _normalize_hotkey(value)
+    if spec:
+        return spec
+    token = value.strip().lower()
+    token = _HOTKEY_MODIFIER_DISPLAY_TO_SPEC.get(token, token)
+    token = _HOTKEY_MODIFIER_ALIASES.get(token, token)
+    if token in _HOTKEY_MODIFIER_VKS:
+        return token
+    return ""
+
+
+def ptt_key_display(value):
+    spec = normalize_ptt_key(value)
+    if not spec:
+        return ""
+    if spec in _HOTKEY_MODIFIER_VKS:
+        return _HOTKEY_MODIFIER_DISPLAY.get(spec, spec.title())
+    return _format_hotkey_display(spec)
+
+
+def hotkey_spec_to_vks(value):
+    spec = normalize_ptt_key(value)
+    if not spec:
+        return None
+    parts = spec.split("+")
+    key = parts[-1]
+    if key in _HOTKEY_MODIFIER_VKS:
+        return (None, [_HOTKEY_MODIFIER_VKS[key]], False)
+    if key.startswith("f") and len(key) > 1:
+        main_vk = 0x6F + int(key[1:])
+    else:
+        main_vk = ord(key.upper())
+    mods = []
+    needs_nvda = False
+    for token in parts[:-1]:
+        if token == "nvda":
+            needs_nvda = True
+        elif token in _HOTKEY_MODIFIER_VKS:
+            vk = _HOTKEY_MODIFIER_VKS[token]
+            if vk not in mods:
+                mods.append(vk)
+    return (main_vk, mods, needs_nvda)
+
 def _normalize_custom_prompt_items(items):
     normalized = []
     if not isinstance(items, list):
@@ -89,7 +207,11 @@ def _normalize_custom_prompt_items(items):
         name = name.strip()
         content = content.strip()
         if name and content:
-            normalized.append({"name": name, "content": content})
+            normalized.append({
+                "name": name,
+                "content": content,
+                "hotkey": _normalize_hotkey(item.get("hotkey")),
+            })
     return normalized
 
 def parse_custom_prompts_v2(raw_value):
@@ -110,7 +232,7 @@ def serialize_custom_prompts_v2(items):
 
 def load_configured_custom_prompts():
     try:
-        raw_v2 = config.conf["VisionAssistant"]["custom_prompts_v2"]
+        raw_v2 = nvda_config.conf["VisionAssistant"]["custom_prompts_v2"]
     except Exception:
         raw_v2 = ""
     items_v2 = parse_custom_prompts_v2(raw_v2)
@@ -140,7 +262,7 @@ def _sanitize_default_prompt_overrides(data):
 
 def load_default_prompt_overrides():
     try:
-        raw = config.conf["VisionAssistant"]["default_refine_prompts"]
+        raw = nvda_config.conf["VisionAssistant"]["default_refine_prompts"]
     except Exception:
         raw = ""
     if not isinstance(raw, str) or not raw.strip():
@@ -225,8 +347,8 @@ def apply_prompt_template(template, replacements):
         text = text.replace("{" + key + "}", str(value))
 
     if "{image_desc_instruction}" in text:
-        if config.conf["VisionAssistant"].get("describe_images_ocr", True):
-            lang = config.conf["VisionAssistant"]["ai_response_language"]
+        if nvda_config.conf["VisionAssistant"].get("describe_images_ocr", True):
+            lang = nvda_config.conf["VisionAssistant"]["ai_response_language"]
             desc_text = get_prompt_text("ocr_image_desc_instruction")
             desc_text = desc_text.replace("{response_lang}", lang)
             text = text.replace("{image_desc_instruction}", desc_text)

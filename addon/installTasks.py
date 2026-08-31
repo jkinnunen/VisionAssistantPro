@@ -9,14 +9,19 @@ import tempfile
 import json
 import time
 import gc
+import logging
 
 addon = addonHandler.getCodeAddon()
 addonName = addon.name
+
+log = logging.getLogger("globalPlugins.visionAssistant")
 
 def _backup_lib_assets():
     try:
         current_name = addonName.lower()
         for add in addonHandler.getAvailableAddons():
+            if add.path.lower().endswith(".pendinginstall"):
+                continue
             if add.name.lower() == current_name or "vision" in add.name.lower():
                 old_lib_dir = os.path.join(add.path, "globalPlugins", add.name, "lib")
                 if not os.path.exists(old_lib_dir):
@@ -27,8 +32,8 @@ def _backup_lib_assets():
                     if os.path.exists(backup_dir):
                         try:
                             shutil.rmtree(backup_dir, ignore_errors=True)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            log.warning(f"Failed to clear previous lib backup: {e}")
                     os.makedirs(backup_dir, exist_ok=True)
 
                     persistent_items = ["ffmpeg.exe", "espeak-ng"]
@@ -43,16 +48,17 @@ def _backup_lib_assets():
                                 else:
                                     shutil.copy2(src, dst)
                                 copied = True
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                log.warning(f"Lib backup failed for {item}: {e}")
 
                     if copied:
                         manifest_file = os.path.join(backup_dir, "backup_manifest.json")
                         with open(manifest_file, "w", encoding="utf-8") as f:
                             json.dump({"timestamp": time.time()}, f)
+                        log.info("Lib assets backed up for next startup.")
                 break
-    except Exception:
-        pass
+    except Exception as e:
+        log.error(f"Lib backup failed: {e}", exc_info=True)
     finally:
         gc.collect()
 

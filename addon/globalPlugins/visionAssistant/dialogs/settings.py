@@ -3,18 +3,24 @@ import os
 import json
 import threading
 import logging
+import time
 
 import wx
 
 import addonHandler
-import config
+import config as nvda_config
+import core
 import gui
+import inputCore
+import keyboardHandler
 import ui
 
 from .. import vision_config
 from .. import plugin_state
 from ..ai.core import AIHandler
 from ..prompt_utils import (
+    normalize_ptt_key,
+    ptt_key_display,
     get_configured_default_prompts,
     get_refine_menu_options,
     get_prompt_text,
@@ -35,6 +41,9 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
     def makeSettings(self, settingsSizer):
         self._all_models_backup = []
         self._temp_models = {}
+        self._ptt_capture_func = None
+        self._ptt_gen = 0
+        self._ptt_pending_modifier = None
 
         self.notebook = wx.Notebook(self)
 
@@ -61,7 +70,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         ]
         # Translators: Label for AI Provider selection
         self.provider_sel = cHelper.addLabeledControl(_("Provider:"), wx.Choice, choices=[x[0] for x in providers])
-        curr_p = config.conf["VisionAssistant"]["active_provider"]
+        curr_p = nvda_config.conf["VisionAssistant"]["active_provider"]
         try:
             self.provider_sel.SetSelection(next(i for i, x in enumerate(providers) if x[1] == curr_p))
         except Exception: self.provider_sel.SetSelection(0)
@@ -71,7 +80,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         apiLabel = wx.StaticText(self.connectionBox, label=_("API Key (Separate multiple keys with comma or newline):"))
         cHelper.addItem(apiLabel)
 
-        curr_key = config.conf["VisionAssistant"]["api_key" if curr_p == "gemini" else (f"{curr_p}_api_key" if curr_p != "custom" else "custom_api_key")]
+        curr_key = nvda_config.conf["VisionAssistant"]["api_key" if curr_p == "gemini" else (f"{curr_p}_api_key" if curr_p != "custom" else "custom_api_key")]
         self.apiKeyCtrl_hidden = wx.TextCtrl(self.connectionBox, value=curr_key, style=wx.TE_PASSWORD)
         self.apiKeyCtrl_visible = wx.TextCtrl(self.connectionBox, value=curr_key, style=wx.TE_MULTILINE | wx.TE_DONTWRAP, size=(-1, 60))
         self.apiKeyCtrl_visible.Hide()
@@ -94,7 +103,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         # Translators: Label for Custom API URL input
         self.customSizer.Add(wx.StaticText(self.customBox, label=_("API URL:")), 0, wx.ALL, 2)
-        self.customUrl = wx.TextCtrl(self.customBox, value=config.conf["VisionAssistant"]["custom_api_url"])
+        self.customUrl = wx.TextCtrl(self.customBox, value=nvda_config.conf["VisionAssistant"]["custom_api_url"])
         self.customSizer.Add(self.customUrl, 0, wx.EXPAND | wx.ALL, 2)
         self.customUrl.Bind(wx.EVT_TEXT, self.onCustomUrlChange)
         # Translators: Label for Custom API Type selection
@@ -102,25 +111,25 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         # Translators: AI API compatibility types
         self.customType = wx.Choice(self.customBox, choices=[_("OpenAI Compatible"), _("Gemini Compatible")])
         self.customType.Bind(wx.EVT_CHOICE, self.onCustomTypeChange)
-        self.customType.SetSelection(0 if config.conf["VisionAssistant"]["custom_api_type"] == "openai" else 1)
+        self.customType.SetSelection(0 if nvda_config.conf["VisionAssistant"]["custom_api_type"] == "openai" else 1)
         self.customSizer.Add(self.customType, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom Model Name input
         self.lbl_customModelName = wx.StaticText(self.customBox, label=_("Model Name (Manual):"))
         self.customSizer.Add(self.lbl_customModelName, 0, wx.ALL, 2)
-        self.customModelName = wx.TextCtrl(self.customBox, value=config.conf["VisionAssistant"]["custom_model_name"])
+        self.customModelName = wx.TextCtrl(self.customBox, value=nvda_config.conf["VisionAssistant"]["custom_model_name"])
         self.customSizer.Add(self.customModelName, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Checkbox to indicate if custom provider supports file upload
         self.customUploadSupport = wx.CheckBox(self.customBox, label=_("Supports File Upload"))
-        self.customUploadSupport.Value = config.conf["VisionAssistant"]["custom_upload_support"]
+        self.customUploadSupport.Value = nvda_config.conf["VisionAssistant"]["custom_upload_support"]
         self.customUploadSupport.Bind(wx.EVT_CHECKBOX, self.onCustomUploadSupportChange)
         self.customSizer.Add(self.customUploadSupport, 0, wx.ALL, 5)
 
         # Advanced Endpoints Section
         # Translators: Checkbox to toggle advanced endpoint URLs
         self.useAdvancedEndpoints = wx.CheckBox(self.customBox, label=_("Advanced Endpoint Configuration"))
-        self.useAdvancedEndpoints.Value = config.conf["VisionAssistant"]["use_advanced_endpoints"]
+        self.useAdvancedEndpoints.Value = nvda_config.conf["VisionAssistant"]["use_advanced_endpoints"]
         self.useAdvancedEndpoints.Bind(wx.EVT_CHECKBOX, self.onToggleAdvanced)
         self.customSizer.Add(self.useAdvancedEndpoints, 0, wx.ALL, 5)
 
@@ -129,56 +138,56 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         # Translators: Label for Custom Models List URL
         advVBox.Add(wx.StaticText(self.advEndpointBox, label=_("Models List URL:")), 0, wx.ALL, 2)
-        self.customModelsUrl = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_models_url"])
+        self.customModelsUrl = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_models_url"])
         advVBox.Add(self.customModelsUrl, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom OCR URL
         advVBox.Add(wx.StaticText(self.advEndpointBox, label=_("OCR Endpoint URL:")), 0, wx.ALL, 2)
-        self.customOcrUrl = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_ocr_url"])
+        self.customOcrUrl = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_ocr_url"])
         advVBox.Add(self.customOcrUrl, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom OCR Model
         self.lblCustomOcrModel = wx.StaticText(self.advEndpointBox, label=_("Custom OCR Model (Optional):"))
         advVBox.Add(self.lblCustomOcrModel, 0, wx.ALL, 2)
-        self.customOcrModel = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_ocr_model"])
+        self.customOcrModel = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_ocr_model"])
         advVBox.Add(self.customOcrModel, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom STT URL
         advVBox.Add(wx.StaticText(self.advEndpointBox, label=_("Speech-to-Text (STT) URL:")), 0, wx.ALL, 2)
-        self.customSttUrl = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_stt_url"])
+        self.customSttUrl = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_stt_url"])
         advVBox.Add(self.customSttUrl, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom STT Model
         self.lblCustomSttModel = wx.StaticText(self.advEndpointBox, label=_("Custom STT Model (Optional):"))
         advVBox.Add(self.lblCustomSttModel, 0, wx.ALL, 2)
-        self.customSttModel = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_stt_model"])
+        self.customSttModel = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_stt_model"])
         advVBox.Add(self.customSttModel, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom TTS URL
         advVBox.Add(wx.StaticText(self.advEndpointBox, label=_("Text-to-Speech (TTS) URL:")), 0, wx.ALL, 2)
-        self.customTtsUrl = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_tts_url"])
+        self.customTtsUrl = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_tts_url"])
         advVBox.Add(self.customTtsUrl, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom TTS Model
         self.lblCustomTtsModel = wx.StaticText(self.advEndpointBox, label=_("Custom TTS Model (Optional):"))
         advVBox.Add(self.lblCustomTtsModel, 0, wx.ALL, 2)
-        self.customTtsModel = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_tts_model"])
+        self.customTtsModel = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_tts_model"])
         advVBox.Add(self.customTtsModel, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for a text field in the "Custom Provider Settings" section of settings where the user enters the AI Operator URL.
         advVBox.Add(wx.StaticText(self.advEndpointBox, label=_("AI Operator URL:")), 0, wx.ALL, 2)
-        self.customAssistantUrl = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"].get("custom_operator_url", ""))
+        self.customAssistantUrl = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"].get("custom_operator_url", ""))
         advVBox.Add(self.customAssistantUrl, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for a text field in the "Custom Provider Settings" section of settings where the user manually enters the model name for AI Operator.
         self.lblCustomOperatorModel = wx.StaticText(self.advEndpointBox, label=_("Custom Operator Model (Optional):"))
         advVBox.Add(self.lblCustomOperatorModel, 0, wx.ALL, 2)
-        self.customAssistantModel = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_operator_model"])
+        self.customAssistantModel = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_operator_model"])
         advVBox.Add(self.customAssistantModel, 0, wx.EXPAND | wx.ALL, 2)
 
         # Translators: Label for Custom TTS Voice Name
         advVBox.Add(wx.StaticText(self.advEndpointBox, label=_("Custom TTS Voice Name (Optional):")), 0, wx.ALL, 2)
-        self.customTtsVoice = wx.TextCtrl(self.advEndpointBox, value=config.conf["VisionAssistant"]["custom_tts_voice"])
+        self.customTtsVoice = wx.TextCtrl(self.advEndpointBox, value=nvda_config.conf["VisionAssistant"]["custom_tts_voice"])
         advVBox.Add(self.customTtsVoice, 0, wx.EXPAND | wx.ALL, 2)
 
         self.advEndpointBox.SetSizer(advVBox)
@@ -202,7 +211,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         # Advanced Model Routing Box
         # Translators: Checkbox to toggle advanced model routing
         self.advRoutingCheck = cHelper.addItem(wx.CheckBox(self.connectionBox, label=_("Advanced Model Routing (Task-specific)")))
-        self.advRoutingCheck.Value = config.conf["VisionAssistant"].get("advanced_model_routing", False)
+        self.advRoutingCheck.Value = nvda_config.conf["VisionAssistant"].get("advanced_model_routing", False)
         self.advRoutingCheck.Bind(wx.EVT_CHECKBOX, self.onToggleAdvRouting)
 
         self.advRoutingBox = wx.Panel(self.connectionBox)
@@ -253,25 +262,49 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         # Translators: Label for Proxy URL input
         self.proxyUrl = cHelper.addLabeledControl(_("Proxy URL:"), wx.TextCtrl)
-        self.proxyUrl.Value = config.conf["VisionAssistant"]["proxy_url"]
+        self.proxyUrl.Value = nvda_config.conf["VisionAssistant"]["proxy_url"]
 
         # Translators: Checkbox to enable/disable automatic update checks on startup
         self.checkUpdateStartup = cHelper.addItem(wx.CheckBox(self.connectionBox, label=_("Check for updates on startup")))
-        self.checkUpdateStartup.Value = config.conf["VisionAssistant"]["check_update_startup"]
+        self.checkUpdateStartup.Value = nvda_config.conf["VisionAssistant"]["check_update_startup"]
         # Translators: Checkbox to toggle markdown cleaning in chat windows
         self.cleanMarkdown = cHelper.addItem(wx.CheckBox(self.connectionBox, label=_("Clean Markdown in Chat")))
-        self.cleanMarkdown.Value = config.conf["VisionAssistant"]["clean_markdown_chat"]
+        self.cleanMarkdown.Value = nvda_config.conf["VisionAssistant"]["clean_markdown_chat"]
         # Translators: Checkbox to enable copying AI responses to clipboard
         self.copyToClipboard = cHelper.addItem(wx.CheckBox(self.connectionBox, label=_("Copy AI responses to clipboard")))
-        self.copyToClipboard.Value = config.conf["VisionAssistant"]["copy_to_clipboard"]
+        self.copyToClipboard.Value = nvda_config.conf["VisionAssistant"]["copy_to_clipboard"]
         # Translators: Checkbox to skip chat window and only speak AI responses
         self.skipChatDialog = cHelper.addItem(wx.CheckBox(self.connectionBox, label=_("Direct Output (No Chat Window)")))
-        self.skipChatDialog.Value = config.conf["VisionAssistant"]["skip_chat_dialog"]
-        # Translators: Checkbox to start the Live Assistant without its conversation window (open it later with the Show Last Result key).
-        self.liveDirectOutput = cHelper.addItem(wx.CheckBox(self.connectionBox, label=_("Live Assistant: Direct Output (No Window)")))
-        self.liveDirectOutput.Value = config.conf["VisionAssistant"]["live_direct_output"]
+        self.skipChatDialog.Value = nvda_config.conf["VisionAssistant"]["skip_chat_dialog"]
         self.connectionBox.SetSizer(connectionSizer)
         self.notebook.AddPage(self.connectionBox, groupLabel)
+
+        # --- Live Assistant Group ---
+        # Translators: Title of the settings group for Live Assistant features.
+        groupLabel = _("Live Assistant")
+        self.livePanel = wx.Panel(self.notebook)
+        liveSizer = wx.BoxSizer(wx.VERTICAL)
+        lvHelper = gui.guiHelper.BoxSizerHelper(self.livePanel, sizer=liveSizer)
+
+        # Translators: Checkbox to start the Live Assistant without its conversation window (open it later with the Show Last Result key).
+        self.liveDirectOutput = lvHelper.addItem(wx.CheckBox(self.livePanel, label=_("Live Assistant: Direct Output (No Window)")))
+        self.liveDirectOutput.Value = nvda_config.conf["VisionAssistant"]["live_direct_output"]
+
+        # Translators: Checkbox to enable push-to-talk mode for the Live Assistant.
+        self.pttCheck = lvHelper.addItem(wx.CheckBox(self.livePanel, label=_("Push to Talk")))
+        self.pttCheck.Value = nvda_config.conf["VisionAssistant"].get("live_push_to_talk", False)
+        self.pttCheck.Bind(wx.EVT_CHECKBOX, self.onTogglePtt)
+
+        # Translators: Label for the push-to-talk key field, instructing the user to press the keys to record it.
+        self.lblPttKey = wx.StaticText(self.livePanel, label=_("Push to Talk Key (press the keys to record, for example F12 or Ctrl+F12):"))
+        lvHelper.addItem(self.lblPttKey)
+        self.pttKeyCtrl = wx.TextCtrl(self.livePanel, value=ptt_key_display(nvda_config.conf["VisionAssistant"].get("live_ptt_key", "")))
+        self.pttKeyCtrl.Bind(wx.EVT_SET_FOCUS, self._on_ptt_key_focus)
+        self.pttKeyCtrl.Bind(wx.EVT_KILL_FOCUS, self._on_ptt_key_kill_focus)
+        lvHelper.addItem(self.pttKeyCtrl)
+
+        self.livePanel.SetSizer(liveSizer)
+        self.notebook.AddPage(self.livePanel, groupLabel)
 
         # --- AI Behavior Group ---
         # Translators: Title of the settings group for AI behavior
@@ -283,7 +316,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         tempLabelText = _("Creativity (Temperature, does not affect OCR/Translation):")
         temp_choices = [f"{x/10:.1f}" for x in range(0, 21)]
         self.aiTemp = aiHelper.addLabeledControl(tempLabelText, wx.Choice, choices=temp_choices)
-        current_temp = str(config.conf["VisionAssistant"].get("ai_temperature", 0.7))
+        current_temp = str(nvda_config.conf["VisionAssistant"].get("ai_temperature", 0.7))
         idx = self.aiTemp.FindString(current_temp)
         if idx != wx.NOT_FOUND: self.aiTemp.SetSelection(idx)
         else: self.aiTemp.SetSelection(7)
@@ -297,22 +330,22 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         langSizer = wx.BoxSizer(wx.VERTICAL)
         lHelper = gui.guiHelper.BoxSizerHelper(langBox, sizer=langSizer)
         self.sourceLang = lHelper.addLabeledControl(_("Source:"), wx.Choice, choices=vision_config.SOURCE_NAMES)
-        curr_s_code = config.conf["VisionAssistant"]["source_language"]
+        curr_s_code = nvda_config.conf["VisionAssistant"]["source_language"]
         s_idx = next((i for i, x in enumerate(vision_config.SOURCE_LIST) if x[1] == curr_s_code), 0)
         self.sourceLang.SetSelection(s_idx)
         # Translators: Checkbox to enable translation
         self.targetLang = lHelper.addLabeledControl(_("Target:"), wx.Choice, choices=vision_config.TARGET_NAMES)
-        curr_t_code = config.conf["VisionAssistant"]["target_language"]
+        curr_t_code = nvda_config.conf["VisionAssistant"]["target_language"]
         t_idx = next((i for i, x in enumerate(vision_config.TARGET_LIST) if x[1] == curr_t_code), 0)
         self.targetLang.SetSelection(t_idx)
         # Translators: Label for Target Language selection
         self.aiResponseLang = lHelper.addLabeledControl(_("AI Response:"), wx.Choice, choices=vision_config.TARGET_NAMES)
-        curr_ai_code = config.conf["VisionAssistant"]["ai_response_language"]
+        curr_ai_code = nvda_config.conf["VisionAssistant"]["ai_response_language"]
         ai_idx = next((i for i, x in enumerate(vision_config.TARGET_LIST) if x[1] == curr_ai_code), 0)
         self.aiResponseLang.SetSelection(ai_idx)
         # Translators: Checkbox for Smart Swap feature
         self.smartSwap = lHelper.addItem(wx.CheckBox(langBox, label=_("Smart Swap")))
-        self.smartSwap.Value = config.conf["VisionAssistant"]["smart_swap"]
+        self.smartSwap.Value = nvda_config.conf["VisionAssistant"]["smart_swap"]
         langBox.SetSizer(langSizer)
         self.notebook.AddPage(langBox, groupLabel)
 
@@ -324,7 +357,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         dHelper = gui.guiHelper.BoxSizerHelper(self.docBox, sizer=docSizer)
         # Translators: Label for OCR Engine selection
         self.ocr_sel = dHelper.addLabeledControl(_("OCR Engine:"), wx.Choice, choices=[x[0] for x in vision_config.OCR_ENGINES])
-        curr_ocr = config.conf["VisionAssistant"]["ocr_engine"]
+        curr_ocr = nvda_config.conf["VisionAssistant"]["ocr_engine"]
         try:
             o_idx = next(i for i, v in enumerate(vision_config.OCR_ENGINES) if v[1] == curr_ocr)
             self.ocr_sel.SetSelection(o_idx)
@@ -333,17 +366,17 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         # Translators: Label for the OCR batch size setting. Set to 0 to process all pages in a single request.
         self.lbl_batch = wx.StaticText(self.docBox, label=_("OCR Batch Size (Pages per request, 0 to disable):"))
         dHelper.addItem(self.lbl_batch)
-        self.batch_size = wx.SpinCtrl(self.docBox, min=0, max=100, initial=config.conf["VisionAssistant"]["ocr_batch_size"])
+        self.batch_size = wx.SpinCtrl(self.docBox, min=0, max=100, initial=nvda_config.conf["VisionAssistant"]["ocr_batch_size"])
         dHelper.addItem(self.batch_size)
 
         # Translators: Label for the checkbox that enables image descriptions during OCR
         self.chk_describe_images = wx.CheckBox(self.docBox, label=_("Describe images inline during document OCR"))
-        self.chk_describe_images.SetValue(config.conf["VisionAssistant"].get("describe_images_ocr", True))
+        self.chk_describe_images.SetValue(nvda_config.conf["VisionAssistant"].get("describe_images_ocr", True))
         dHelper.addItem(self.chk_describe_images)
 
         # Translators: Label for the checkbox that enables page numbers when exporting documents
         self.chk_export_page_numbers = wx.CheckBox(self.docBox, label=_("Include page numbers when exporting documents"))
-        self.chk_export_page_numbers.SetValue(config.conf["VisionAssistant"].get("document_export_page_numbers", True))
+        self.chk_export_page_numbers.SetValue(nvda_config.conf["VisionAssistant"].get("document_export_page_numbers", True))
         dHelper.addItem(self.chk_export_page_numbers)
 
         self.lbl_voice = wx.StaticText(self.docBox, label=_("TTS Voice:"))
@@ -364,17 +397,17 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         # Translators: Label for Video Chunk Size setting. Explains the trade-off between chunk size, API requests, and description quality.
         self.lbl_vid_chunk = wx.StaticText(self.vidPanel, label=_("Video Chunk Size for Audio Description (Minutes, 0 to disable):\nTip: Higher values use fewer API requests but rely on luck to succeed. Lower values guarantee highly detailed and precise descriptions."))
         vHelper.addItem(self.lbl_vid_chunk)
-        self.vid_chunk_size = wx.SpinCtrl(self.vidPanel, min=0, max=300, initial=config.conf["VisionAssistant"]["video_srt_chunk_minutes"])
+        self.vid_chunk_size = wx.SpinCtrl(self.vidPanel, min=0, max=300, initial=nvda_config.conf["VisionAssistant"]["video_srt_chunk_minutes"])
         vHelper.addItem(self.vid_chunk_size)
 
         # Translators: Checkbox label to add character list as the first subtitle in video SRT output.
         self.vid_chars_as_sub = wx.CheckBox(self.vidPanel, label=_("Add character list as first subtitle"))
-        self.vid_chars_as_sub.SetValue(config.conf["VisionAssistant"].get("video_chars_as_subtitle", True))
+        self.vid_chars_as_sub.SetValue(nvda_config.conf["VisionAssistant"].get("video_chars_as_subtitle", True))
         vHelper.addItem(self.vid_chars_as_sub)
 
         # Translators: Checkbox label to add an AI warning disclaimer at the beginning of the video SRT output.
         self.vid_add_disclaimer = wx.CheckBox(self.vidPanel, label=_("Add AI disclaimer at the beginning"))
-        self.vid_add_disclaimer.SetValue(config.conf["VisionAssistant"].get("video_add_disclaimer", True))
+        self.vid_add_disclaimer.SetValue(nvda_config.conf["VisionAssistant"].get("video_add_disclaimer", True))
         vHelper.addItem(self.vid_add_disclaimer)
         self.vidPanel.SetSizer(vidSizer)
         self.notebook.AddPage(self.vidPanel, groupLabel)
@@ -387,7 +420,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         # Translators: Label for the checkbox that enables or disables the automated CAPTCHA solver feature.
         self.enableVisualCaptcha = capHelper.addItem(wx.CheckBox(capBox, label=_("Enable Visual CAPTCHA Solver")))
-        self.enableVisualCaptcha.Value = config.conf["VisionAssistant"].get("enable_visual_captcha_solver", True)
+        self.enableVisualCaptcha.Value = nvda_config.conf["VisionAssistant"].get("enable_visual_captcha_solver", True)
 
         # Translators: Label for CAPTCHA capture method selection.
         self.captchaMode = capHelper.addLabeledControl(_("Text CAPTCHA Method:"), wx.Choice, choices=[
@@ -397,7 +430,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             _("Full Screen")
         ])
 
-        self.captchaMode.SetSelection(0 if config.conf["VisionAssistant"]["captcha_mode"] == 'navigator' else 1)
+        self.captchaMode.SetSelection(0 if nvda_config.conf["VisionAssistant"]["captcha_mode"] == 'navigator' else 1)
         capBox.SetSizer(capSizer)
         self.notebook.AddPage(capBox, groupLabel)
 
@@ -429,9 +462,14 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         advSizer = wx.BoxSizer(wx.VERTICAL)
         aHelper = gui.guiHelper.BoxSizerHelper(advBox, sizer=advSizer)
 
+        # Translators: Group box title for log management settings
+        logMgmtBox = wx.StaticBox(advBox, label=_("Log Management"))
+        logMgmtSizer = wx.StaticBoxSizer(logMgmtBox, wx.VERTICAL)
+        logHelper = gui.guiHelper.BoxSizerHelper(logMgmtBox, sizer=logMgmtSizer)
+
         # Translators: Checkbox label to enable dedicated add-on logging to file
-        self.enableFileLogging = aHelper.addItem(wx.CheckBox(advBox, label=_("Enable dedicated log file")))
-        self.enableFileLogging.Value = config.conf["VisionAssistant"].get("enable_file_logging", False)
+        self.enableFileLogging = logHelper.addItem(wx.CheckBox(logMgmtBox, label=_("Enable dedicated log file")))
+        self.enableFileLogging.Value = nvda_config.conf["VisionAssistant"].get("enable_file_logging", False)
 
         self.logLevels = [
             # Translators: Log level choice: Debug (Logs all detailed technical events, API calls, and raw responses)
@@ -444,8 +482,8 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             (_("Error (Errors Only)"), "ERROR")
         ]
         # Translators: Label for Log Level selection
-        self.logLevelSel = aHelper.addLabeledControl(_("Log Level:"), wx.Choice, choices=[x[0] for x in self.logLevels])
-        curr_log_lvl = config.conf["VisionAssistant"].get("log_level", "DEBUG")
+        self.logLevelSel = logHelper.addLabeledControl(_("Log Level:"), wx.Choice, choices=[x[0] for x in self.logLevels])
+        curr_log_lvl = nvda_config.conf["VisionAssistant"].get("log_level", "DEBUG")
         try:
             lvl_idx = next(i for i, x in enumerate(self.logLevels) if x[1] == curr_log_lvl)
             self.logLevelSel.SetSelection(lvl_idx)
@@ -454,35 +492,51 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         self.logRetentionChoices = vision_config.LOG_RETENTION_OPTIONS
         # Translators: Label for Log Retention Duration selection
-        self.logRetentionSel = aHelper.addLabeledControl(_("Keep Logs For:"), wx.Choice, choices=[x[0] for x in self.logRetentionChoices])
-        curr_ret_hrs = config.conf["VisionAssistant"].get("log_retention_hours", 168)
+        self.logRetentionSel = logHelper.addLabeledControl(_("Keep Logs For:"), wx.Choice, choices=[x[0] for x in self.logRetentionChoices])
+        curr_ret_hrs = nvda_config.conf["VisionAssistant"].get("log_retention_hours", 168)
         try:
             ret_idx = next(i for i, x in enumerate(self.logRetentionChoices) if x[1] == curr_ret_hrs)
             self.logRetentionSel.SetSelection(ret_idx)
         except Exception:
             self.logRetentionSel.SetSelection(6)
 
-        # Log management buttons
         # Translators: Group box title for log management buttons
-        logMgmtBox = wx.StaticBox(advBox, label=_("Log Management"))
-        logMgmtSizer = wx.StaticBoxSizer(logMgmtBox, wx.HORIZONTAL)
+        logBtnSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Translators: Button to open log file
-        self.btnOpenLogFile = wx.Button(advBox, label=_("Open Log File"))
+        self.btnOpenLogFile = wx.Button(logMgmtBox, label=_("Open Log File"))
         self.btnOpenLogFile.Bind(wx.EVT_BUTTON, self.onOpenLogFile)
-        logMgmtSizer.Add(self.btnOpenLogFile, 0, wx.ALL, 5)
+        logBtnSizer.Add(self.btnOpenLogFile, 0, wx.ALL, 5)
 
         # Translators: Button to open log folder
-        self.btnOpenLogFolder = wx.Button(advBox, label=_("Open Log Folder"))
+        self.btnOpenLogFolder = wx.Button(logMgmtBox, label=_("Open Log Folder"))
         self.btnOpenLogFolder.Bind(wx.EVT_BUTTON, self.onOpenLogFolder)
-        logMgmtSizer.Add(self.btnOpenLogFolder, 0, wx.ALL, 5)
+        logBtnSizer.Add(self.btnOpenLogFolder, 0, wx.ALL, 5)
 
         # Translators: Button to clear log file
-        self.btnClearLogFile = wx.Button(advBox, label=_("Clear Log File"))
+        self.btnClearLogFile = wx.Button(logMgmtBox, label=_("Clear Log File"))
         self.btnClearLogFile.Bind(wx.EVT_BUTTON, self.onClearLogFile)
-        logMgmtSizer.Add(self.btnClearLogFile, 0, wx.ALL, 5)
+        logBtnSizer.Add(self.btnClearLogFile, 0, wx.ALL, 5)
+
+        logMgmtSizer.Add(logBtnSizer, 0, wx.EXPAND | wx.ALL, 5)
 
         aHelper.addItem(logMgmtSizer)
+
+        # Translators: Group box title for the settings backup and restore buttons
+        backupBox = wx.StaticBox(advBox, label=_("Backup and Restore"))
+        backupSizer = wx.StaticBoxSizer(backupBox, wx.HORIZONTAL)
+
+        # Translators: Button to save add-on settings and data to a backup file
+        self.btnBackupSettings = wx.Button(advBox, label=_("Backup..."))
+        self.btnBackupSettings.Bind(wx.EVT_BUTTON, self.onBackupSettings)
+        backupSizer.Add(self.btnBackupSettings, 0, wx.ALL, 5)
+
+        # Translators: Button to restore add-on settings and data from a backup file
+        self.btnRestoreSettings = wx.Button(advBox, label=_("Restore..."))
+        self.btnRestoreSettings.Bind(wx.EVT_BUTTON, self.onRestoreSettings)
+        backupSizer.Add(self.btnRestoreSettings, 0, wx.ALL, 5)
+
+        aHelper.addItem(backupSizer)
         advBox.SetSizer(advSizer)
         self.notebook.AddPage(advBox, groupLabel)
 
@@ -504,13 +558,13 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         if p_name == "minimax":
             threading.Thread(target=self._refresh_minimax_voices, daemon=True).start()
         else:
-            curr_voice = config.conf["VisionAssistant"].get("tts_voice", "Puck")
+            curr_voice = nvda_config.conf["VisionAssistant"].get("tts_voice", "Puck")
             self._select_voice_in_list(curr_voice)
 
     def _refresh_minimax_voices(self):
         try:
-            config.conf["VisionAssistant"]["minimax_voices_cache"] = ""
-            config.conf["VisionAssistant"]["minimax_voices_cache_time"] = 0
+            nvda_config.conf["VisionAssistant"]["minimax_voices_cache"] = ""
+            nvda_config.conf["VisionAssistant"]["minimax_voices_cache_time"] = 0
             voices = AIHandler.get_voices("minimax")
             if voices and hasattr(self, 'voice_sel'):
                 wx.CallAfter(self._populate_voice_sel, voices)
@@ -522,7 +576,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             self.voice_sel.Clear()
             for v in voices:
                 self.voice_sel.Append(f"{v[0]} - {v[1]}", v[0])
-            curr_voice = config.conf["VisionAssistant"].get("tts_voice", "English_expressive_narrator")
+            curr_voice = nvda_config.conf["VisionAssistant"].get("tts_voice", "English_expressive_narrator")
             self._select_voice_in_list(curr_voice)
         except Exception as e:
             log.warning(f"Failed to populate voice_sel: {e}")
@@ -573,7 +627,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         if provider == "custom":
             if hasattr(self, "customType") and self.customType.GetSelection() != wx.NOT_FOUND:
                 return self.customType.GetSelection() == 1
-            return config.conf["VisionAssistant"].get("custom_api_type", "openai") == "gemini"
+            return nvda_config.conf["VisionAssistant"].get("custom_api_type", "openai") == "gemini"
         return False
 
     def updateCustomFieldsVisibility(self, provider):
@@ -586,7 +640,11 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         self.advRoutingBox.Show(routing_enabled)
 
         live_supported = self._live_supported_for(provider)
+        ptt_on = live_supported and self.pttCheck.Value
         self.liveDirectOutput.Show(live_supported)
+        self.pttCheck.Show(live_supported)
+        self.lblPttKey.Show(ptt_on)
+        self.pttKeyCtrl.Show(ptt_on)
 
         if routing_enabled:
             self.advOcrModel.Show(True)
@@ -653,7 +711,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             if custom_type_idx != wx.NOT_FOUND:
                 is_gemini_api = (custom_type_idx == 1)
             else:
-                is_gemini_api = (config.conf["VisionAssistant"].get("custom_api_type") == "gemini")
+                is_gemini_api = (nvda_config.conf["VisionAssistant"].get("custom_api_type") == "gemini")
 
         if hasattr(self, 'notebook'):
             if hasattr(self, 'vidPanel'):
@@ -680,6 +738,18 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
                     self.notebook.InsertPage(1, ai_box, _("AI Behavior"))
                 elif is_gemini_api and ai_index != -1:
                     self.notebook.RemovePage(ai_index)
+
+            if hasattr(self, 'livePanel'):
+                live_index = -1
+                for i in range(self.notebook.GetPageCount()):
+                    if self.notebook.GetPage(i) == self.livePanel:
+                        live_index = i
+                        break
+                
+                if is_gemini_api and live_index == -1:
+                    self.notebook.InsertPage(1, self.livePanel, _("Live Assistant"))
+                elif not is_gemini_api and live_index != -1:
+                    self.notebook.RemovePage(live_index)
         self.Layout()
         p = self.connectionBox.GetParent()
         if p: p.Layout()
@@ -691,7 +761,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             if custom_type_idx != wx.NOT_FOUND:
                 is_custom_gemini = (custom_type_idx == 1)
             else:
-                is_custom_gemini = (config.conf["VisionAssistant"].get("custom_api_type") == "gemini")
+                is_custom_gemini = (nvda_config.conf["VisionAssistant"].get("custom_api_type") == "gemini")
 
             is_upload_supported = self.customUploadSupport.Value
             if is_custom_gemini and is_upload_supported:
@@ -714,7 +784,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         p_name = ["gemini", "openai", "mistral", "groq", "minimax", "custom"][p_idx]
 
         key_name = "api_key" if p_name == "gemini" else (f"{p_name}_api_key" if p_name != "custom" else "custom_api_key")
-        val = config.conf["VisionAssistant"].get(key_name, "")
+        val = nvda_config.conf["VisionAssistant"].get(key_name, "")
 
         self.Freeze()
         try:
@@ -813,14 +883,14 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
 
         val = self.apiKeyCtrl_visible.Value if self.showApiCheck.IsChecked() else self.apiKeyCtrl_hidden.Value
         k_key = "api_key" if p_name == "gemini" else (f"{p_name}_api_key" if p_name != "custom" else "custom_api_key")
-        config.conf["VisionAssistant"][k_key] = val.strip()
-        config.conf["VisionAssistant"]["active_provider"] = p_name
+        nvda_config.conf["VisionAssistant"][k_key] = val.strip()
+        nvda_config.conf["VisionAssistant"]["active_provider"] = p_name
 
         if p_name == "custom":
-            config.conf["VisionAssistant"]["custom_api_url"] = self.customUrl.Value.strip()
-            config.conf["VisionAssistant"]["custom_api_type"] = "openai" if self.customType.GetSelection() == 0 else "gemini"
-            config.conf["VisionAssistant"]["use_advanced_endpoints"] = self.useAdvancedEndpoints.Value
-            config.conf["VisionAssistant"]["custom_models_url"] = self.customModelsUrl.Value.strip()
+            nvda_config.conf["VisionAssistant"]["custom_api_url"] = self.customUrl.Value.strip()
+            nvda_config.conf["VisionAssistant"]["custom_api_type"] = "openai" if self.customType.GetSelection() == 0 else "gemini"
+            nvda_config.conf["VisionAssistant"]["use_advanced_endpoints"] = self.useAdvancedEndpoints.Value
+            nvda_config.conf["VisionAssistant"]["custom_models_url"] = self.customModelsUrl.Value.strip()
 
         self.btn_fetch.Disable()
         # Translators: Progress message shown while fetching AI models from the server
@@ -831,9 +901,33 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         models_info = AIHandler.get_models(task="all")
         wx.CallAfter(self._on_fetch_models_complete, p_name, models_info)
 
+    def _current_combo_id(self, combo):
+        sel = combo.GetSelection()
+        if sel != wx.NOT_FOUND:
+            return combo.GetClientData(sel)
+        return combo.GetValue()
+
+    def _restore_combo(self, combo, saved_id):
+        if saved_id is not None:
+            for i in range(combo.GetCount()):
+                if combo.GetClientData(i) == saved_id:
+                    combo.SetSelection(i)
+                    combo.ChangeValue(combo.GetString(i))
+                    return
+            if saved_id:
+                combo.SetValue(saved_id)
+                return
+        if combo.GetCount() > 0:
+            combo.SetSelection(0)
+            combo.ChangeValue(combo.GetString(0))
+
     def _on_fetch_models_complete(self, p_name, models_info):
         self.btn_fetch.Enable()
         if models_info:
+            prev_main = self._current_combo_id(self.model)
+            prev_routing = {}
+            for attr in (self.advOcrModel, self.advSttModel, self.advTtsModel, self.advOperatorModel, self.advVideoModel, self.advLiveModel):
+                prev_routing[attr] = self._current_combo_id(attr)
             self.model.Freeze()
             self.model.Clear()
             self.advOcrModel.Clear()
@@ -867,26 +961,16 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
                 self.advTtsModel.Append(m_name, m_id)
                 self.advOperatorModel.Append(m_name, m_id)
                 self.advVideoModel.Append(m_name, m_id)
-                if "live" in m_id.lower():
-                    self.advLiveModel.Append(m_name, m_id)
+                self.advLiveModel.Append(m_name, m_id)
                 storage_parts.append(f"{m_id}|{m_name}")
 
-            config.conf["VisionAssistant"][f"{p_name}_models_list"] = ",".join(storage_parts)
-
-            if self.model.GetCount() > 0:
-                self.model.SetSelection(0)
-                self.model.ChangeValue(self.model.GetString(0))
-            else:
-                self.model.SetValue("")
+            nvda_config.conf["VisionAssistant"][f"{p_name}_models_list"] = ",".join(storage_parts)
 
             self.model.Thaw()
 
-            self.advOcrModel.SetSelection(0)
-            self.advSttModel.SetSelection(0)
-            self.advTtsModel.SetSelection(0)
-            self.advOperatorModel.SetSelection(0)
-            self.advVideoModel.SetSelection(0)
-            self.advLiveModel.SetSelection(0)
+            self._restore_combo(self.model, prev_main)
+            for attr in (self.advOcrModel, self.advSttModel, self.advTtsModel, self.advOperatorModel, self.advVideoModel, self.advLiveModel):
+                self._restore_combo(attr, prev_routing.get(attr))
 
             self._all_models_backup = [(self.model.GetString(i), self.model.GetClientData(i)) for i in range(self.model.GetCount())]
 
@@ -919,7 +1003,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         self.advTtsModel.Append(auto_task_label, "")
 
         self._current_model_ids = []
-        saved_models_raw = config.conf["VisionAssistant"].get(f"{p_name}_models_list", "")
+        saved_models_raw = nvda_config.conf["VisionAssistant"].get(f"{p_name}_models_list", "")
         all_models = []
         if saved_models_raw:
             items = saved_models_raw.split(",")
@@ -940,14 +1024,13 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             self.advTtsModel.Append(m_name, m_id)
             self.advOperatorModel.Append(m_name, m_id)
             self.advVideoModel.Append(m_name, m_id)
-            if "live" in m_id.lower():
-                self.advLiveModel.Append(m_name, m_id)
+            self.advLiveModel.Append(m_name, m_id)
             if m_id not in self._current_model_ids: self._current_model_ids.append(m_id)
 
         m_key = "model_name" if p_name == "gemini" else f"{p_name}_model_name"
-        curr_model = self._temp_models.get(p_name, config.conf["VisionAssistant"].get(m_key, ""))
+        curr_model = self._temp_models.get(p_name, nvda_config.conf["VisionAssistant"].get(m_key, ""))
         if p_name == "custom" and not curr_model:
-            curr_model = config.conf["VisionAssistant"].get("custom_model_name", "")
+            curr_model = nvda_config.conf["VisionAssistant"].get("custom_model_name", "")
 
         for i in range(self.model.GetCount()):
             if self.model.GetClientData(i) == curr_model:
@@ -971,7 +1054,7 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             routing_map.append((self.advVideoModel, f"{p_name}_video_model"))
             routing_map.append((self.advLiveModel, f"{p_name}_live_model"))
         for attr, conf_key in routing_map:
-            saved_id = config.conf["VisionAssistant"].get(conf_key, "")
+            saved_id = nvda_config.conf["VisionAssistant"].get(conf_key, "")
             for i in range(attr.GetCount()):
                 if attr.GetClientData(i) == saved_id:
                     attr.SetSelection(i)
@@ -1027,19 +1110,134 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
         if p_idx != wx.NOT_FOUND:
             p_name = ["gemini", "openai", "mistral", "groq", "minimax", "custom"][p_idx]
             if p_name == "custom":
-                config.conf["VisionAssistant"]["custom_models_list"] = ""
+                nvda_config.conf["VisionAssistant"]["custom_models_list"] = ""
                 self.updateCustomFieldsVisibility("custom")
         event.Skip()
 
+    def _on_ptt_key_focus(self, event):
+        try:
+            if inputCore.manager._captureFunc is not None:
+                event.Skip()
+                return
+        except Exception:
+            pass
+        self._ptt_capture_func = self._ptt_captor
+        self._ptt_last_combo = None
+        self._ptt_last_time = 0.0
+        try:
+            inputCore.manager._captureFunc = self._ptt_capture_func
+        except Exception:
+            pass
+        event.Skip()
+
+    def _on_ptt_key_kill_focus(self, event):
+        self._stop_ptt_capture()
+        event.Skip()
+
+    def _stop_ptt_capture(self):
+        try:
+            if inputCore.manager._captureFunc is getattr(self, "_ptt_capture_func", None):
+                inputCore.manager._captureFunc = None
+        except Exception:
+            pass
+        self._ptt_capture_func = None
+        self._ptt_gen = getattr(self, "_ptt_gen", 0) + 1
+        self._ptt_pending_modifier = None
+
+    def _ptt_captor(self, gesture):
+        if not isinstance(gesture, keyboardHandler.KeyboardInputGesture):
+            return True
+        try:
+            identifier = gesture.identifiers[-1]
+        except Exception:
+            return True
+        if ":" not in identifier:
+            return True
+        combo = identifier.rsplit(":", 1)[1].strip().lower()
+        parts = combo.split("+")
+        if gesture.isModifier:
+            spec = normalize_ptt_key(combo)
+            if spec:
+                self._ptt_pending_modifier = spec
+                gen = getattr(self, "_ptt_gen", 0) + 1
+                self._ptt_gen = gen
+                core.callLater(600, self._ptt_finalize_modifier, gen)
+            return False
+        self._ptt_gen = getattr(self, "_ptt_gen", 0) + 1
+        self._ptt_pending_modifier = None
+        if parts and parts[-1] in ("tab", "insert"):
+            return True
+        if combo in ("escape", "enter"):
+            return None
+        now = time.monotonic()
+        if combo == self._ptt_last_combo and now - self._ptt_last_time < 0.5:
+            return False
+        self._ptt_last_combo = combo
+        self._ptt_last_time = now
+        if combo in ("backspace", "delete"):
+            wx.CallAfter(self._set_ptt_key_value, "")
+            return False
+        if not normalize_ptt_key(combo):
+            return False
+        wx.CallAfter(self._set_ptt_key_value, combo)
+        return False
+
+    def _ptt_finalize_modifier(self, gen):
+        if gen != getattr(self, "_ptt_gen", 0):
+            return
+        spec = self._ptt_pending_modifier
+        self._ptt_pending_modifier = None
+        self._stop_ptt_capture()
+        if spec:
+            self._set_ptt_key_value(spec)
+
+    def _set_ptt_key_value(self, combo):
+        try:
+            display = ptt_key_display(combo)
+            if self.pttKeyCtrl.GetValue() == display:
+                return
+            self.pttKeyCtrl.SetValue(display)
+            if display:
+                ui.message(display)
+        except Exception:
+            pass
+
+    def onTogglePtt(self, event):
+        show = self.pttCheck.Value
+        self.lblPttKey.Show(show)
+        self.pttKeyCtrl.Show(show)
+        self.livePanel.Layout()
+
+    def isValid(self):
+        if not self.pttCheck.Value or normalize_ptt_key(self.pttKeyCtrl.Value):
+            return True
+        p_idx = self.provider_sel.GetSelection()
+        p_name = ["gemini", "openai", "mistral", "groq", "minimax", "custom"][p_idx] if p_idx != wx.NOT_FOUND else "gemini"
+        if not self._live_supported_for(p_name):
+            return True
+        # Translators: Warning shown when Push to Talk is enabled but no key has been assigned in settings.
+        gui.messageBox(
+            _("You have not assigned a Push to Talk key. Please press a key in the Push to Talk Key field, or disable Push to Talk."),
+            # Translators: Title of the warning dialog about the missing push-to-talk key.
+            _("Push to Talk Key"),
+            wx.OK | wx.ICON_WARNING,
+            parent=self,
+        )
+        return False
+
+    def onDiscard(self):
+        self._stop_ptt_capture()
+
     def onSave(self):
+        self._stop_ptt_capture()
         try:
             p_idx = self.provider_sel.GetSelection()
             p_name = ["gemini", "openai", "mistral", "groq", "minimax", "custom"][p_idx]
-            config.conf["VisionAssistant"]["active_provider"] = p_name
+            nvda_config.conf["VisionAssistant"]["active_provider"] = p_name
 
             val = self.apiKeyCtrl_visible.Value if self.showApiCheck.IsChecked() else self.apiKeyCtrl_hidden.Value
             k_key = "api_key" if p_name == "gemini" else (f"{p_name}_api_key" if p_name != "custom" else "custom_api_key")
-            config.conf["VisionAssistant"][k_key] = val.strip()
+            nvda_config.conf["VisionAssistant"][k_key] = val.strip()
 
             m_key = "model_name" if p_name == "gemini" else f"{p_name}_model_name"
             has_fetched_models = self.model.GetCount() > 0
@@ -1050,15 +1248,15 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
                 if not model_val:
                     model_val = self.customModelName.Value.strip()
                 if model_val:
-                    config.conf["VisionAssistant"]["custom_model_name"] = model_val
-                    config.conf["VisionAssistant"][m_key] = model_val
+                    nvda_config.conf["VisionAssistant"]["custom_model_name"] = model_val
+                    nvda_config.conf["VisionAssistant"][m_key] = model_val
             else:
                 sel_idx = self.model.GetSelection()
                 if sel_idx != wx.NOT_FOUND:
                     model_val = self.model.GetClientData(sel_idx)
-                    config.conf["VisionAssistant"][m_key] = model_val
+                    nvda_config.conf["VisionAssistant"][m_key] = model_val
 
-            config.conf["VisionAssistant"]["advanced_model_routing"] = self.advRoutingCheck.Value
+            nvda_config.conf["VisionAssistant"]["advanced_model_routing"] = self.advRoutingCheck.Value
             routing_save = [
                 (self.advOcrModel, f"{p_name}_ocr_model"),
                 (self.advSttModel, f"{p_name}_stt_model"),
@@ -1071,25 +1269,25 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             for attr, conf_key in routing_save:
                 idx = attr.GetSelection()
                 if idx != wx.NOT_FOUND:
-                    config.conf["VisionAssistant"][conf_key] = attr.GetClientData(idx)
+                    nvda_config.conf["VisionAssistant"][conf_key] = attr.GetClientData(idx)
 
             if p_name == "custom":
-                config.conf["VisionAssistant"]["custom_api_url"] = self.customUrl.Value.strip()
-                config.conf["VisionAssistant"]["custom_api_type"] = "openai" if self.customType.GetSelection() == 0 else "gemini"
-                config.conf["VisionAssistant"]["custom_upload_support"] = self.customUploadSupport.Value
-                config.conf["VisionAssistant"]["use_advanced_endpoints"] = self.useAdvancedEndpoints.Value
-                config.conf["VisionAssistant"]["custom_models_url"] = self.customModelsUrl.Value.strip()
-                config.conf["VisionAssistant"]["custom_ocr_url"] = self.customOcrUrl.Value.strip()
-                config.conf["VisionAssistant"]["custom_stt_url"] = self.customSttUrl.Value.strip()
-                config.conf["VisionAssistant"]["custom_tts_url"] = self.customTtsUrl.Value.strip()
-                config.conf["VisionAssistant"]["custom_operator_url"] = self.customAssistantUrl.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_api_url"] = self.customUrl.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_api_type"] = "openai" if self.customType.GetSelection() == 0 else "gemini"
+                nvda_config.conf["VisionAssistant"]["custom_upload_support"] = self.customUploadSupport.Value
+                nvda_config.conf["VisionAssistant"]["use_advanced_endpoints"] = self.useAdvancedEndpoints.Value
+                nvda_config.conf["VisionAssistant"]["custom_models_url"] = self.customModelsUrl.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_ocr_url"] = self.customOcrUrl.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_stt_url"] = self.customSttUrl.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_tts_url"] = self.customTtsUrl.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_operator_url"] = self.customAssistantUrl.Value.strip()
                 if not has_fetched_models:
-                    config.conf["VisionAssistant"]["custom_ocr_model"] = self.customOcrModel.Value.strip()
-                    config.conf["VisionAssistant"]["custom_stt_model"] = self.customSttModel.Value.strip()
-                    config.conf["VisionAssistant"]["custom_tts_model"] = self.customTtsModel.Value.strip()
-                    config.conf["VisionAssistant"]["custom_operator_model"] = self.customAssistantModel.Value.strip()
+                    nvda_config.conf["VisionAssistant"]["custom_ocr_model"] = self.customOcrModel.Value.strip()
+                    nvda_config.conf["VisionAssistant"]["custom_stt_model"] = self.customSttModel.Value.strip()
+                    nvda_config.conf["VisionAssistant"]["custom_tts_model"] = self.customTtsModel.Value.strip()
+                    nvda_config.conf["VisionAssistant"]["custom_operator_model"] = self.customAssistantModel.Value.strip()
 
-                config.conf["VisionAssistant"]["custom_tts_voice"] = self.customTtsVoice.Value.strip()
+                nvda_config.conf["VisionAssistant"]["custom_tts_voice"] = self.customTtsVoice.Value.strip()
 
             final_voice = ""
             if p_name == "custom" and self.customTtsVoice.Value.strip():
@@ -1100,37 +1298,46 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
                     final_voice = self.voice_sel.GetClientData(v_idx)
 
             if final_voice:
-                config.conf["VisionAssistant"]["tts_voice"] = final_voice
+                nvda_config.conf["VisionAssistant"]["tts_voice"] = final_voice
 
-            config.conf["VisionAssistant"]["ai_temperature"] = float(self.aiTemp.GetStringSelection())
-            config.conf["VisionAssistant"]["proxy_url"] = self.proxyUrl.Value.strip()
-            config.conf["VisionAssistant"]["source_language"] = vision_config.SOURCE_LIST[self.sourceLang.GetSelection()][1]
-            config.conf["VisionAssistant"]["target_language"] = vision_config.TARGET_LIST[self.targetLang.GetSelection()][1]
-            config.conf["VisionAssistant"]["ai_response_language"] = vision_config.TARGET_LIST[self.aiResponseLang.GetSelection()][1]
-            config.conf["VisionAssistant"]["smart_swap"] = self.smartSwap.Value
-            config.conf["VisionAssistant"]["check_update_startup"] = self.checkUpdateStartup.Value
-            config.conf["VisionAssistant"]["clean_markdown_chat"] = self.cleanMarkdown.Value
-            config.conf["VisionAssistant"]["copy_to_clipboard"] = self.copyToClipboard.Value
-            config.conf["VisionAssistant"]["skip_chat_dialog"] = self.skipChatDialog.Value
-            config.conf["VisionAssistant"]["live_direct_output"] = self.liveDirectOutput.Value
-            config.conf["VisionAssistant"]["captcha_mode"] = 'navigator' if self.captchaMode.GetSelection() == 0 else 'fullscreen'
-            config.conf["VisionAssistant"]["enable_visual_captcha_solver"] = self.enableVisualCaptcha.Value
-            config.conf["VisionAssistant"]["ocr_engine"] = vision_config.OCR_ENGINES[self.ocr_sel.GetSelection()][1]
-            config.conf["VisionAssistant"]["ocr_batch_size"] = self.batch_size.GetValue()
-            config.conf["VisionAssistant"]["describe_images_ocr"] = self.chk_describe_images.Value
-            config.conf["VisionAssistant"]["document_export_page_numbers"] = self.chk_export_page_numbers.Value
-            config.conf["VisionAssistant"]["video_srt_chunk_minutes"] = self.vid_chunk_size.GetValue()
-            config.conf["VisionAssistant"]["video_chars_as_subtitle"] = self.vid_chars_as_sub.Value
-            config.conf["VisionAssistant"]["video_add_disclaimer"] = self.vid_add_disclaimer.Value
-            config.conf["VisionAssistant"]["enable_file_logging"] = self.enableFileLogging.Value
+            nvda_config.conf["VisionAssistant"]["ai_temperature"] = float(self.aiTemp.GetStringSelection())
+            nvda_config.conf["VisionAssistant"]["proxy_url"] = self.proxyUrl.Value.strip()
+            nvda_config.conf["VisionAssistant"]["source_language"] = vision_config.SOURCE_LIST[self.sourceLang.GetSelection()][1]
+            nvda_config.conf["VisionAssistant"]["target_language"] = vision_config.TARGET_LIST[self.targetLang.GetSelection()][1]
+            nvda_config.conf["VisionAssistant"]["ai_response_language"] = vision_config.TARGET_LIST[self.aiResponseLang.GetSelection()][1]
+            nvda_config.conf["VisionAssistant"]["smart_swap"] = self.smartSwap.Value
+            nvda_config.conf["VisionAssistant"]["check_update_startup"] = self.checkUpdateStartup.Value
+            nvda_config.conf["VisionAssistant"]["clean_markdown_chat"] = self.cleanMarkdown.Value
+            nvda_config.conf["VisionAssistant"]["copy_to_clipboard"] = self.copyToClipboard.Value
+            nvda_config.conf["VisionAssistant"]["skip_chat_dialog"] = self.skipChatDialog.Value
+            nvda_config.conf["VisionAssistant"]["live_direct_output"] = self.liveDirectOutput.Value
+            nvda_config.conf["VisionAssistant"]["live_push_to_talk"] = self.pttCheck.Value
+            nvda_config.conf["VisionAssistant"]["live_ptt_key"] = normalize_ptt_key(self.pttKeyCtrl.Value)
+            nvda_config.conf["VisionAssistant"]["captcha_mode"] = 'navigator' if self.captchaMode.GetSelection() == 0 else 'fullscreen'
+            nvda_config.conf["VisionAssistant"]["enable_visual_captcha_solver"] = self.enableVisualCaptcha.Value
+            nvda_config.conf["VisionAssistant"]["ocr_engine"] = vision_config.OCR_ENGINES[self.ocr_sel.GetSelection()][1]
+            nvda_config.conf["VisionAssistant"]["ocr_batch_size"] = self.batch_size.GetValue()
+            nvda_config.conf["VisionAssistant"]["describe_images_ocr"] = self.chk_describe_images.Value
+            nvda_config.conf["VisionAssistant"]["document_export_page_numbers"] = self.chk_export_page_numbers.Value
+            nvda_config.conf["VisionAssistant"]["video_srt_chunk_minutes"] = self.vid_chunk_size.GetValue()
+            nvda_config.conf["VisionAssistant"]["video_chars_as_subtitle"] = self.vid_chars_as_sub.Value
+            nvda_config.conf["VisionAssistant"]["video_add_disclaimer"] = self.vid_add_disclaimer.Value
+            nvda_config.conf["VisionAssistant"]["enable_file_logging"] = self.enableFileLogging.Value
             l_idx = self.logLevelSel.GetSelection()
             if l_idx != wx.NOT_FOUND:
-                config.conf["VisionAssistant"]["log_level"] = self.logLevels[l_idx][1]
+                nvda_config.conf["VisionAssistant"]["log_level"] = self.logLevels[l_idx][1]
             r_idx = self.logRetentionSel.GetSelection()
             if r_idx != wx.NOT_FOUND:
-                config.conf["VisionAssistant"]["log_retention_hours"] = self.logRetentionChoices[r_idx][1]
-            config.conf["VisionAssistant"]["custom_prompts_v2"] = serialize_custom_prompts_v2(self.customPromptItems)
-            config.conf["VisionAssistant"]["default_refine_prompts"] = serialize_default_prompt_overrides(self.defaultPromptItems)
+                nvda_config.conf["VisionAssistant"]["log_retention_hours"] = self.logRetentionChoices[r_idx][1]
+            nvda_config.conf["VisionAssistant"]["custom_prompts_v2"] = serialize_custom_prompts_v2(self.customPromptItems)
+            nvda_config.conf["VisionAssistant"]["default_refine_prompts"] = serialize_default_prompt_overrides(self.defaultPromptItems)
+
+            try:
+                inst = plugin_state.plugin_instance
+                if inst is not None:
+                    inst._refresh_custom_prompt_scripts()
+            except Exception as e:
+                log.warning(f"Failed to refresh custom prompt shortcuts: {e}")
 
             try:
                 from ..utils.logging_utils import setup_file_logging
@@ -1163,6 +1370,240 @@ class SettingsPanel(gui.settingsDialogs.SettingsPanel):
             ui.message(_("Log file cleared."))
         except Exception as e:
             log.error(f"onClearLogFile failed: {e}", exc_info=True)
+
+    def onBackupSettings(self, event):
+        from datetime import datetime
+        default_name = f"VisionAssistant_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        gui.mainFrame.prePopup()
+        try:
+            with wx.FileDialog(
+                self,
+                # Translators: Title of the save file dialog for the add-on backup
+                _("Save Backup"),
+                defaultFile=default_name,
+                wildcard="JSON files (*.json)|*.json",
+                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            ) as dlg:
+                if dlg.ShowModal() != wx.ID_OK:
+                    return
+                path = dlg.GetPath()
+        finally:
+            gui.mainFrame.postPopup()
+        gui.mainFrame.prePopup()
+        try:
+            # Translators: Options for what to include in the settings backup.
+            choices = [_("Everything (Settings, Labels, OCR Progress, History)"), _("Settings Only")]
+            scope_dlg = wx.SingleChoiceDialog(
+                self,
+                # Translators: Message of the backup scope dialog asking what to include.
+                _("What would you like to back up?"),
+                # Translators: Title of the backup scope dialog.
+                _("Backup Options"),
+                choices,
+            )
+            scope_dlg.Raise()
+            if scope_dlg.ShowModal() != wx.ID_OK:
+                scope_dlg.Destroy()
+                return
+            include_data = scope_dlg.GetSelection() == 0
+            scope_dlg.Destroy()
+        finally:
+            gui.mainFrame.postPopup()
+        try:
+            settings_data = nvda_config.conf["VisionAssistant"].dict()
+            settings_data["custom_prompts_v2"] = serialize_custom_prompts_v2(self.customPromptItems)
+            settings_data["default_refine_prompts"] = serialize_default_prompt_overrides(self.defaultPromptItems)
+            payload = {
+                "format": "VisionAssistantSettingsBackup",
+                "version": 2,
+                "settings": settings_data,
+            }
+            if include_data:
+                data = {}
+                for key, fpath in (("labels", vision_config.LABELS_FILE), ("ocr_progress", vision_config.OCR_PROGRESS_FILE), ("history", vision_config.HISTORY_FILE)):
+                    if os.path.exists(fpath):
+                        try:
+                            with open(fpath, "r", encoding="utf-8") as f:
+                                data[key] = json.load(f)
+                        except Exception as e:
+                            log.warning(f"Backup: failed to read {key}: {e}")
+                payload["data"] = data
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False, default=str)
+            # Translators: Message announced after a successful backup.
+            ui.message(_("Backup saved."))
+        except Exception as e:
+            log.error(f"onBackupSettings failed: {e}", exc_info=True)
+            gui.mainFrame.prePopup()
+            try:
+                # Translators: Error message when the settings backup fails.
+                gui.messageBox(_("Backup failed: {error}").format(error=e), _("Error"), wx.OK | wx.ICON_ERROR)
+            finally:
+                gui.mainFrame.postPopup()
+
+    def onRestoreSettings(self, event):
+        gui.mainFrame.prePopup()
+        try:
+            with wx.FileDialog(
+                self,
+                # Translators: Title of the open file dialog for restoring a backup.
+                _("Choose a Backup File"),
+                wildcard="JSON files (*.json)|*.json",
+                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+            ) as dlg:
+                if dlg.ShowModal() != wx.ID_OK:
+                    return
+                path = dlg.GetPath()
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    payload = json.load(f)
+            except Exception as e:
+                # Translators: Error message when the chosen backup file cannot be read.
+                gui.messageBox(_("Could not read the backup file: {error}").format(error=e), _("Error"), wx.OK | wx.ICON_ERROR)
+                return
+            if not isinstance(payload, dict) or payload.get("format") != "VisionAssistantSettingsBackup" or not isinstance(payload.get("settings"), dict):
+                # Translators: Error message when the chosen file is not a valid settings backup.
+                gui.messageBox(_("This file is not a valid Vision Assistant settings backup."), _("Error"), wx.OK | wx.ICON_ERROR)
+                return
+            has_data = isinstance(payload.get("data"), dict)
+            if has_data:
+                # Translators: Confirmation prompt shown before restoring a full backup, because it replaces all current settings and data.
+                confirm_msg = _("Restoring will replace all current settings and data (labels, OCR progress, and history). Do you want to continue?")
+            else:
+                # Translators: Confirmation prompt shown before restoring, because it replaces all current settings.
+                confirm_msg = _("Restoring will replace all current settings. Do you want to continue?")
+            if gui.messageBox(
+                confirm_msg,
+                # Translators: Title of the confirmation dialog for restoring settings.
+                _("Restore Settings"),
+                wx.YES_NO | wx.ICON_WARNING,
+            ) != wx.YES:
+                return
+        finally:
+            gui.mainFrame.postPopup()
+        try:
+            nvda_config.conf["VisionAssistant"] = payload["settings"]
+        except Exception as e:
+            log.error(f"onRestoreSettings failed to apply: {e}", exc_info=True)
+            gui.mainFrame.prePopup()
+            try:
+                # Translators: Error message when applying the restored settings fails.
+                gui.messageBox(_("Restore failed: {error}").format(error=e), _("Error"), wx.OK | wx.ICON_ERROR)
+            finally:
+                gui.mainFrame.postPopup()
+            return
+        self.defaultPromptItems = get_configured_default_prompts()
+        self.customPromptItems = load_configured_custom_prompts()
+        self._refreshPromptSummary()
+        self._reloadControlsFromConfig()
+        try:
+            inst = plugin_state.plugin_instance
+            if inst is not None:
+                inst._refresh_custom_prompt_scripts()
+        except Exception as e:
+            log.warning(f"Failed to refresh custom prompt shortcuts after restore: {e}")
+        if has_data:
+            for key, fpath in (("labels", vision_config.LABELS_FILE), ("ocr_progress", vision_config.OCR_PROGRESS_FILE), ("history", vision_config.HISTORY_FILE)):
+                if key in payload["data"]:
+                    try:
+                        with open(fpath, "w", encoding="utf-8") as f:
+                            json.dump(payload["data"][key], f, ensure_ascii=False)
+                    except Exception as e:
+                        log.warning(f"Restore: failed to write {key}: {e}")
+            try:
+                inst = plugin_state.plugin_instance
+                if inst is not None and "labels" in payload["data"]:
+                    inst.labels_cache = payload["data"].get("labels", {})
+            except Exception as e:
+                log.warning(f"Restore: failed to reload labels: {e}")
+        # Translators: Message announced after a successful restore.
+        ui.message(_("Backup restored successfully."))
+
+    def _reloadControlsFromConfig(self):
+        conf = nvda_config.conf["VisionAssistant"]
+        providers = ["gemini", "openai", "mistral", "groq", "minimax", "custom"]
+        curr_p = conf.get("active_provider", "gemini")
+        try:
+            p_idx = next(i for i, x in enumerate(providers) if x == curr_p)
+        except Exception:
+            p_idx = 0
+        self.provider_sel.SetSelection(p_idx)
+
+        k_key = "api_key" if curr_p == "gemini" else (f"{curr_p}_api_key" if curr_p != "custom" else "custom_api_key")
+        key_val = conf.get(k_key, "")
+        self.apiKeyCtrl_hidden.SetValue(key_val)
+        self.apiKeyCtrl_visible.SetValue(key_val)
+        self.showApiCheck.SetValue(False)
+        self.apiKeyCtrl_hidden.Show()
+        self.apiKeyCtrl_visible.Hide()
+
+        self.customUrl.SetValue(conf.get("custom_api_url", ""))
+        self.customType.SetSelection(0 if conf.get("custom_api_type", "openai") == "openai" else 1)
+        self.customModelName.SetValue(conf.get("custom_model_name", ""))
+        self.customUploadSupport.SetValue(conf.get("custom_upload_support", False))
+        self.useAdvancedEndpoints.SetValue(conf.get("use_advanced_endpoints", False))
+        self.customModelsUrl.SetValue(conf.get("custom_models_url", ""))
+        self.customOcrUrl.SetValue(conf.get("custom_ocr_url", ""))
+        self.customOcrModel.SetValue(conf.get("custom_ocr_model", ""))
+        self.customSttUrl.SetValue(conf.get("custom_stt_url", ""))
+        self.customSttModel.SetValue(conf.get("custom_stt_model", ""))
+        self.customTtsUrl.SetValue(conf.get("custom_tts_url", ""))
+        self.customTtsModel.SetValue(conf.get("custom_tts_model", ""))
+        self.customAssistantUrl.SetValue(conf.get("custom_operator_url", ""))
+        self.customAssistantModel.SetValue(conf.get("custom_operator_model", ""))
+        self.customTtsVoice.SetValue(conf.get("custom_tts_voice", ""))
+
+        self.advRoutingCheck.SetValue(conf.get("advanced_model_routing", False))
+        self.proxyUrl.SetValue(conf.get("proxy_url", ""))
+        self.checkUpdateStartup.SetValue(conf.get("check_update_startup", False))
+        self.cleanMarkdown.SetValue(conf.get("clean_markdown_chat", True))
+        self.copyToClipboard.SetValue(conf.get("copy_to_clipboard", False))
+        self.skipChatDialog.SetValue(conf.get("skip_chat_dialog", False))
+        self.liveDirectOutput.SetValue(conf.get("live_direct_output", False))
+        self.pttCheck.SetValue(conf.get("live_push_to_talk", False))
+        self.pttKeyCtrl.SetValue(ptt_key_display(conf.get("live_ptt_key", "")))
+
+        temp_str = str(conf.get("ai_temperature", 0.7))
+        t_idx = self.aiTemp.FindString(temp_str)
+        self.aiTemp.SetSelection(t_idx if t_idx != wx.NOT_FOUND else 7)
+
+        s_code = conf.get("source_language", "auto")
+        s_idx = next((i for i, x in enumerate(vision_config.SOURCE_LIST) if x[1] == s_code), 0)
+        self.sourceLang.SetSelection(s_idx)
+        t_code = conf.get("target_language", "en")
+        t_idx = next((i for i, x in enumerate(vision_config.TARGET_LIST) if x[1] == t_code), 0)
+        self.targetLang.SetSelection(t_idx)
+        ai_code = conf.get("ai_response_language", "en")
+        ai_idx = next((i for i, x in enumerate(vision_config.TARGET_LIST) if x[1] == ai_code), 0)
+        self.aiResponseLang.SetSelection(ai_idx)
+        self.smartSwap.SetValue(conf.get("smart_swap", True))
+
+        ocr_code = conf.get("ocr_engine", "chrome")
+        ocr_idx = next((i for i, v in enumerate(vision_config.OCR_ENGINES) if v[1] == ocr_code), 0)
+        self.ocr_sel.SetSelection(ocr_idx)
+        self.batch_size.SetValue(conf.get("ocr_batch_size", 20))
+        self.chk_describe_images.SetValue(conf.get("describe_images_ocr", True))
+        self.chk_export_page_numbers.SetValue(conf.get("document_export_page_numbers", True))
+
+        self.vid_chunk_size.SetValue(conf.get("video_srt_chunk_minutes", 10))
+        self.vid_chars_as_sub.SetValue(conf.get("video_chars_as_subtitle", True))
+        self.vid_add_disclaimer.SetValue(conf.get("video_add_disclaimer", True))
+
+        self.enableVisualCaptcha.SetValue(conf.get("enable_visual_captcha_solver", True))
+        self.captchaMode.SetSelection(0 if conf.get("captcha_mode", "navigator") == "navigator" else 1)
+
+        self.enableFileLogging.SetValue(conf.get("enable_file_logging", False))
+        lvl = conf.get("log_level", "DEBUG")
+        lvl_idx = next((i for i, x in enumerate(self.logLevels) if x[1] == lvl), 0)
+        self.logLevelSel.SetSelection(lvl_idx)
+        ret_hrs = conf.get("log_retention_hours", 168)
+        ret_idx = next((i for i, x in enumerate(self.logRetentionChoices) if x[1] == ret_hrs), 6)
+        self.logRetentionSel.SetSelection(ret_idx)
+
+        self._temp_models = {}
+        self.refreshModelList(curr_p)
+        self.updateVoiceList(curr_p)
+        self.updateCustomFieldsVisibility(curr_p)
 
     def onModelFilter(self, event):
         cb = event.GetEventObject()
