@@ -181,7 +181,8 @@ class GeminiHandler:
                 "X-Goog-Upload-Header-Content-Length": str(file_size),
                 "X-Goog-Upload-Header-Content-Type": mime_type,
                 "Content-Type": "application/json",
-                "x-goog-api-key": key
+                "x-goog-api-key": key,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
             }
             req_init = request.Request(base_upload_url, data=json.dumps({"file": {"display_name": os.path.basename(file_path)}}).encode(), headers=headers_init, method="POST")
             opener = get_proxy_opener()
@@ -195,7 +196,8 @@ class GeminiHandler:
             headers_up = {
                 "Content-Length": str(file_size),
                 "X-Goog-Upload-Offset": "0",
-                "X-Goog-Upload-Command": "upload, finalize"
+                "X-Goog-Upload-Command": "upload, finalize",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
             }
 
             reader = ProgressFileReader(file_path, callback=default_progress_callback, abort_checker=abort_checker)
@@ -215,7 +217,7 @@ class GeminiHandler:
             for attempt in range(150):
                 if abort_checker and abort_checker(): return None, None
                 check_url = f"{clean_base}/v1beta/{name}?key={key}"
-                req_check = request.Request(check_url)
+                req_check = request.Request(check_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"})
                 try:
                     with opener.open(req_check, timeout=30) as r:
                         data = json.loads(r.read().decode())

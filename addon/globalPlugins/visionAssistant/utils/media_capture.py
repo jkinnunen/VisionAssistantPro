@@ -86,7 +86,8 @@ def get_proxy_opener(target_url=None):
                     opener = request.build_opener(handler)
             except Exception as e:
                 log.error(f"Proxy Setup Failed: {e}")
-    opener.addheaders.append(('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'))
+    opener.addheaders = [h for h in opener.addheaders if h[0].lower() != 'user-agent']
+    opener.addheaders.append(('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'))
     return opener
 
 
@@ -607,6 +608,17 @@ class _MinimalWebSocket:
 
     def _get_effective_proxy(self):
         proxy_url = nvda_config.conf["VisionAssistant"]["proxy_url"].strip()
+        if proxy_url:
+            try:
+                clean_proxy = proxy_url if "://" in proxy_url else "http://" + proxy_url
+                parsed = urlparse(clean_proxy)
+                if parsed.hostname and parsed.hostname.lower() == self.host.lower():
+                    proxy_url = ""
+                elif parsed.hostname and "." in parsed.hostname and not parsed.hostname.replace(".", "").isdigit() and parsed.hostname.lower() not in ["localhost", "127.0.0.1"]:
+                    if not parsed.port or parsed.port in [80, 443]:
+                        proxy_url = ""
+            except Exception:
+                pass
         if not proxy_url:
             try:
                 sys_proxies = request.getproxies()
