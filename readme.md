@@ -318,10 +318,10 @@ A heartfelt thank you to our community members who support the continuous develo
 *   **@Alyabani94**
 *   **Ali Alamri**
 *   **Ilya**
-*   **Anonymous Supporter** (`UQDd...CnMY`)
+*   **Anonymous Supporter**
 *   **leonardo0216**
 *   **Sergei Fleytin**
-*   **Suman Gayen**
+*   **Arne Siebert**
 
 *If you wish to support the project financially and see your name here, you can find the **Donate** option in the NVDA Tools menu (Vision Assistant submenu) or during the setup process after installation.*
 
