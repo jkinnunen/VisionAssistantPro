@@ -146,7 +146,7 @@ Per evitare conflitti da tastiera, questo componente aggiuntivo utilizza un **li
 
 Le finestre di chat e la finestra di dialogo della cronologia funzionano in tutte le funzionalità, consentendoti di rivedere le conversazioni e riprendere esattamente da dove avevi interrotto.
 
-### 3.1 Scorciatoie della finestra di chat
+### 4.1 Scorciatoie della finestra di chat
 
 Quando una finestra di chat è aperta (Chat diretta, chat con i documenti, perfezionamento e simili), puoi esaminare la conversazione con:
 
@@ -154,7 +154,7 @@ Quando una finestra di chat è aperta (Chat diretta, chat con i documenti, perfe
 - **URL elenco modelli:** endpoint utilizzato per recuperare i modelli disponibili.
 - **Alt + C:** Copia il messaggio corrente.
 
-### 3.2 Cronologia (Control + H)
+### 4.2 Cronologia (Control + H)
 
 Premi **Control + H** nel livello dei comandi per aprire la finestra di dialogo **Cronologia** con le tue chat e i tuoi documenti passati, filtrabili per tipo (Tutte / Chat / Documenti). Apri una chat per continuare la conversazione — inclusi i file allegati, che vengono riallegati automaticamente — oppure apri un documento e continua la lettura. Premi **Canc** su qualsiasi elemento per rimuoverlo, oppure **Cancella tutto** per svuotare l'elenco. Per i documenti, Canc chiede se desideri rimuovere solo la voce della cronologia o anche cancellare il testo OCR memorizzato nella cache di quel documento, in modo che la successiva apertura lo riesamini da zero — con un'opzione **Non chiedere più** per ricordare la tua scelta.
 
@@ -166,14 +166,14 @@ L'**Operatore AI** trasforma Vision Assistant Pro da un lettore passivo in un as
 
 Il vantaggio principale? Funziona perfettamente in software completamente inaccessibili. Se vi trovate bloccati in un'applicazione personalizzata, in un desktop remoto o in un sito Web in cui il vostro screen reader diventa totalmente silenzioso, l'operatore non ha problemi. Poiché "vede" lo schermo visivamente, può trovare, leggere e interagire con elementi che hanno zero etichette di accessibilità.
 
-### 4.1 Come funziona
+### 5.1 Come funziona
 
 1. Premete **NVDA + Shift + V**, quindi premete **Shift + A** (o usate la scorciatoia diretta) per aprire la finestra di dialogo dell'Operatore AI.
 2. Digitate ciò che desiderate fare in linguaggio semplice (ad es., "Fai clic sul pulsante Salva", "Cosa dice il messaggio di errore?" o "Rinomina il file in final.pdf").
 3. L'IA analizzerà lo schermo, identificherà gli elementi pertinenti ed eseguirà l'azione o fornirà la risposta. Se un'attività richiede più passaggi, l'operatore continuerà a lavorare fino al suo completamento.
 4. Premete nuovamente **Shift + A** in qualsiasi momento per interrompere immediatamente un'operazione in corso.
 
-### 4.2 Azioni supportate
+### 5.2 Azioni supportate
 
 L'operatore comprende un'ampia gamma di comandi:
 
@@ -187,13 +187,13 @@ L'operatore comprende un'ampia gamma di comandi:
 - **Pressione di tasti**: "Premi Invio", "Premi Tab", "Premi Escape"
 - **Attività in più passaggi**: "Apri Esplora file, trova il report e rinominalo in final.pdf"
 
-### 4.3 Note importanti
+### 5.3 Note importanti
 
 - **⚠️ API Usage Warning:** Because the AI Operator needs to "see" exactly what's happening to be accurate, it sends a high-resolution screenshot with every step. Please note that frequent use will consume your API quota much faster than standard text-based tasks.
 - **Applicazioni con privilegi di amministratore**: Se NVDA non è avviato con privilegi di amministratore, l'operatore potrebbe non essere in grado di interagire con finestre che richiedono autorizzazioni elevate. Si tratta di una limitazione di sicurezza di Windows, non di un bug del componente aggiuntivo.
 - **Best practice**: Per risultati ottimali, fornite comandi chiari e specifici. "Fai clic sul pulsante blu Invia in fondo al modulo" funzionerà quasi sempre meglio del semplice "Fai clic sul pulsante".
 
-### 4.4 Operatore in tempo reale (Control+A)
+### 5.4 Operatore in tempo reale (Control+A)
 
 L'Operatore in tempo reale consente all'Assistente in tempo reale di eseguire sul computer ciò che richiedete mentre ci parlate, incluse le applicazioni che il vostro screen reader non è in grado di leggere.
 _(Nota: questa funzionalità è esclusiva di Google Gemini e dei provider personalizzati compatibili con Gemini)._
@@ -211,7 +211,7 @@ _(Nota: questa funzionalità è esclusiva di Google Gemini e dei provider person
 
 Vision Assistant Pro introduce potenti funzionalità di elaborazione video progettate specificamente per gli utenti non vedenti. È in grado di analizzare sia video online che registrazioni dello schermo locali per fornire descrizioni visive estremamente dettagliate e generare script di audiodescrizione professionali (SRT).
 
-### 5.1 Registrazione schermo locale (Control + V)
+### 6.1 Registrazione schermo locale (Control + V)
 
 Se incontri un video silenzioso, un'animazione o un tutorial sullo schermo, puoi catturarlo direttamente:
 
@@ -220,7 +220,7 @@ Se incontri un video silenzioso, un'animazione o un tutorial sullo schermo, puoi
 3. Premi nuovamente **Control + V** per interrompere la registrazione.
 4. L'IA analizzerà quindi il segmento video registrato e fornirà una descrizione estremamente dettagliata della scena, dei personaggi e delle azioni.
 
-### 5.2 Analisi video (Shift + V)
+### 6.2 Analisi video (Shift + V)
 
 Puoi analizzare sia file video locali che video online. Ti basta selezionare un file video locale in Esplora File di Windows o copiare il link di un video online negli appunti. Puoi anche premere **Shift + V** ovunque (ad esempio all'interno di un media player) per aprire una finestra di dialogo in cui cercare un file video o incollare manualmente un URL.
 
@@ -228,7 +228,7 @@ Puoi analizzare sia file video locali che video online. Ti basta selezionare un 
 - L'IA rileverà automaticamente il file locale o l'URL, elaborerà il video e fornirà una descrizione visiva completa e un riassunto audio.
 - **Caching dei File Video per 48 Ore:** I video caricati su Gemini vengono memorizzati nella cache per 48 ore! Puoi rigenerare gli output SRT o MP3 per lo stesso video senza doverlo ricaricare, anche dopo aver riavviato NVDA. La cache riconosce la chiave e viene invalidata automaticamente quando la tua chiave API cambia.
 
-### 5.3 Generazione audiodescrizione (SRT)
+### 6.3 Generazione audiodescrizione (SRT)
 
 Per un'esperienza più strutturata, l'add-on può generare script di audiodescrizione professionali nel formato standard SubRip (SRT).
 
@@ -238,7 +238,7 @@ Per un'esperienza più strutturata, l'add-on può generare script di audiodescri
 - **Come Usare:** Per ascoltare i sottotitoli generati, posiziona semplicemente il file `.srt` nella stessa cartella del file video e assegnagli esattamente lo stesso nome. Quindi, configura il tuo lettore multimediale (ad esempio VLC o PotPlayer) per reindirizzare il testo dei sottotitoli direttamente al tuo screen reader o al motore TTS durante la riproduzione.
 - **Esperienza di Salvataggio Migliorata:** Quando salvi file SRT o MP3, la finestra di dialogo del file si apre ora per impostazione predefinita nella cartella del video sorgente, sia che tu abbia aperto il video tramite la finestra di dialogo dei file sia tramite Shift+V da Esplora File.
 
-### 5.4 Narrazione audio sincronizzata (esportazione MP3)
+### 6.4 Narrazione audio sincronizzata (esportazione MP3)
 
 Oltre alla semplice creazione di file SRT basati su testo, l'add-on funziona come uno strumento di produzione di audiodescrizioni completo, sintetizzando le descrizioni in parlato e miscelandole con il video. Ora puoi scegliere **Gemini Live TTS** come motore vocale, che utilizza l'API Gemini Live per generare una narrazione vocale estremamente realista e illimitata. Quando generi un MP3 per file video locali, hai a disposizione diverse modalità di missaggio:
 
@@ -266,15 +266,15 @@ Il **Document Reader** trasforma i tuoi documenti in testo pulito e leggibile, c
 4. L'estrazione del testo si avvia in background a blocchi. Puoi chiudere la finestra in qualsiasi momento e continuare più tardi: nulla andrà perduto.
 5. Una volta pronte le pagine, leggile nel visualizzatore: spostati tra le pagine, salta a qualsiasi pagina, fai domande all'IA, salva il testo o genera una narrazione audio.
 
-### 7.1 Elaborazione in batch e ripresa
+### 8.1 Elaborazione in batch e ripresa
 
 Non è necessario leggere un documento di grandi dimensioni tutto in una volta. Scegli un intervallo di pagine (es. `1-20`) o mantieni le impostazioni predefinite per elaborare tutto, e l'IA estrarrà tutte le pagine in background. Se NVDA si blocca o interrompi la scansione, il componente aggiuntivo ricorda i tuoi progressi e offre la possibilità di **Riprendere** esattamente da dove eri rimasto, anche dopo i riavvii. I documenti completati vengono anche memorizzati nella cache, quindi la loro riapertura (dai Documenti recenti o tramite **D**) carica il testo all'istante senza rieseguire l'OCR, a meno che i file sorgente non siano cambiati.
 
-### 7.2 Azione intelligente sui file
+### 8.2 Azione intelligente sui file
 
 Non è sempre necessario aprire prima il documento. In Esplora file di Windows, evidenzia semplicemente un PDF, un'immagine o un file di testo/HTML e premi **D** (Document Reader), oppure evidenzia un PDF o un'immagine e premi **F** (Smart File Action), all'interno del livello di comandi (Command Layer). Il componente aggiuntivo ignora istantaneamente la finestra di dialogo dei file e avvia l'elaborazione del file evidenziato. La selezione di più file contemporaneamente li elabora insieme come un unico documento.
 
-### 7.3 Controlli e scorciatoie del visualizzatore documenti
+### 8.3 Controlli e scorciatoie del visualizzatore documenti
 
 Quando la finestra del Document Reader è aperta, puoi utilizzare i seguenti comandi:
 
@@ -295,7 +295,7 @@ Quando la finestra del Document Reader è aperta, puoi utilizzare i seguenti com
 - **Voce TTS:** selezionare lo stile vocale preferito.
 - **Ctrl + Pagina giù:** passa alla pagina successiva.
 
-### 7.4 Documenti recenti (D)
+### 8.4 Documenti recenti (D)
 
 **Documenti recenti nel lettore**: Premendo **D** nel livello dei comandi vengono ora mostrati per primi i documenti letti di recente. Scegline uno per continuare dalla pagina in cui ti trovavi — anche quando l'OCR ha già terminato — oppure premi **Apri file...** (`Ctrl + O`) per esplorare come al solito.
 
@@ -303,16 +303,16 @@ Quando la finestra del Document Reader è aperta, puoi utilizzare i seguenti com
 
 Bloccato in un'applicazione piena di "pulsante senza etichetta"? Il motore di Etichettatura AI Semantica risolve questo problema in modo permanente.
 
-### 8.1 Etichettatura permanente degli oggetti (L)
+### 9.1 Etichettatura permanente degli oggetti (L)
 
 Posiziona il fuoco del tuo screen reader su un'immagine o un anello senza etichetta e premi **L** nel Livello di Comandi. L'AI analizzerà visivamente il pulsante, ne determinerà la funzione e applicherà un'etichetta permanente.
 _A differenza dei vecchi strumenti di etichettatura per screen reader, questo componente aggiuntivo utilizza un avanzato sistema ibrido di "Firma Oggetto" (AutomationId/ControlID). Le tue etichette personalizzate resisteranno al ridimensionamento delle finestre, al cambio di monitor e agli aggiornamenti delle applicazioni!_
 
-### 8.2 Scansione completa dell'applicazione (Shift + L)
+### 9.2 Scansione completa dell'applicazione (Shift + L)
 
 Premi **Shift + L** per scansionare l'intera finestra attiva in una sola volta. L'AI individuerà tutti gli elementi privi di etichetta e li nominerà in modo intelligente in un unico passaggio. In seguito potrai gestire, rinominare o eliminare in blocco queste etichette dal Gestore Etichette integrato.
 
-### 8.3 Esploratore interfaccia utente (E)
+### 9.3 Esploratore interfaccia utente (E)
 
 Hai bisogno di interagire con un elemento senza dovervi navigare manualmente? Premi **E** per attivare l'Esploratore Interfaccia Utente. L'AI scansionerà lo schermo e genererà un elenco accessibile di ogni elemento cliccabile (ignorando i disturbi di sistema come le barre delle applicazioni). Scegli un elemento dall'elenco e il componente aggiuntivo cicliccherà sopra all'istante per te.
 

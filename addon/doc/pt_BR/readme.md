@@ -146,7 +146,7 @@ Para evitar conflitos de teclado, este complemento utiliza uma **Camada de Coman
 
 As janelas de bate-papo e a caixa de diálogo do Histórico funcionam em todos os recursos, permitindo que você revise conversas e continue exatamente de onde parou.
 
-### 3.1 Atalhos da Janela de Bate-Papo
+### 4.1 Atalhos da Janela de Bate-Papo
 
 Quando uma janela de bate-papo estiver aberta (Bate-Papo Direto, bate-papo de documento, refinamento e similares), você poderá revisar a conversa com:
 
@@ -154,7 +154,7 @@ Quando uma janela de bate-papo estiver aberta (Bate-Papo Direto, bate-papo de do
 - **Alt + Seta para Cima:** Lê a mensagem anterior.
 - **Alt + C:** Copia a mensagem atual.
 
-### 3.2 Histórico (Control + H)
+### 4.2 Histórico (Control + H)
 
 Pressione **Control + H** na Camada de Comandos para abrir a janela de **Histórico** com suas conversas e documentos anteriores, com opção de filtragem por tipo (Tudo / Conversas / Documentos). Abra uma conversa para continuar de onde parou — incluindo seus arquivos anexados, que são reanexados automaticamente — ou abra um documento e continue lendo. Pressione **Delete** em qualquer item para removê-lo, ou **Limpar tudo** para esvaziar a lista. Para documentos, a tecla Delete pergunta se você deseja remover apenas a entrada do histórico ou também limpar o texto do OCR em cache desse documento, para que a próxima abertura o analise novamente do zero — com uma opção **Não perguntar novamente** para lembrar sua escolha.
 
@@ -166,14 +166,14 @@ O **Operador de IA** transforma o Vision Assistant Pro de um leitor passivo em u
 
 A maior vantagem? Funciona perfeitamente em softwares completamente inacessíveis. Se você estiver preso em um aplicativo personalizado, em uma área de trabalho remota ou em um site onde o seu leitor de tela fica totalmente silencioso, o operador não se importa. Como ele "vê" a tela visualmente, consegue encontrar, ler e interagir com elementos que não possuem nenhuma etiqueta de acessibilidade.
 
-### 4.1 Como Funciona
+### 5.1 Como Funciona
 
 1. Pressione **NVDA + Shift + V** e, em seguida, pressione **Shift + A** (ou use o atalho direto) para abrir a caixa de diálogo do Operador de IA.
 2. Digite o que deseja fazer em linguagem simples (ex.: "Clique no botão Salvar", "O que diz a mensagem de erro?" ou "Renomeie o arquivo para final.pdf").
 3. A IA analisará sua tela, identificará os elementos relevantes e executará a ação ou fornecerá a resposta. Se uma tarefa exigir várias etapas, o operador continuará trabalhando até que esteja concluída.
 4. Pressione **Shift + A** novamente a qualquer momento para abortar instantaneamente uma operação em andamento.
 
-### 4.2 Ações Suportadas
+### 5.2 Ações Suportadas
 
 O operador compreende uma ampla variedade de comandos:
 
@@ -187,13 +187,13 @@ O operador compreende uma ampla variedade de comandos:
 - **Pressionar Tecla**: "Pressione Enter", "Pressione Tab", "Pressione Esc"
 - **Tarefas de Múltiplas Etapas**: "Abra o Explorador de Arquivos, encontre o relatório e renomeie-o para final.pdf"
 
-### 4.3 Notas Importantes
+### 5.3 Notas Importantes
 
 - **⚠️ Aviso de Uso da API**: Como o operador precisa "ver" exatamente o que está acontecendo na tela, ele envia uma captura de tela em alta resolução a cada etapa. O uso frequente consumirá sua cota de API muito mais rápido do que os recursos padrão baseados em texto.
 - **Aplicativos com Privilégios de Administrador**: Se o NVDA não estiver sendo executado com privilégios de Administrador, o operador pode não conseguir interagir com janelas que exijam permissões elevadas. Essa é uma limitação de segurança do Windows e não um erro do complemento.
 - **Melhores Práticas**: Para obter os melhores resultados, dê comandos claros e específicos. "Clique no botão azul Enviar na parte inferior do formulário" quase sempre funcionará melhor do que apenas "Clique no botão".
 
-### 4.4 Operador em Tempo Real (Control+A)
+### 5.4 Operador em Tempo Real (Control+A)
 
 O Assistente em Tempo Real transforma o Vision Assistant Pro em um copiloto interativo em tempo real.
 _(Nota: Este recurso é exclusivo do Google Gemini e de provedores Personalizados compatíveis com o Gemini)._
@@ -211,7 +211,7 @@ _(Nota: Este recurso é exclusivo do Google Gemini e de provedores Personalizado
 
 O Vision Assistant Pro introduz recursos poderosos de processamento de vídeo projetados especificamente para usuários cegos. Ele pode analisar tanto vídeos online quanto gravações de tela locais para fornecer descrições visuais altamente detalhadas e gerar roteiros profissionais de Audiodescrição (SRT).
 
-### 5.1 Gravação de Tela Local (Control + V)
+### 6.1 Gravação de Tela Local (Control + V)
 
 Se você encontrar um vídeo silencioso, uma animação ou um tutorial em sua tela, pode capturá-lo diretamente:
 
@@ -220,7 +220,7 @@ Se você encontrar um vídeo silencioso, uma animação ou um tutorial em sua te
 3. Pressione **Control + V** novamente para parar a gravação.
 4. A IA analisará o segmento de vídeo gravado e fornecerá uma descrição altamente detalhada da cena, dos personagens e das ações.
 
-### 5.2 Análise de Vídeo (Shift + V)
+### 6.2 Análise de Vídeo (Shift + V)
 
 Você pode analisar tanto arquivos de vídeo locais quanto vídeos online. Basta selecionar um arquivo de vídeo local no Explorador de Arquivos do Windows ou copiar um link de vídeo online para a área de transferência. Você também pode pressionar **Shift + V** em qualquer lugar (como dentro de um reprodutor de mídia) para abrir uma caixa de diálogo onde pode procurar por um arquivo de vídeo ou colar uma URL manualmente.
 
@@ -228,7 +228,7 @@ Você pode analisar tanto arquivos de vídeo locais quanto vídeos online. Basta
 - A IA detectará automaticamente o arquivo local ou a URL, processará o vídeo e fornecerá uma descrição visual abrangente e um resumo em áudio.
 - **Cache de arquivos de vídeo por 48 horas:** Os vídeos enviados para o Gemini ficam no cache por 48 horas! Você pode gerar novamente os arquivos SRT ou MP3 para o mesmo vídeo sem precisar enviá-lo de novo — mesmo após reiniciar o NVDA. O cache reconhece a sua chave de API e é limpo automaticamente quando ela é alterada.
 
-### 5.3 Geração de Audiodescrição (SRT)
+### 6.3 Geração de Audiodescrição (SRT)
 
 Para uma experiência mais estruturada, o complemento pode gerar roteiros profissionais de Audiodescrição no formato padrão SubRip (SRT).
 
@@ -238,7 +238,7 @@ Para uma experiência mais estruturada, o complemento pode gerar roteiros profis
 - **Como Usar:** Para ouvir a legenda gerada, basta colocar o arquivo `.srt` na mesma pasta do seu arquivo de vídeo e dar a ele exatamente o mesmo nome. Depois, configure seu reprodutor de mídia (ex.: VLC ou PotPlayer) para encaminhar o texto das legendas diretamente para o seu leitor de tela ou motor TTS durante a reprodução.
 - **Experiência de salvamento aprimorada:** Ao salvar arquivos SRT ou MP3, a janela de salvamento agora abre na pasta do vídeo de origem por padrão, independentemente de você ter aberto o vídeo pela janela de arquivo ou por Shift+V no Explorer.
 
-### 5.4 Narração de Áudio Sincronizada (Exportação em MP3)
+### 6.4 Narração de Áudio Sincronizada (Exportação em MP3)
 
 Além de criar arquivos SRT em texto, o complemento funciona como uma ferramenta completa de produção de Audiodescrição, sintetizando as descrições em voz e misturando-as com o vídeo. Você agora pode escolher o **Gemini Live TTS** como motor de voz, o qual utiliza a API do Gemini Live para gerar narrações de voz altamente realistas e ilimitadas. Ao gerar um MP3 para arquivos de vídeo locais, você dispõe de vários modos de mixagem:
 
@@ -266,15 +266,15 @@ O **Leitor de Documentos** transforma seus documentos em texto limpo e legível 
 4. A extração de texto começa em segundo plano em lotes. Você pode fechar a janela a qualquer momento e continuar mais tarde — nada é perdido.
 5. Assim que as páginas estiverem prontas, leia-as no visualizador: mova-se entre as páginas, vá para qualquer página, faça perguntas à IA, salve o texto ou gere uma narração em áudio.
 
-### 7.1 Processamento em Lote e Retomada
+### 8.1 Processamento em Lote e Retomada
 
 Você não precisa ler um documento enorme de uma só vez. Escolha um intervalo de páginas (ex.: `1-20`) ou mantenha os padrões para processar tudo, e a IA extrairá todas as páginas em segundo plano. Se o NVDA travar ou se você interromper a análise, o complemento se lembrará do seu progresso e oferecerá a opção de **Retomar** exatamente de onde parou — mesmo após reiniciar. Documentos concluídos também são mantidos em cache, portanto, reabri-los (a partir dos Documentos Recentes ou via **D**) carrega o texto instantaneamente sem executar o OCR novamente, a menos que os arquivos de origem tenham sido alterados.
 
-### 7.2 Ação Inteligente em Arquivos
+### 8.2 Ação Inteligente em Arquivos
 
 Você nem sempre precisa abrir o documento primeiro. No Explorador de Arquivos do Windows, basta selecionar um arquivo PDF, imagem ou texto/HTML e pressionar **D** (Leitor de Documentos) — ou selecionar um PDF ou imagem e pressionar **F** (Ação de Arquivo Inteligente) — dentro da Camada de Comandos. O complemento ignora instantaneamente a caixa de seleção de arquivos e começa a processar o arquivo selecionado. Selecionar vários arquivos de uma vez os processa juntos como um único documento.
 
-### 7.3 Controles e Atalhos do Visualizador de Documentos
+### 8.3 Controles e Atalhos do Visualizador de Documentos
 
 Quando a janela do Leitor de Documentos estiver aberta, você poderá usar os seguintes recursos:
 
@@ -295,7 +295,7 @@ Quando a janela do Leitor de Documentos estiver aberta, você poderá usar os se
 - **Voz do TTS / Motor de TTS:** Escolha a voz e, no Gemini, escolha entre **TTS Padrão** e transmissão em tempo real via **Gemini Live**.
 - **Anterior / Próxima:** Alterna entre as páginas (mesmo funcionamento dos atalhos Ctrl+PageUp/PageDown).
 
-### 7.4 Documentos Recentes (D)
+### 8.4 Documentos Recentes (D)
 
 Pressionar **D** na Camada de Comandos lista primeiramente os seus documentos lidos recentemente. Escolha um para continuar a partir da página em que parou — mesmo que o OCR já tenha sido concluído — ou pressione **Abrir Arquivo...** (`Ctrl + O`) para procurar por um arquivo normalmente.
 
@@ -303,16 +303,16 @@ Pressionar **D** na Camada de Comandos lista primeiramente os seus documentos li
 
 Preso em um aplicativo cheio de "botão sem rótulo" por toda parte? O motor de Rotulagem Semântica por IA resolve isso definitivamente.
 
-### 8.1 Rotulagem Permanente de Objetos (L)
+### 9.1 Rotulagem Permanente de Objetos (L)
 
 Foque o seu leitor de tela em um gráfico ou botão sem rótulo e pressione **L** na Camada de Comandos. A IA analisará o botão visualmente, determinará sua função e aplicará um rótulo permanente.
 _Ao contrário das ferramentas de rotulagem mais antigas dos leitores de tela, este complemento utiliza um sistema híbrido avançado de "Assinatura de Objeto" (AutomationId/ControlID). Seus rótulos personalizados resistirão ao redimensionamento de janelas, à troca de monitores e às atualizações dos aplicativos!_
 
-### 8.2 Verificação Completa do Aplicativo (Shift + L)
+### 9.2 Verificação Completa do Aplicativo (Shift + L)
 
 Pressione **Shift + L** para analisar toda a janela ativa de uma só vez. A IA encontrará todos os elementos sem rótulo e os nomeará inteligentemente de uma só vez. Mais tarde, você poderá gerenciar, renomear ou excluir em lote esses rótulos no Gerenciador de Rótulos integrado.
 
-### 8.3 Explorador de IU (E)
+### 9.3 Explorador de IU (E)
 
 Precisa interagir com um elemento sem navegar até ele manualmente? Pressione **E** para ativar o Explorador de Interface. A IA analisará a tela e gerará uma lista acessível de todos os elementos clicáveis (ignorando ruídos do sistema como as barras de tarefas). Escolha um item da lista e o complemento clicará nele instantaneamente para você.
 

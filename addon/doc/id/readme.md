@@ -146,7 +146,7 @@ Membuat kunci API Gemini di **aistudio.google.com** sebelumnya merupakan langkah
 
 Saat jendela obrolan terbuka (Obrolan Langsung, obrolan dokumen, penyempurnaan teks, dan lainnya), gunakan:
 
-### 3.1 Pintasan Jendela Percakapan
+### 4.1 Pintasan Jendela Percakapan
 
 Saat jendela percakapan terbuka (Percakapan Langsung, percakapan dokumen, penyempurnaan teks, dan sejenisnya), Anda dapat meninjau percakapan dengan:
 
@@ -154,7 +154,7 @@ Saat jendela percakapan terbuka (Percakapan Langsung, percakapan dokumen, penyem
 - **Alt + Up:** Membaca pesan sebelumnya.
 - **Alt + C:** Menyalin pesan saat ini.
 
-### 3.2 Riwayat (Control + H)
+### 4.2 Riwayat (Control + H)
 
 Tekan **Control + H** pada Lapisan Perintah untuk membuka dialog **Riwayat** yang berisi percakapan dan dokumen sebelumnya, dengan filter berdasarkan jenis (Semua / Percakapan / Dokumen). Buka percakapan untuk melanjutkannya — termasuk berkas lampiran yang akan dilampirkan kembali secara otomatis — atau buka dokumen untuk melanjutkan membaca. Tekan **Delete** pada item untuk menghapusnya, atau **Hapus Semua** untuk mengosongkan daftar. Untuk dokumen, Delete menanyakan apakah Anda hanya ingin menghapus entri riwayat atau juga menghapus teks OCR dokumen dari cache agar pemindaian berikutnya dimulai dari awal — tersedia opsi **Jangan tanya lagi** untuk mengingat pilihan Anda.
 
@@ -173,7 +173,7 @@ Apa keunggulan utamanya? Fitur ini dapat bekerja dengan baik bahkan pada perangk
 3. 3. AI akan menganalisis layar, mengenali elemen yang sesuai, lalu menjalankan tindakan atau memberikan jawaban. Jika tugas memerlukan beberapa langkah, Operator AI akan terus bekerja hingga selesai. 4. Tekan **Shift + A** lagi kapan saja untuk langsung membatalkan operasi yang sedang berlangsung.
 4. Tekan **Shift + A** lagi kapan saja untuk langsung membatalkan operasi yang sedang berjalan.
 
-### 4.2 Tindakan yang Didukung
+### 5.2 Tindakan yang Didukung
 
 **Deskripsikan & Jawab:** "Deskripsikan tata letak layar" atau "Apa isi pesan error?"
 
@@ -187,13 +187,13 @@ Apa keunggulan utamanya? Fitur ini dapat bekerja dengan baik bahkan pada perangk
 - **Tugas Bertahap:** "Buka File Explorer, cari laporan, lalu ubah namanya menjadi final.pdf"
 - **Tugas Bertahap**: "Buka File Explorer, cari laporan, dan ubah namanya menjadi final.pdf"
 
-### 4.3 Catatan Penting
+### 5.3 Catatan Penting
 
 - **Peringatan Penggunaan API:** Karena Operator AI perlu "melihat" apa yang terjadi di layar, fitur ini mengirim tangkapan layar beresolusi tinggi pada setiap langkah. Penggunaan yang sering akan menghabiskan kuota API lebih cepat daripada fitur berbasis teks. Penggunaan yang sering akan menghabiskan kuota API jauh lebih cepat dibandingkan fitur standar berbasis teks.
 - **Aplikasi Administrator:** Jika NVDA tidak dijalankan dengan hak Administrator, Operator AI mungkin tidak dapat berinteraksi dengan jendela yang memerlukan izin lebih tinggi. Ini adalah batasan keamanan Windows, bukan bug add-on. Ini merupakan batasan keamanan Windows, bukan bug pada add-on.
 - **Praktik Terbaik:** Berikan perintah yang jelas dan spesifik. "Klik tombol Kirim berwarna biru di bagian bawah formulir" hampir selalu lebih efektif daripada sekadar "Klik tombol". "Klik tombol Kirim berwarna biru di bagian bawah formulir" hampir selalu lebih efektif daripada hanya "Klik tombolnya".
 
-### 4.4 Operator Langsung (Control+A)
+### 5.4 Operator Langsung (Control+A)
 
 Operator Langsung memungkinkan Asisten Langsung melaksanakan permintaan Anda di komputer sambil Anda berbicara dengannya, termasuk pada aplikasi yang tidak dapat dibaca oleh pembaca layar.
 _(Catatan: Fitur ini khusus untuk Google Gemini dan penyedia Kustom yang kompatibel dengan Gemini)._
@@ -211,7 +211,7 @@ _(Catatan: Fitur ini khusus untuk Google Gemini dan penyedia Kustom yang kompati
 
 Vision Assistant Pro menghadirkan kemampuan pemrosesan video yang andal dan dirancang khusus bagi pengguna tunanetra. Fitur ini dapat menganalisis video daring maupun rekaman layar lokal untuk memberikan deskripsi visual yang sangat terperinci dan menghasilkan naskah Deskripsi Audio profesional (SRT).
 
-### 5.1 Perekaman Layar Lokal (Control + V)
+### 6.1 Perekaman Layar Lokal (Control + V)
 
 Jika ada video tanpa suara, animasi, atau tutorial di layar, Anda dapat merekamnya langsung:
 
@@ -220,7 +220,7 @@ Jika ada video tanpa suara, animasi, atau tutorial di layar, Anda dapat merekamn
 3. Tekan **Control + V** lagi untuk menghentikan perekaman.
 4. AI kemudian menganalisis segmen video yang direkam dan memberikan deskripsi yang sangat terperinci tentang adegan, karakter, dan tindakan.
 
-### 5.2 Analisis Video (Shift + V)
+### 6.2 Analisis Video (Shift + V)
 
 Anda dapat menganalisis berkas video lokal maupun video daring. Cukup pilih berkas video lokal di Windows Explorer, atau salin tautan video daring ke papan klip. Anda juga dapat menekan **Shift + V** dari mana saja (misalnya dalam pemutar media) untuk membuka dialog tempat Anda memilih berkas video atau menempelkan URL secara manual.
 
@@ -228,7 +228,7 @@ Anda dapat menganalisis berkas video lokal maupun video daring. Cukup pilih berk
 - AI akan otomatis mendeteksi berkas lokal atau URL, memproses video, lalu memberikan deskripsi visual menyeluruh dan ringkasan audio.
 - **Cache Berkas Video Selama 48 Jam:** Video yang diunggah ke Gemini disimpan dalam cache selama 48 jam! Anda dapat membuat ulang keluaran SRT atau MP3 untuk video yang sama tanpa mengunggahnya kembali — bahkan setelah NVDA dimulai ulang. Cache mengenali kunci API yang digunakan dan otomatis tidak berlaku lagi saat kunci API Anda berubah.
 
-### 5.3 Pembuatan Deskripsi Audio (SRT)
+### 6.3 Pembuatan Deskripsi Audio (SRT)
 
 Untuk hasil yang lebih terstruktur, add-on dapat menghasilkan naskah Deskripsi Audio profesional dalam format SubRip (SRT) standar.
 
@@ -238,7 +238,7 @@ Untuk hasil yang lebih terstruktur, add-on dapat menghasilkan naskah Deskripsi A
 - **Cara Menggunakan:** Untuk mendengarkan subtitel yang dihasilkan, letakkan berkas `.srt` dalam folder yang sama dengan berkas video dan beri nama yang persis sama. Kemudian, atur pemutar media (misalnya VLC atau PotPlayer) agar meneruskan teks subtitel langsung ke pembaca layar atau mesin TTS selama pemutaran.
 - **Penyimpanan yang Lebih Mudah:** Saat menyimpan berkas SRT atau MP3, dialog berkas kini secara bawaan terbuka di folder video sumber, baik ketika video dibuka melalui dialog berkas maupun dengan Shift+V dari Explorer.
 
-### 5.4 Narasi Audio Tersinkron (Ekspor MP3)
+### 6.4 Narasi Audio Tersinkron (Ekspor MP3)
 
 Selain membuat berkas SRT berbasis teks, add-on berfungsi sebagai alat produksi Deskripsi Audio lengkap dengan mengubah deskripsi menjadi ucapan dan mencampurkannya dengan video. Anda kini dapat memilih **Gemini Live TTS** sebagai mesin suara, yang menggunakan Gemini Live API untuk menghasilkan narasi suara yang sangat realistis tanpa batas. Saat membuat MP3 untuk berkas video lokal, tersedia beberapa mode pencampuran:
 
@@ -266,15 +266,15 @@ Pentranskripsi Audio telah dibangun ulang sepenuhnya untuk mendukung berkas audi
 4. Ekstraksi teks dimulai di latar belakang secara bertahap. Anda dapat menutup jendela kapan saja dan melanjutkannya nanti — tidak ada data yang hilang.
 5. Setelah halaman siap, baca di penampil: berpindah antarhalaman, lompat ke halaman tertentu, ajukan pertanyaan kepada AI, simpan teks, atau buat narasi audio.
 
-### 7.1 Pemrosesan Batch & Melanjutkan
+### 8.1 Pemrosesan Batch & Melanjutkan
 
 Anda tidak perlu membaca dokumen besar sekaligus. Masukkan rentang halaman (misalnya, `1-20`), dan AI akan memproses semua halaman di latar belakang. Jika NVDA crash atau Anda menghentikan pemindaian, add-on akan mengingat progres Anda dan menawarkan untuk **Melanjutkan (Resume)** tepat di tempat Anda berhenti! Pilih rentang halaman (misalnya `1-20`) atau gunakan pilihan bawaan untuk memproses semuanya, dan AI akan mengekstrak seluruh halaman di latar belakang. Jika NVDA berhenti mendadak atau pemindaian Anda hentikan, add-on mengingat progresnya dan menawarkan untuk **Melanjutkan** tepat dari titik terakhir — bahkan setelah NVDA dimulai ulang. Dokumen yang telah selesai juga disimpan dalam cache, sehingga saat dibuka kembali (dari Dokumen Terbaru atau melalui **D**), teks langsung dimuat tanpa menjalankan OCR lagi, kecuali berkas sumber telah berubah.
 
-### 7.2 Tindakan File Cerdas
+### 8.2 Tindakan File Cerdas
 
 Anda tidak selalu harus membuka dokumen terlebih dahulu. Di Windows File Explorer, cukup sorot PDF atau gambar dan tekan **D** (Pembaca Dokumen) atau **F** (Tindakan File Cerdas) di dalam Lapisan Perintah. Add-on akan langsung melewati dialog file dan mulai memproses file yang disorot. Di Windows File Explorer, cukup sorot berkas PDF, gambar, atau teks/HTML lalu tekan **D** (Pembaca Dokumen) — atau sorot PDF atau gambar lalu tekan **F** (Tindakan Berkas Cerdas) — dalam Lapisan Perintah. Add-on langsung melewati dialog berkas dan mulai memproses berkas yang disorot. Jika Anda memilih beberapa berkas sekaligus, semuanya diproses bersama sebagai satu dokumen.
 
-### 7.3 Kontrol & Pintasan Penampil Dokumen
+### 8.3 Kontrol & Pintasan Penampil Dokumen
 
 Saat jendela Pembaca Dokumen terbuka, Anda dapat menggunakan hal berikut:
 
@@ -295,7 +295,7 @@ Saat jendela Pembaca Dokumen terbuka, Anda dapat menggunakan hal berikut:
 - **Suara TTS / Mesin TTS:** Memilih suara, dan pada Gemini, memilih antara **TTS Standar** dan streaming **Gemini Live**.
 - **Sebelumnya / Berikutnya:** Berpindah antarhalaman (sama seperti pintasan Ctrl+PageUp/Down).
 
-### 7.4 Dokumen Terbaru (D)
+### 8.4 Dokumen Terbaru (D)
 
 Menekan **D** pada Lapisan Perintah akan menampilkan daftar dokumen yang baru dibaca terlebih dahulu. Pilih dokumen untuk melanjutkan dari halaman terakhir — bahkan jika OCR sudah selesai — atau tekan **Buka Berkas...** (`Ctrl + O`) untuk memilih berkas seperti biasa.
 
@@ -303,16 +303,16 @@ Menekan **D** pada Lapisan Perintah akan menampilkan daftar dokumen yang baru di
 
 Kesulitan menggunakan aplikasi yang penuh dengan "tombol tanpa label"? Mesin Pelabelan AI Semantik mengatasi masalah ini secara permanen.
 
-### 8.1 Pelabelan Objek Permanen (L)
+### 9.1 Pelabelan Objek Permanen (L)
 
 Fokuskan pembaca layar Anda pada grafik atau tombol tanpa label dan tekan **L** di Lapisan Perintah. AI akan melihat tombol tersebut secara visual, menentukan fungsinya, dan menerapkan label permanen. AI akan melihat tombol secara visual, menentukan fungsinya, dan memberinya label permanen.
 _Berbeda dari alat pelabelan pembaca layar sebelumnya, add-on ini menggunakan sistem hibrida "Object Signature" yang canggih (AutomationId/ControlID). Label kustom Anda tetap bertahan meskipun ukuran jendela berubah, monitor berpindah, atau aplikasi diperbarui!_
 
-### 8.2 Pemindaian Aplikasi Penuh (Shift + L)
+### 9.2 Pemindaian Aplikasi Penuh (Shift + L)
 
 Tekan **Shift + L** untuk memindai seluruh jendela aktif sekaligus. AI akan menemukan semua elemen tanpa label dan menamainya secara cerdas sekaligus. Anda nantinya dapat mengelola, mengganti nama, atau menghapus label ini secara massal dari Pengelola Label bawaan. AI akan menemukan semua elemen tanpa label dan memberi nama yang sesuai sekaligus. Anda dapat mengelola, mengganti nama, atau menghapus banyak label sekaligus melalui Pengelola Label bawaan.
 
-### 8.3 UI Explorer (E)
+### 9.3 UI Explorer (E)
 
 Perlu berinteraksi dengan suatu elemen tanpa mencarinya secara manual? Tekan **E** untuk mengaktifkan UI Explorer. AI akan memindai layar dan menghasilkan daftar yang aksesibel dari setiap elemen yang dapat diklik (mengabaikan gangguan sistem seperti taskbar). Pilih item dari daftar, dan add-on akan langsung mengkliknya untuk Anda. Tekan **E** untuk mengaktifkan Penjelajah Antarmuka. AI akan memindai layar dan membuat daftar aksesibel berisi setiap elemen yang dapat diklik (dengan mengabaikan elemen sistem yang tidak relevan seperti bilah tugas). Pilih item dari daftar, dan add-on akan langsung mengekliknya untuk Anda.
 

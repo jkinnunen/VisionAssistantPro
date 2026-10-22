@@ -806,84 +806,87 @@ def get_twitter_download_link(tweet_url):
 
 
 def get_instagram_download_link(insta_url):
-	headers = {
-		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-		"Referer": "https://indown.io/en1",
-	}
 	try:
-		cookie_handler = request.HTTPCookieProcessor()
-		opener = get_proxy_opener()
-		opener.add_handler(cookie_handler)
+		parsed = urlparse(insta_url)
+		m = re.search(r"/(reel|p|tv)/([A-Za-z0-9_-]+)", parsed.path)
+		if m:
+			embed_url = f"https://www.instagram.com/{m.group(1)}/{m.group(2)}/embed/"
+		else:
+			clean_path = parsed.path.rstrip("/") + "/embed/"
+			embed_url = f"https://www.instagram.com{clean_path}"
 
-		req_get = request.Request("https://indown.io/en1", headers=headers)
-		with opener.open(req_get, timeout=15) as res:
-			html_page = res.read().decode("utf-8")
-
-		token_match = re.search(r'name="_token"\s+value="([^"]+)"|value="([^"]+)"\s+name="_token"', html_page)
-		if not token_match:
-			log.error("Failed to extract CSRF token from indown.io.")
-			return None
-		csrf_token = token_match.group(1) if token_match.group(1) else token_match.group(2)
-
-		ref_match = re.search(r'name="referer"\s+value="([^"]+)"', html_page)
-		referer_val = ref_match.group(1) if ref_match else "https://indown.io/en1"
-
-		payload = {
-			"referer": referer_val,
-			"locale": "en",
-			"_token": csrf_token,
-			"link": insta_url,
-			"o": "o",
+		headers = {
+			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 		}
-		data = urlencode(payload).encode("utf-8")
+		opener = get_proxy_opener()
+		req = request.Request(embed_url, headers=headers)
+		with opener.open(req, timeout=15) as res:
+			html = res.read().decode("utf-8", errors="ignore")
 
-		post_headers = headers.copy()
-		post_headers["Content-Type"] = "application/x-www-form-urlencoded"
-		post_headers["Origin"] = "https://indown.io"
-		post_headers["Referer"] = referer_val
+		idx = html.find("video_url")
+		if idx != -1:
+			sub = html[idx : idx + 3000]
+			http_idx = sub.find("https:")
+			if http_idx != -1:
+				quote_idx = -1
+				for sep in ['\\"', '"', "'"]:
+					pos = sub.find(sep, http_idx)
+					if pos != -1 and (quote_idx == -1 or pos < quote_idx):
+						quote_idx = pos
+				if quote_idx != -1:
+					raw_url = sub[http_idx:quote_idx]
+					clean_url = (
+						raw_url.replace(r"\\\/", "/")
+						.replace(r"\/", "/")
+						.replace(r"\\u0026", "&")
+						.replace(r"\u0026", "&")
+					)
+					if clean_url.startswith("https://") and ".mp4" in clean_url:
+						return clean_url
 
-		req_post = request.Request(
-			"https://indown.io/download",
-			data=data,
-			headers=post_headers,
-			method="POST",
-		)
-
-		with opener.open(req_post, timeout=20) as res:
-			result_html = res.read().decode("utf-8")
-
-			links = re.findall(r'href="(https?://[^"\s]+/fetch\?url=[^"\s]+)"', result_html)
-			if not links:
-				links = re.findall(r'href="(https?://[^\s"]+cdninstagram[^\s"]+\.mp4[^\s"]+)"', result_html)
-			if not links:
-				links = re.findall(r'href="(https?://[^\s"]+rapidcdn[^\s"]+)"', result_html)
-			if not links:
-				links = re.findall(r'href="(https?://[^\s"]+\.mp4[^\s"]+)"', result_html)
-
-			if links:
-				return links[0].replace("&amp;", "&")
+		links = re.findall(r'https?://[^\s"\'<>]+\.mp4[^\s"\'<>]*', html)
+		if links:
+			clean = (
+				links[0].replace(r"\\\/", "/")
+				.replace(r"\/", "/")
+				.replace(r"\\u0026", "&")
+				.replace(r"\u0026", "&")
+				.replace("&amp;", "&")
+			)
+			return clean
 	except Exception as e:
 		log.error(f"Instagram download extraction failed: {e}")
 	return None
 
 
 def get_tiktok_download_link(tiktok_url):
-	api_url = "https://www.tikwm.com/api/"
 	headers = {
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 		"X-Requested-With": "XMLHttpRequest",
 	}
+	opener = get_proxy_opener()
+	try:
+		query = urlencode({"url": tiktok_url, "hd": "1"})
+		req = request.Request(f"https://www.tikwm.com/api/?{query}", headers=headers)
+		with opener.open(req, timeout=30) as response:
+			res = json.loads(response.read().decode("utf-8"))
+			if res.get("code") == 0:
+				play_url = res.get("data", {}).get("play")
+				if play_url:
+					return play_url if play_url.startswith("http") else "https://www.tikwm.com" + play_url
+	except Exception as e:
+		log.debug(f"TikTok GET failed, trying POST: {e}")
+
 	try:
 		params = {"url": tiktok_url, "hd": "1"}
 		data = urlencode(params).encode("utf-8")
-		req = request.Request(api_url, data=data, headers=headers, method="POST")
-		opener = get_proxy_opener()
-		with opener.open(req, timeout=120) as response:
+		req = request.Request("https://www.tikwm.com/api/", data=data, headers=headers, method="POST")
+		with opener.open(req, timeout=30) as response:
 			res = json.loads(response.read().decode("utf-8"))
 			if res.get("code") == 0:
-				play_url = res["data"]["play"]
-				return play_url if play_url.startswith("http") else "https://www.tikwm.com" + play_url
+				play_url = res.get("data", {}).get("play")
+				if play_url:
+					return play_url if play_url.startswith("http") else "https://www.tikwm.com" + play_url
 	except Exception as e:
 		log.error(f"TikTok download extraction failed: {e}")
 	return None

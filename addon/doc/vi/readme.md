@@ -146,7 +146,7 @@ Tạo khóa API Gemini trên **aistudio.google.com** từng là bước khó nh�
 
 _Nếu bạn muốn ủng hộ dự án về mặt tài chính và muốn thấy tên mình ở đây, bạn có thể tìm thấy tùy chọn **Quyên góp** trong menu Công cụ của NVDA (menu con Vision Assistant) hoặc trong quá trình thiết lập sau khi cài đặt._
 
-### 3.1 Phím tắt cửa sổ trò chuyện
+### 4.1 Phím tắt cửa sổ trò chuyện
 
 Khi cửa sổ trò chuyện mở (Trò chuyện trực tiếp, trò chuyện tài liệu, tinh chỉnh, v.v.), bạn có thể xem lại cuộc trò chuyện bằng:
 
@@ -187,13 +187,13 @@ Người vận hành hiểu được nhiều loại lệnh:
 - **Nhấn phím**: "Nhấn Enter", "Nhấn Tab", "Nhấn Escape"
 - **Nhiệm vụ nhiều bước**: "Mở File Explorer, tìm báo cáo và đổi tên thành Final.pdf"
 
-### 4.3 Lưu ý quan trọng
+### 5.3 Lưu ý quan trọng
 
 - **⚠️ Cảnh báo sử dụng API**: Vì người vận hành cần "xem" chính xác những gì đang diễn ra trên màn hình nên sẽ gửi ảnh chụp màn hình có độ phân giải cao theo từng bước. Việc sử dụng thường xuyên sẽ tiêu tốn hạn ngạch API của bạn nhanh hơn nhiều so với các tính năng dựa trên văn bản tiêu chuẩn.
 - **Ứng dụng dành cho quản trị viên**: Nếu NVDA không chạy với đặc quyền của Quản trị viên, người vận hành có thể không tương tác được với các cửa sổ yêu cầu quyền nâng cao. Đây là giới hạn bảo mật của Windows, không phải lỗi trong tiện ích bổ sung.
 - **Các phương pháp hay nhất**: Để có kết quả tốt nhất, hãy đưa ra các mệnh lệnh rõ ràng và cụ thể. "Nhấp vào nút Gửi màu xanh lam ở cuối biểu mẫu" hầu như luôn hoạt động tốt hơn là chỉ "Nhấp vào nút".
 
-### 4.4 Người vận hành trực tiếp (Control+A)
+### 5.4 Người vận hành trực tiếp (Control+A)
 
 Người vận hành trực tiếp cho phép Trợ lý trực tiếp thực hiện những gì bạn yêu cầu trên máy tính trong khi bạn nói chuyện với nó, bao gồm cả những ứng dụng mà trình đọc màn hình của bạn không thể đọc được.
 _(Lưu ý: Tính năng này chỉ dành riêng cho các nhà cung cấp Tùy chỉnh tương thích với Google Gemini và Gemini)._
@@ -211,7 +211,7 @@ _(Lưu ý: Tính năng này chỉ dành riêng cho các nhà cung cấp Tùy ch�
 
 Vision Assistant Pro giới thiệu khả năng xử lý video mạnh mẽ được thiết kế dành riêng cho người dùng khiếm thị. Nó có thể phân tích cả video trực tuyến và bản ghi màn hình cục bộ để cung cấp mô tả trực quan rất chi tiết và tạo tập lệnh Mô tả âm thanh (SRT) chuyên nghiệp.
 
-### 5.1 Ghi màn hình cục bộ (Control + V)
+### 6.1 Ghi màn hình cục bộ (Control + V)
 
 Nếu bạn gặp một video im lặng, hoạt ảnh hoặc hướng dẫn trên màn hình, bạn có thể quay trực tiếp:
 
@@ -228,7 +228,7 @@ Bạn có thể phân tích cả tệp video cục bộ và video trực tuyến
 - AI sẽ tự động phát hiện tệp cục bộ hoặc URL, xử lý video và cung cấp mô tả trực quan và tóm tắt âm thanh toàn diện.
 - **Bộ nhớ đệm tệp video trong 48 giờ:** Các video tải lên Gemini được lưu trong bộ nhớ đệm trong 48 giờ! Bạn có thể tạo lại đầu ra SRT hoặc MP3 cho cùng một video mà không cần tải lên lại — ngay cả sau khi khởi động lại NVDA. Bộ nhớ đệm nhận biết khóa và tự động vô hiệu hóa khi khóa API của bạn thay đổi.
 
-### 5.3 Tạo mô tả âm thanh (SRT)
+### 6.3 Tạo mô tả âm thanh (SRT)
 
 Để có trải nghiệm có cấu trúc hơn, tiện ích bổ sung có thể tạo tập lệnh Mô tả âm thanh chuyên nghiệp ở định dạng SubRip (SRT) tiêu chuẩn.
 
@@ -274,7 +274,7 @@ Bạn không cần phải đọc một tài liệu lớn cùng một lúc. Chọ
 
 Không phải lúc nào bạn cũng cần mở tài liệu trước. Trong Windows File Explorer, chỉ cần đánh dấu tệp PDF, hình ảnh hoặc văn bản/HTML và nhấn **D** (Trình đọc tài liệu) — hoặc đánh dấu tệp PDF hoặc hình ảnh và nhấn **F** (Hành động tệp thông minh) — bên trong Lớp lệnh. Tiện ích bổ sung ngay lập tức bỏ qua hộp thoại tệp và bắt đầu xử lý tệp được đánh dấu. Việc chọn nhiều tệp cùng lúc sẽ xử lý chúng cùng nhau dưới dạng một tài liệu.
 
-### 7.3 Phím tắt & Điều khiển Trình xem Tài liệu
+### 8.3 Phím tắt & Điều khiển Trình xem Tài liệu
 
 Khi cửa sổ Trình đọc tài liệu mở, bạn có thể sử dụng các thao tác sau:
 
@@ -295,7 +295,7 @@ Khi cửa sổ Trình đọc tài liệu mở, bạn có thể sử dụng các 
 - **TTS Voice / TTS Engine:** Chọn giọng nói và trên Gemini, chọn giữa phát trực tuyến **TTS tiêu chuẩn** và **Gemini Live**.
 - **Trước / Tiếp theo:** Di chuyển giữa các trang (giống như phím tắt Ctrl+PageUp/Down).
 
-### 7.4 Tài liệu gần đây (D)
+### 8.4 Tài liệu gần đây (D)
 
 Nhấn **D** trong Lớp lệnh sẽ liệt kê các tài liệu đã đọc gần đây của bạn trước tiên. Chọn một tệp để tiếp tục từ trang bạn đang truy cập — ngay cả khi OCR đã hoàn tất — hoặc nhấn **Mở tệp...** (`Ctrl + O`) để duyệt tệp như bình thường.
 
@@ -303,16 +303,16 @@ Nhấn **D** trong Lớp lệnh sẽ liệt kê các tài liệu đã đọc g�
 
 Bạn bị mắc kẹt trong một ứng dụng có "nút không được gắn nhãn" ở mọi nơi? Công cụ Ghi nhãn ngữ nghĩa AI sẽ giải quyết vấn đề này vĩnh viễn.
 
-### 8.1 Ghi nhãn vật thể vĩnh viễn (L)
+### 9.1 Ghi nhãn vật thể vĩnh viễn (L)
 
 Tập trung trình đọc màn hình của bạn vào đồ họa hoặc nút không được gắn nhãn và nhấn **L** trong Lớp Lệnh. AI sẽ nhìn vào nút một cách trực quan, xác định chức năng của nó và dán nhãn vĩnh viễn.
 _Không giống như các công cụ ghi nhãn của trình đọc màn hình cũ hơn, tiện ích bổ sung này sử dụng hệ thống "Chữ ký đối tượng" kết hợp nâng cao (AutomationId/ControlID). Nhãn tùy chỉnh của bạn sẽ vẫn tồn tại khi thay đổi kích thước cửa sổ, chuyển đổi màn hình và cập nhật ứng dụng!_
 
-### 8.2 Quét toàn bộ ứng dụng (Shift + L)
+### 9.2 Quét toàn bộ ứng dụng (Shift + L)
 
 Nhấn **Shift + L** để quét toàn bộ cửa sổ đang hoạt động cùng một lúc. AI sẽ tìm tất cả các phần tử chưa được gắn nhãn và đặt tên cho chúng một cách thông minh chỉ trong một lần. Sau này, bạn có thể quản lý, đổi tên hoặc xóa hàng loạt các nhãn này khỏi Trình quản lý nhãn tích hợp sẵn.
 
-### Trình khám phá giao diện người dùng 8.3 (E)
+### Trình khám phá giao diện người dùng 9.3 (E)
 
 Bạn cần tương tác với một phần tử mà không cần điều hướng đến phần tử đó theo cách thủ công? Nhấn **E** để kích hoạt UI Explorer. AI sẽ quét màn hình và tạo danh sách có thể truy cập được của mọi thành phần có thể nhấp vào (bỏ qua tiếng ồn của hệ thống như thanh tác vụ). Chọn một mục từ danh sách và tiện ích bổ sung sẽ ngay lập tức nhấp vào mục đó cho bạn.
 

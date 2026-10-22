@@ -133,13 +133,13 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 
 Chat windows and the History dialog work across all features, so you can review conversations and pick up right where you left off.
 
-### 3.1 Chat Window Shortcuts
+### 4.1 Chat Window Shortcuts
 When a chat window is open (Direct Chat, document chat, refine, and similar), you can review the conversation with:
 - **Alt + Down:** Read the next message.
 - **Alt + Up:** Read the previous message.
 - **Alt + C:** Copy the current message.
 
-### 3.2 History (Control + H)
+### 4.2 History (Control + H)
 Press **Control + H** in the Command Layer to open the **History** dialog with your past chats and documents, filterable by type (All / Chats / Documents). Open a chat to continue the conversation — including its attached files, which are re-attached automatically — or open a document and keep reading. Press **Delete** on any item to remove it, or **Clear All** to empty the list. For documents, Delete asks whether you want to remove only the history entry or also clear that document's cached OCR text so the next open re-scans it from scratch — with a **Don't ask again** option to remember your choice.
 
 You can also choose what the list remembers. **Save chats to history** (Connection tab) and **Save documents to history** (Document Reader tab) are both on by default, and both can be toggled in Quick Settings. The document option affects the History entry only — cached OCR text and resume data are always kept.
@@ -150,13 +150,13 @@ The **AI Operator** turns Vision Assistant Pro from a passive reader into an act
 
 The biggest advantage? It works perfectly in completely inaccessible software. If you are stuck in a custom app, a remote desktop, or a website where your screen reader goes totally silent, the operator doesn't mind. Because it "sees" the screen visually, it can find, read, and interact with elements that have zero accessibility labels.
 
-### 4.1 How It Works
+### 5.1 How It Works
 1. Press **NVDA + Shift + V**, then press **Shift + A** (or use the direct shortcut) to open the AI Operator dialog.
 2. Type what you want to do in plain language (e.g., "Click the Save button", "What does the error message say?", or "Rename the file to final.pdf").
 3. The AI will analyze your screen, identify the relevant elements, and carry out the action or provide the answer. If a task requires multiple steps, the operator will continue working until it's complete.
 4. Press **Shift + A** again at any time to instantly abort an ongoing operation.
 
-### 4.2 Supported Actions
+### 5.2 Supported Actions
 The operator understands a wide range of commands:
 - **Describe & Answer**: "Describe the screen layout" or "What does the error message say?"
 - **Click**: "Click the Save button"
@@ -168,12 +168,12 @@ The operator understands a wide range of commands:
 - **Keypress**: "Press Enter", "Press Tab", "Press Escape"
 - **Multi-step Tasks**: "Open File Explorer, find the report, and rename it to final.pdf"
 
-### 4.3 Important Notes
+### 5.3 Important Notes
 - **⚠️ API Usage Warning**: Because the operator needs to "see" exactly what's happening on screen, it sends a high-resolution screenshot with every step. Frequent use will consume your API quota much faster than standard text-based features.
 - **Administrator Applications**: If NVDA is not running with Administrator privileges, the operator may not be able to interact with windows that require elevated permissions. This is a Windows security limitation, not a bug in the add-on.
 - **Best Practices**: For best results, give clear and specific commands. "Click the blue Submit button at the bottom of the form" will almost always work better than just "Click the button".
 
-### 4.4 Live Operator (Control+A)
+### 5.4 Live Operator (Control+A)
 The Live Operator lets the Live Assistant carry out what you ask on your computer while you talk to it, including applications that your screen reader cannot read.
 *(Note: This feature is exclusive to Google Gemini and Gemini-compatible Custom providers).*
 
@@ -190,20 +190,20 @@ The Live Operator lets the Live Assistant carry out what you ask on your compute
 
 Vision Assistant Pro introduces powerful video processing capabilities designed specifically for blind users. It can analyze both online videos and local screen recordings to provide highly detailed visual descriptions and generate professional Audio Description scripts (SRT).
 
-### 5.1 Local Screen Recording (Control + V)
+### 6.1 Local Screen Recording (Control + V)
 If you encounter a silent video, an animation, or a tutorial on your screen, you can capture it directly:
 1. Press **NVDA + Shift + V** to enter the Command Layer, then press **Control + V**.
 2. The add-on will silently record your screen in the background.
 3. Press **Control + V** again to stop recording.
 4. The AI will then analyze the recorded video segment and provide a highly detailed description of the scene, characters, and actions.
 
-### 5.2 Video Analysis (Shift + V)
+### 6.2 Video Analysis (Shift + V)
 You can analyze both local video files and online videos. Simply select a local video file in Windows Explorer, or copy an online video link to your clipboard. You can also press **Shift + V** anywhere (like inside a media player) to open a dialog where you can browse for a video file or paste a URL manually.
 - **Supported Online Platforms:** YouTube, Instagram, TikTok, and Twitter (X).
 - The AI will automatically detect the local file or the URL, process the video, and provide a comprehensive visual description and audio summary.
 - **48-Hour Video File Caching:** Videos uploaded to Gemini are cached for 48 hours! You can regenerate SRT or MP3 outputs for the same video without re-uploading — even after restarting NVDA. The cache is key-aware and automatically invalidated when your API key changes.
 
-### 5.3 Audio Description Generation (SRT)
+### 6.3 Audio Description Generation (SRT)
 For a more structured experience, the add-on can generate professional Audio Description scripts in standard SubRip (SRT) format.
 - **Smart Gap-Timing:** The AI listens to the audio track and specifically anchors its visual descriptions to natural pauses and silent gaps to intelligently minimize dialogue overlap.
 - **Character Tracking:** The engine performs a pre-pass to extract distinct characters based on immutable facial features. It builds a global dictionary to accurately track and label characters across different scenes without confusion. It also tracks each character's **first appearance**, describing their physical look only once — at the moment they first show up — and using established names only in later scenes to keep the narrative fresh and natural.
@@ -211,7 +211,7 @@ For a more structured experience, the add-on can generate professional Audio Des
 - **How to Use:** To listen to the generated subtitle, simply place the `.srt` file in the same folder as your video file and give it the exact same name. Then, configure your media player (e.g., VLC or PotPlayer) to route the subtitle text directly to your screen reader or TTS engine during playback.
 - **Improved Save Experience:** When saving SRT or MP3 files, the file dialog now opens in the source video's folder by default, whether you opened the video via the file dialog or Shift+V from Explorer.
 
-### 5.4 Synchronized Audio Narration (MP3 Export)
+### 6.4 Synchronized Audio Narration (MP3 Export)
 Beyond just creating text-based SRT files, the add-on functions as a complete Audio Description production tool by synthesizing the descriptions into speech and mixing them with the video. You can now choose **Gemini Live TTS** as the voice engine, which utilizes the Gemini Live API to generate highly realistic, unlimited voice narration. When generating an MP3 for local video files, you have multiple mixing modes:
 - **Standard AD (Mix Voice):** The narration is overlaid directly on top of the video's audio. You will be prompted if you want to apply **Audio Ducking** (lowering the background volume during descriptions) to ensure the narration is clear.
 - **Extended AD (Pause Audio):** The engine pauses the original video audio during descriptions, ensuring you never miss a single word of the original dialogue or the AI narration. Silence detection now uses the **Silero VAD** neural model (downloaded automatically on first use, just like ffmpeg and eSpeak) for precise gap timing — distinguishing natural dialogue pauses from music and background noise.
@@ -234,13 +234,13 @@ The **Document Reader** turns your documents into clean, readable text — so yo
 4. Text extraction starts in the background in batches. You can close the window at any time and continue later — nothing is lost.
 5. Once pages are ready, read them in the viewer: move between pages, jump to any page, ask the AI questions, save the text, or generate an audio narration.
 
-### 7.1 Batch Processing & Resume
+### 8.1 Batch Processing & Resume
 You don't need to read a massive document all at once. Choose a page range (e.g., `1-20`) or keep the defaults to process everything, and the AI extracts all pages in the background. If NVDA crashes or you interrupt the scan, the add-on remembers your progress and offers to **Resume** exactly where it left off — even across restarts. Completed documents are also cached, so reopening them (from Recent Documents or via **D**) loads the text instantly without re-running OCR, unless the source files have changed.
 
-### 7.2 Smart File Action
+### 8.2 Smart File Action
 You don't always need to open the document first. In Windows File Explorer, simply highlight a PDF, image, or text/HTML file and press **D** (Document Reader) — or highlight a PDF or image and press **F** (Smart File Action) — inside the Command Layer. The add-on instantly bypasses the file dialog and begins processing the highlighted file. Selecting several files at once processes them together as one document.
 
-### 7.3 Document Viewer Controls & Shortcuts
+### 8.3 Document Viewer Controls & Shortcuts
 When the Document Reader window is open, you can use the following:
 
 #### Keyboard Shortcuts
@@ -258,21 +258,21 @@ When the Document Reader window is open, you can use the following:
 - **TTS Voice / TTS Engine:** Pick the voice, and on Gemini, choose between **Standard TTS** and **Gemini Live** streaming.
 - **Previous / Next:** Move between pages (same as the Ctrl+PageUp/Down shortcuts).
 
-### 7.4 Recent Documents (D)
+### 8.4 Recent Documents (D)
 Pressing **D** in the Command Layer lists your recently read documents first. Choose one to continue from the page you were on — even if the OCR already finished — or press **Open File...** (`Ctrl + O`) to browse for a file as usual.
 
 ## 9. Semantic AI Labeling & UI Explorer
 
 Stuck in an application with "unlabeled button" everywhere? The Semantic AI Labeling engine solves this permanently.
 
-### 8.1 Permanent Object Labeling (L)
+### 9.1 Permanent Object Labeling (L)
 Focus your screen reader on an unlabeled graphic or button and press **L** in the Command Layer. The AI will look at the button visually, determine its function, and apply a permanent label.
 *Unlike older screen reader labeling tools, this add-on uses an advanced hybrid "Object Signature" system (AutomationId/ControlID). Your custom labels will survive window resizing, monitor switching, and application updates!*
 
-### 8.2 Full Application Scan (Shift + L)
+### 9.2 Full Application Scan (Shift + L)
 Press **Shift + L** to scan the entire active window at once. The AI will find all unlabeled elements and intelligently name them in one go. You can later manage, rename, or batch-delete these labels from the built-in Label Manager.
 
-### 8.3 UI Explorer (E)
+### 9.3 UI Explorer (E)
 Need to interact with an element without navigating to it manually? Press **E** to activate the UI Explorer. The AI will scan the screen and generate an accessible list of every clickable element (ignoring system noise like taskbars). Pick an item from the list, and the add-on will instantly click it for you.
 
 ## 10. Live Voice Assistant

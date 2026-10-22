@@ -146,7 +146,7 @@ To prevent keyboard conflicts, this add-on uses a **Command Layer**.
 
 Chat windows and the History dialog work across all features, so you can review conversations and pick up right where you left off.
 
-### 3.1 Chat Window Shortcuts
+### 4.1 Chat Window Shortcuts
 
 When a chat window is open (Direct Chat, document chat, refine, and similar), you can review the conversation with:
 
@@ -154,7 +154,7 @@ When a chat window is open (Direct Chat, document chat, refine, and similar), yo
 - **Alt + Up:** Read the previous message.
 - **Alt + C:** Copy the current message.
 
-### 3.2 History (Control + H)
+### 4.2 History (Control + H)
 
 Press **Control + H** in the Command Layer to open the **History** dialog with your past chats and documents, filterable by type (All / Chats / Documents). Open a chat to continue the conversation — including its attached files, which are re-attached automatically — or open a document and keep reading. Press **Delete** on any item to remove it, or **Clear All** to empty the list. For documents, Delete asks whether you want to remove only the history entry or also clear that document's cached OCR text so the next open re-scans it from scratch — with a **Don't ask again** option to remember your choice.
 
@@ -166,14 +166,14 @@ The **AI Operator** turns Vision Assistant Pro from a passive reader into an act
 
 The biggest advantage? It works perfectly in completely inaccessible software. If you are stuck in a custom app, a remote desktop, or a website where your screen reader goes totally silent, the operator doesn't mind. Because it "sees" the screen visually, it can find, read, and interact with elements that have zero accessibility labels.
 
-### 4.1 How It Works
+### 5.1 How It Works
 
 1. Press **NVDA + Shift + V**, then press **Shift + A** (or use the direct shortcut) to open the AI Operator dialog.
 2. Type what you want to do in plain language (e.g., "Click the Save button", "What does the error message say?", or "Rename the file to final.pdf").
 3. The AI will analyze your screen, identify the relevant elements, and carry out the action or provide the answer. If a task requires multiple steps, the operator will continue working until it's complete.
 4. Press **Shift + A** again at any time to instantly abort an ongoing operation.
 
-### 4.2 Supported Actions
+### 5.2 Supported Actions
 
 The operator understands a wide range of commands:
 
@@ -187,13 +187,13 @@ The operator understands a wide range of commands:
 - **Keypress**: "Press Enter", "Press Tab", "Press Escape"
 - **Multi-step Tasks**: "Open File Explorer, find the report, and rename it to final.pdf"
 
-### 4.3 Important Notes
+### 5.3 Important Notes
 
 - **⚠️ API Usage Warning**: Because the operator needs to "see" exactly what's happening on screen, it sends a high-resolution screenshot with every step. Frequent use will consume your API quota much faster than standard text-based features.
 - **Administrator Applications**: If NVDA is not running with Administrator privileges, the operator may not be able to interact with windows that require elevated permissions. This is a Windows security limitation, not a bug in the add-on.
 - **Best Practices**: For best results, give clear and specific commands. "Click the blue Submit button at the bottom of the form" will almost always work better than just "Click the button".
 
-### 4.4 Live Operator (Control+A)
+### 5.4 Live Operator (Control+A)
 
 The Live Operator lets the Live Assistant carry out what you ask on your computer while you talk to it, including applications that your screen reader cannot read.
 _(Note: This feature is exclusive to Google Gemini and Gemini-compatible Custom providers)._
@@ -211,7 +211,7 @@ _(Note: This feature is exclusive to Google Gemini and Gemini-compatible Custom 
 
 Vision Assistant Pro は、視覚障害者向けに特別に設計された強力なビデオ処理機能を提供します。オンラインビデオとローカル画面録画の両方を分析し、詳細な視覚的説明の提供や、プロ仕様の音声解説スクリプト（SRT）の生成を行うことができます。 It can analyze both online videos and local screen recordings to provide highly detailed visual descriptions and generate professional Audio Description scripts (SRT).
 
-### 5.1 ローカル画面録画 (Control + V)
+### 6.1 ローカル画面録画 (Control + V)
 
 画面上の音声のないビデオ、アニメーション、チュートリアルなどに遭遇した場合、直接キャプチャすることができます：
 
@@ -220,7 +220,7 @@ Vision Assistant Pro は、視覚障害者向けに特別に設計された強�
 3. もう一度 **Control + V** を押して録画を停止します。
 4. その後、AI が録画されたビデオセグメントを分析し、シーン、登場人物、アクションに関する非常に詳細な説明を提供します。
 
-### 5.2 ビデオ分析 (Shift + V)
+### 6.2 ビデオ分析 (Shift + V)
 
 ローカルのビデオファイルとオンラインビデオの両方を分析できます。エクスプローラーでローカルのビデオファイルを選択するか、オンラインビデオのリンクをクリップボードにコピーするだけです。また、任意の場所（メディアプレイヤー内など）で **Shift + V** を押すと、ビデオファイルを参照したり、URLを手動で貼り付けたりできるダイアログが開きます。 Simply select a local video file in Windows Explorer, or copy an online video link to your clipboard. You can also press **Shift + V** anywhere (like inside a media player) to open a dialog where you can browse for a video file or paste a URL manually.
 
@@ -228,7 +228,7 @@ Vision Assistant Pro は、視覚障害者向けに特別に設計された強�
 - AIがローカルファイルまたはURLを自動的に検出し、ビデオを処理して、包括的な視覚的説明と音声の要約を提供します。
 - **48時間動画ファイルキャッシュ**: Geminiにアップロードされた動画が48時間キャッシュされるようになりました！NVDAを再起動した後でも、動画を再アップロードすることなく、同じ動画のSRTまたはMP3出力を再生成できます。キャッシュはキーを認識しており、APIキーが変更された場合に自動的に無効化されます。 You can regenerate SRT or MP3 outputs for the same video without re-uploading — even after restarting NVDA. The cache is key-aware and automatically invalidated when your API key changes.
 
-### 5.3 音声解説の生成 (SRT)
+### 6.3 音声解説の生成 (SRT)
 
 より構造化された体験のために、アドオンは標準の SubRip (SRT) 形式でプロ仕様の音声解説スクリプトを生成できます。
 
@@ -238,7 +238,7 @@ Vision Assistant Pro は、視覚障害者向けに特別に設計された強�
 - **使用方法:** 生成された字幕を聴くには、`.srt` ファイルをビデオファイルと同じフォルダに配置し、全く同じ名前を付けるだけです。その後、再生中に字幕テキストを直接スクリーンリーダーまたはTTSエンジンにルーティングするようにメディアプレイヤー（VLCやPotPlayerなど）を設定します。 Then, configure your media player (e.g., VLC or PotPlayer) to route the subtitle text directly to your screen reader or TTS engine during playback.
 - **保存エクスペリエンスの向上:** SRTまたはMP3ファイルを保存する際、ファイルダイアログからビデオを開いた場合でも、エクスプローラーから Shift+V で開いた場合でも、ファイルダイアログはデフォルトでソースビデオのフォルダで開くようになりました。
 
-### 5.4 同期音声ナレーション (MP3エクスポート)
+### 6.4 同期音声ナレーション (MP3エクスポート)
 
 Beyond just creating text-based SRT files, the add-on functions as a complete Audio Description production tool by synthesizing the descriptions into speech and mixing them with the video. You can now choose **Gemini Live TTS** as the voice engine, which utilizes the Gemini Live API to generate highly realistic, unlimited voice narration. When generating an MP3 for local video files, you have multiple mixing modes:
 
@@ -266,15 +266,15 @@ The **Document Reader** turns your documents into clean, readable text — so yo
 4. Text extraction starts in the background in batches. You can close the window at any time and continue later — nothing is lost.
 5. ページの準備ができたら、ビューアーで読み取ります：ページの移動、任意のページへのジャンプ、AIへの質問、テキストの保存、または音声の生成を行います。
 
-### 7.1 バッチ処理と再開
+### 8.1 バッチ処理と再開
 
 You don't need to read a massive document all at once. Choose a page range (e.g., `1-20`) or keep the defaults to process everything, and the AI extracts all pages in the background. If NVDA crashes or you interrupt the scan, the add-on remembers your progress and offers to **Resume** exactly where it left off — even across restarts. Completed documents are also cached, so reopening them (from Recent Documents or via **D**) loads the text instantly without re-running OCR, unless the source files have changed.
 
-### 7.2 スマートファイルアクション
+### 8.2 スマートファイルアクション
 
 常に最初に文書を開く必要とは限りません。WindowsのエクスプローラーでPDF、画像、またはテキスト/HTMLファイルをハイライトし、コマンドレイヤー内で**D**（文書リーダー）を押すか、PDFまたは画像をハイライトして**F**（スマートファイルアクション）を押します。アドオンはファイルダイアログを即座にバイパスし、ハイライトされたファイルの処理を開始します。複数のファイルを一度に選択すると、1つの文書としてまとめて処理されます。 In Windows File Explorer, simply highlight a PDF, image, or text/HTML file and press **D** (Document Reader) — or highlight a PDF or image and press **F** (Smart File Action) — inside the Command Layer. The add-on instantly bypasses the file dialog and begins processing the highlighted file. Selecting several files at once processes them together as one document.
 
-### 7.3 文書ビューアーの操作とショートカット
+### 8.3 文書ビューアーの操作とショートカット
 
 文書リーダーウィンドウが開いているときは、以下の操作を使用できます。
 
@@ -295,7 +295,7 @@ You don't need to read a massive document all at once. Choose a page range (e.g.
 - **TTS音声 / TTSエンジン:** 音声を選択します。Geminiの場合は、**標準TTS**と**Gemini Live**ストリーミングから選択できます。
 - **前へ / 次へ:** ページ間を移動します（Ctrl+PageUp/Downショートカットと同じ）。
 
-### 7.4 最近使った文書 (D)
+### 8.4 最近使った文書 (D)
 
 Pressing **D** in the Command Layer lists your recently read documents first. コマンドレイヤーで**D**を押すと、最近読んだ文書が最初にリストされます。OCRがすでに完了している場合でも、選択して以前のページから続行できます。または**ファイルを開く...**（`Ctrl + O`）を押して、通常どおりファイルを参照することもできます。
 
@@ -303,16 +303,16 @@ Pressing **D** in the Command Layer lists your recently read documents first. �
 
 「ラベルのないボタン」だらけのアプリケーションでお困りですか？セマンティックAIラベリングエンジンがこの問題を恒久的に解決します。 The Semantic AI Labeling engine solves this permanently.
 
-### 8.1 永続的なオブジェクトラベリング (L)
+### 9.1 永続的なオブジェクトラベリング (L)
 
 Focus your screen reader on an unlabeled graphic or button and press **L** in the Command Layer. The AI will look at the button visually, determine its function, and apply a permanent label.
 _Unlike older screen reader labeling tools, this add-on uses an advanced hybrid "Object Signature" system (AutomationId/ControlID). Your custom labels will survive window resizing, monitor switching, and application updates!_
 
-### 8.2 アプリケーション全体のスキャン (Shift + L)
+### 9.2 アプリケーション全体のスキャン (Shift + L)
 
 Press **Shift + L** to scan the entire active window at once. The AI will find all unlabeled elements and intelligently name them in one go. You can later manage, rename, or batch-delete these labels from the built-in Label Manager.
 
-### 8.3 UIエクスプローラー (E)
+### 9.3 UIエクスプローラー (E)
 
 Need to interact with an element without navigating to it manually? Press **E** to activate the UI Explorer. The AI will scan the screen and generate an accessible list of every clickable element (ignoring system noise like taskbars). Pick an item from the list, and the add-on will instantly click it for you.
 

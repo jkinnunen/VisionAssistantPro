@@ -146,7 +146,7 @@ Klavye çakışmalarını önlemek için bu eklenti bir **Komut Katmanı** kulla
 
 Sohbet pencereleri ve Geçmiş iletişim kutusu tüm özelliklerde çalışır; böylece konuşmaları gözden geçirebilir ve kaldığınız yerden devam edebilirsiniz.
 
-### 3.1 Sohbet Penceresi Kısayolları
+### 4.1 Sohbet Penceresi Kısayolları
 
 Bir sohbet penceresi açıkken (Doğrudan Sohbet, belge sohbeti, hassaslaştırma ve benzeri), konuşmayı aşağıdakilerle inceleyebilirsiniz:
 
@@ -154,7 +154,7 @@ Bir sohbet penceresi açıkken (Doğrudan Sohbet, belge sohbeti, hassaslaştırm
 - **Alt + Yukarı:** Önceki mesajı okuyun.
 - **Alt + C:** Geçerli mesajı kopyalayın.
 
-### 3.2 Geçmiş (Kontrol + H)
+### 4.2 Geçmiş (Kontrol + H)
 
 Türe göre filtrelenebilen (Tümü / Sohbetler / Belgeler) geçmiş sohbetlerinizi ve belgelerinizi içeren **Geçmiş** iletişim kutusunu açmak için Komut Katmanında **Control + H** tuşlarına basın. Otomatik olarak yeniden eklenen ekli dosyalar da dahil olmak üzere sohbete devam etmek için bir sohbet açın veya bir belge açıp okumaya devam edin. Herhangi bir öğeyi kaldırmak için **Sil**'e veya listeyi boşaltmak için **Tümünü Temizle**'ye basın. Belgeler için Sil, yalnızca geçmiş kaydını mı yoksa belgenin önbelleğe alınmış OCR metnini de temizleyip bir sonraki açılışta sıfırdan taramasını mı istediğinizi sorar; seçiminizi hatırlamak için **Bir daha sorma** seçeneği bulunur.
 
@@ -166,14 +166,14 @@ Listede nelerin hatırlanacağını da seçebilirsiniz. **Sohbetleri geçmişe k
 
 En büyük avantajı ne mi? Tamamen erişilemez yazılımlarda kusursuz şekilde çalışır. Özel bir uygulamada, uzak masaüstünde veya ekran okuyucunuzun tamamen sustuğu bir web sitesinde takılıp kaldıysanız, operatör için bu bir sorun değildir. Çünkü ekranı görsel olarak "gördüğü" için erişilebilirlik etiketi bulunmayan öğeleri bulabilir, okuyabilir ve onlarla etkileşim kurabilir.
 
-### 4.1 Nasıl Çalışır
+### 5.1 Nasıl Çalışır
 
 1. **NVDA + Shift + V** tuşlarına basın, ardından Yapay Zekâ Operatörü iletişim kutusunu açmak için **Shift + A** tuşuna basın (veya doğrudan kısayolu kullanın).
 2. Yapmak istediğiniz işlemi düz bir dille yazın (örneğin, "Kaydet düğmesine tıkla", "Hata iletisinde ne yazıyor?" veya "Dosyanın adını final.pdf olarak değiştir").
 3. Yapay zekâ ekranınızı analiz edecek, ilgili öğeleri belirleyecek ve işlemi gerçekleştirecek veya yanıtı sağlayacaktır. Bir görev birden fazla adım gerektiriyorsa, operatör görev tamamlanana kadar çalışmaya devam eder.
 4. Devam eden bir işlemi anında durdurmak için istediğiniz zaman tekrar **Shift + A** tuşuna basın.
 
-### 4.2 Desteklenen Eylemler
+### 5.2 Desteklenen Eylemler
 
 Operatör çok çeşitli komutları anlayabilir:
 
@@ -187,13 +187,13 @@ Operatör çok çeşitli komutları anlayabilir:
 - **Tuş Basımı:** "Enter tuşuna bas", "Tab tuşuna bas", "Escape tuşuna bas"
 - **Çok Adımlı Görevler:** "Dosya Gezgini'ni aç, raporu bul ve adını final.pdf olarak değiştir"
 
-### 4.3 Önemli Notlar
+### 5.3 Önemli Notlar
 
 - **⚠️ API Kullanım Uyarısı:** Operatörün ekranda tam olarak neler olduğunu "görebilmesi" gerektiğinden, her adımda yüksek çözünürlüklü bir ekran görüntüsü gönderilir. Sık kullanım, standart metin tabanlı özelliklere kıyasla API kotanızı çok daha hızlı tüketecektir.
 - **Yönetici Uygulamaları:** NVDA yönetici ayrıcalıklarıyla çalışmıyorsa, operatör yükseltilmiş izinler gerektiren pencerelerle etkileşim kuramayabilir. Bu, Windows'un güvenlik sınırlamasıdır, eklentideki bir hata değildir.
 - **En İyi Uygulamalar:** En iyi sonuçlar için açık ve belirgin komutlar verin. "Formun altındaki mavi Gönder düğmesine tıkla" komutu, yalnızca "Düğmeye tıkla" demekten neredeyse her zaman daha iyi sonuç verir.
 
-### 4.4 Canlı Operatör (Kontrol+A)
+### 5.4 Canlı Operatör (Kontrol+A)
 
 Canlı Asistan, Profesyonel Görsel Asistan'ı gerçek zamanlı, etkileşimli bir yardımcı pilota dönüştürür.
 _(Not: Bu özellik yalnızca Google Gemini ve Gemini uyumlu Özel sağlayıcılara özeldir.)_
@@ -211,7 +211,7 @@ _(Not: Bu özellik yalnızca Google Gemini ve Gemini uyumlu Özel sağlayıcıla
 
 Profesyonel Görsel Asistan, özellikle kör kullanıcılar için tasarlanmış güçlü video işleme yetenekleri sunar. Hem çevrim içi videoları hem de yerel ekran kayıtlarını analiz ederek son derece ayrıntılı görsel betimlemeler sağlayabilir ve profesyonel Sesli Betimleme betikleri (SRT) oluşturabilir.
 
-### 5.1 Yerel Ekran Kaydı (Kontrol + V)
+### 6.1 Yerel Ekran Kaydı (Kontrol + V)
 
 Ekranınızda sessiz bir video, animasyon veya eğitim videosuyla karşılaşırsanız, bunu doğrudan kaydedebilirsiniz:
 
@@ -220,7 +220,7 @@ Ekranınızda sessiz bir video, animasyon veya eğitim videosuyla karşılaşır
 3. Kaydı durdurmak için tekrar **Control + V** tuşlarına basın.
 4. Yapay zekâ daha sonra kaydedilen video bölümünü analiz edecek ve sahne, karakterler ve eylemler hakkında son derece ayrıntılı bir betimleme sunacaktır.
 
-### 5.2 Video Analizi (Shift + V)
+### 6.2 Video Analizi (Shift + V)
 
 Hem yerel video dosyalarını hem de çevrim içi videoları analiz edebilirsiniz. Windows Gezgini'nde bir yerel video dosyası seçin veya çevrim içi bir video bağlantısını panonuza kopyalayın. Ayrıca herhangi bir yerde (örneğin bir medya oynatıcısının içinde) **Shift + V** tuşlarına basarak bir video dosyası seçebileceğiniz veya bir URL'yi el ile yapıştırabileceğiniz bir iletişim kutusu açabilirsiniz.
 
@@ -228,7 +228,7 @@ Hem yerel video dosyalarını hem de çevrim içi videoları analiz edebilirsini
 - Yapay zekâ yerel dosyayı veya URL'yi otomatik olarak algılayacak, videoyu işleyecek ve kapsamlı bir görsel betimleme ile sesli özet sunacaktır.
 - **48 Saatlik Video Dosyası Önbellekleme**: Gemini'ye yüklenen videolar artık 48 saat boyunca önbelleğe alınır! Aynı videoyu yeniden yüklemeden SRT veya MP3 çıktıları oluşturabilirsiniz; NVDA'yı yeniden başlattıktan sonra bile. Önbellek API anahtarına göre tutulur ve API anahtarınız değiştiğinde otomatik olarak geçersiz kılınır.
 
-### 5.3 Sesli Betimleme Oluşturma (SRT)
+### 6.3 Sesli Betimleme Oluşturma (SRT)
 
 Daha yapılandırılmış bir deneyim için eklenti, standart SubRip (SRT) biçiminde profesyonel Sesli Betimleme betikleri oluşturabilir.
 
@@ -238,7 +238,7 @@ Daha yapılandırılmış bir deneyim için eklenti, standart SubRip (SRT) biçi
 - **Nasıl Kullanılır:** Oluşturulan altyazıyı dinlemek için `.srt` dosyasını video dosyanızla aynı klasöre yerleştirin ve tam olarak aynı adı verin. Ardından medya oynatıcınızı (örneğin VLC veya PotPlayer), oynatma sırasında altyazı metnini doğrudan ekran okuyucunuza veya TTS motorunuza yönlendirecek şekilde yapılandırın.
 - **Geliştirilmiş Video Kaydetme Deneyimi**: SRT veya MP3 dosyalarını kaydederken dosya iletişim kutusu artık videoyu ister dosya iletişim kutusundan ister Dosya Gezgininden **Shift+V** ile açmış olun, varsayılan olarak kaynak videonun klasöründe açılıyor.
 
-### 5.4 Senkronize Sesli Anlatım (MP3 Dışa Aktarma)
+### 6.4 Senkronize Sesli Anlatım (MP3 Dışa Aktarma)
 
 Eklenti yalnızca metin tabanlı SRT dosyaları oluşturmakla kalmaz, aynı zamanda betimlemeleri konuşmaya dönüştürüp videoyla birleştirerek eksiksiz bir Sesli Betimleme üretim aracı olarak çalışır. Artık, son derece gerçekçi ve sınırsız sesli anlatım oluşturmak için Gemini Live API'sini kullanan **Gemini Live TTS**'yi ses motoru olarak seçebilirsiniz. Yerel video dosyaları için MP3 oluştururken birden fazla karıştırma modu kullanılabilir:
 
@@ -266,15 +266,15 @@ Ses Yazıya Dökme özelliği, hem ses hem de video dosyalarını (MP3, WAV, MP4
 4. Metin çıkarma arka planda toplu olarak başlar. Pencereyi istediğiniz zaman kapatabilir ve daha sonra devam edebilirsiniz; hiçbir şey kaybolmaz.
 5. Sayfalar hazır olduğunda bunları görüntüleyicide okuyun: sayfalar arasında geçiş yapın, herhangi bir sayfaya geçin, AI sorularını sorun, metni kaydedin veya sesli anlatım oluşturun.
 
-### 7.1 Toplu İşleme ve Devam Etme
+### 8.1 Toplu İşleme ve Devam Etme
 
 Büyük bir belgeyi tek seferde okumak zorunda değilsiniz. Bir sayfa aralığı seçin (örneğin, `1-20`) veya her şeyi işlemek için varsayılan ayarları koruyun; yapay zeka arka planda tüm sayfaları çıkaracaktır. NVDA çökerse veya taramayı yarıda keserseniz, eklenti ilerlemenizi hatırlar ve yeniden başlatmalar arasında bile tam olarak kaldığınız yerden **Devam Etme** seçeneği sunar. Belge seçeneği, önbelleğe alınmış OCR metnine veya yarım kalan işlemlerin devam verilerine hiçbir şekilde dokunmaz. Bu sayede belgeler yeniden taranmadan açılabilir ve tamamlanmamış çıkarma işlemleri kaldığı yerden sürdürülebilir. Her iki seçenek de varsayılan olarak etkindir ve Hızlı Ayarlar üzerinden de değiştirilebilir.
 
-### 7.2 Akıllı Dosya Eylemi
+### 8.2 Akıllı Dosya Eylemi
 
 Belgeyi her zaman önce açmanız gerekmez. Windows Dosya Gezgini'nde bir PDF veya görüntü dosyasını seçin ve Komut Katmanında **D** (Belge Okuyucu) veya **F** (Akıllı Dosya İşlemi) tuşuna basın. Eklenti dosya iletişim kutusunu anında atlayacak ve seçili dosyayı işlemeye başlayacaktır. Birden fazla dosyayı aynı anda seçmek, bunların tek bir belge olarak işlenmesini sağlar.
 
-### 7.3 Belge Görüntüleyici Denetimleri ve Kısayolları
+### 8.3 Belge Görüntüleyici Denetimleri ve Kısayolları
 
 Belge Okuyucu penceresi açıkken aşağıdakileri kullanabilirsiniz:
 
@@ -295,7 +295,7 @@ Belge Okuyucu penceresi açıkken aşağıdakileri kullanabilirsiniz:
 - **TTS Sesi / TTS Motoru:** Sesi seçin ve Gemini'de **Standart TTS** ve **Gemini Live** akışı arasında seçim yapın.
 - **Önceki / Sonraki:** Sayfalar arasında geçiş yapın (Ctrl+PageUp/Down kısayollarıyla aynıdır).
 
-### 7.4 Son Belgeler (D)
+### 8.4 Son Belgeler (D)
 
 Komut Katmanında **D** tuşuna bastığınızda, en son okuduğunuz belgeler ilk önce listelenir. OCR zaten bitmiş olsa bile, bulunduğunuz sayfadan devam etmek için birini seçin veya bir dosyaya her zamanki gibi göz atmak için **Dosya Aç...** (`Ctrl + O`) tuşuna basın.
 
@@ -303,16 +303,16 @@ Komut Katmanında **D** tuşuna bastığınızda, en son okuduğunuz belgeler il
 
 Her yerde "etiketsiz düğme" bulunan bir uygulamada mı takıldınız? Anlamsal Yapay Zekâ Etiketleme motoru bunu kalıcı olarak çözer.
 
-### 8.1 Kalıcı Nesne Etiketleme (L)
+### 9.1 Kalıcı Nesne Etiketleme (L)
 
 Ekran okuyucunuzun odağını etiketsiz bir grafik veya düğme üzerine getirin ve Komut Katmanında **L** tuşuna basın. Yapay zekâ düğmeye görsel olarak bakacak, işlevini belirleyecek ve kalıcı bir etiket uygulayacaktır.
 _Eski ekran okuyucu etiketleme araçlarının aksine, bu eklenti gelişmiş hibrit bir "Nesne İmzası" sistemi (AutomationId/ControlID) kullanır. Özel etiketleriniz pencere boyutu değişikliklerinden, monitör değiştirmeden ve uygulama güncellemelerinden etkilenmeden korunacaktır!_
 
-### 8.2 Tam Uygulama Taraması (Shift + L)
+### 9.2 Tam Uygulama Taraması (Shift + L)
 
 Tüm etkin pencereyi tek seferde taramak için **Shift + L** tuşuna basın. Yapay zekâ tüm etiketsiz öğeleri bulacak ve hepsini tek seferde akıllıca adlandıracaktır. Daha sonra bu etiketleri yerleşik Etiket Yöneticisi üzerinden yönetebilir, yeniden adlandırabilir veya toplu olarak silebilirsiniz.
 
-### 8.3 Kullanıcı Arayüzü Gezgini (E)
+### 9.3 Kullanıcı Arayüzü Gezgini (E)
 
 Bir öğeyle ona el ile gitmeden etkileşim kurmanız mı gerekiyor? Arayüz Gezginini etkinleştirmek için **E** tuşuna basın. Yapay zekâ ekranı tarayacak ve tıklanabilir tüm öğelerin erişilebilir bir listesini oluşturacaktır (görev çubuğu gibi sistem gürültülerini yok sayarak). Listeden bir öğe seçin; eklenti sizin için anında o öğeye tıklayacaktır.
 

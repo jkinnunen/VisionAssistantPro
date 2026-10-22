@@ -146,7 +146,7 @@ Para evitar conflictos de teclado, este complemento usa una **Capa de comandos**
 
 Las ventanas de chat y el diálogo de historial funcionan en todas las funciones, para que puedas revisar conversaciones y continuar exactamente donde lo dejaste.
 
-### 3.1 Atajos de la ventana de chat
+### 4.1 Atajos de la ventana de chat
 
 Cuando hay una ventana de chat abierta (Chat directo, chat de documento, refinar y similares), puedes revisar la conversación con:
 
@@ -154,7 +154,7 @@ Cuando hay una ventana de chat abierta (Chat directo, chat de documento, refinar
 - **Alt + Arriba:** Leer el mensaje anterior.
 - **Alt + C:** Copiar el mensaje actual.
 
-### 3.2 Historial (Control + H)
+### 4.2 Historial (Control + H)
 
 Presiona **Control + H** en la Capa de comandos para abrir el diálogo de **Historial** con tus chats y documentos anteriores, filtrables por tipo (Todo / Chats / Documentos). Abre un chat para continuar la conversación — incluyendo sus archivos adjuntos, que se vuelven a adjuntar automáticamente — o abre un documento y sigue leyendo. Presiona **Eliminar** en cualquier elemento para quitarlo, o **Borrar todo** para vaciar la lista. Para documentos, Eliminar pregunta si quieres quitar solo la entrada del historial o también borrar el texto OCR en caché de ese documento para que la próxima apertura lo vuelva a escanear desde cero — con una opción **No preguntar de nuevo** para recordar tu elección.
 
@@ -166,14 +166,14 @@ El **Operador de IA** convierte Vision Assistant Pro de un lector pasivo en un a
 
 ¿La mayor ventaja? La mayor ventaja es que funciona perfectamente en software completamente inaccesible. Si estás atascado en una aplicación personalizada, un escritorio remoto o un sitio web donde tu lector de pantalla permanece en silencio, al Operador no le importa. Como "ve" la pantalla visualmente, puede encontrar, leer e interactuar con elementos que no tienen ninguna etiqueta de accesibilidad.
 
-### 4.1 Cómo funciona
+### 5.1 Cómo funciona
 
 1. Presiona **NVDA + Shift + V**, luego presiona **Shift + A** para abrir el diálogo del Operador de IA.
 2. Escribe lo que quieres hacer en lenguaje natural (por ejemplo, "Haz clic en el botón Guardar", "¿Qué dice el mensaje de error?" o "Cambia el nombre del archivo a final.pdf").
 3. La IA analizará tu pantalla, identificará los elementos relevantes y realizará la acción o proporcionará la respuesta. Si una tarea requiere varios pasos, el Operador continuará trabajando hasta completarla.
 4. Presiona **Shift + A** de nuevo en cualquier momento para cancelar una operación en curso al instante.
 
-### 4.2 Acciones admitidas
+### 5.2 Acciones admitidas
 
 El Operador entiende una amplia variedad de comandos:
 
@@ -187,13 +187,13 @@ El Operador entiende una amplia variedad de comandos:
 - **Tecla**: "Presiona Enter", "Presiona Tab", "Presiona Escape"
 - **Tareas de varios pasos**: "Abre el Explorador de archivos, encuentra el informe y cámbiale el nombre a final.pdf"
 
-### 4.3 Notas importantes
+### 5.3 Notas importantes
 
 - **⚠️ Advertencia de uso de API:** El Operador envía una captura de pantalla de alta resolución con cada paso. El uso frecuente consumirá tu cuota de API mucho más rápido que las funciones estándar.
 - **Aplicaciones de administrador:** Si NVDA no se ejecuta con privilegios de administrador, es posible que el Operador no pueda interactuar con ventanas que requieren permisos elevados. Esta es una limitación de seguridad de Windows, no un error del complemento.
 - **Mejores prácticas:** Da comandos claros y específicos. "Haz clic en el botón azul Enviar en la parte inferior del formulario" funcionará mejor que simplemente "Haz clic en el botón".
 
-### 4.4 Operador en directo (Control+A)
+### 5.4 Operador en directo (Control+A)
 
 El Operador en vivo permite que el Asistente en vivo lleve a cabo lo que le pidas en tu equipo mientras hablas con él, incluidas aplicaciones que tu lector de pantalla no puede leer.
 _(Nota: Esta función es exclusiva de Google Gemini y los proveedores personalizados compatibles con Gemini)._
@@ -211,7 +211,7 @@ _(Nota: Esta función es exclusiva de Google Gemini y los proveedores personaliz
 
 Vision Assistant Pro incluye potentes funciones de procesamiento de vídeo diseñadas específicamente para usuarios ciegos. Puede analizar tanto vídeos en línea como grabaciones locales de pantalla para ofrecer descripciones visuales muy detalladas y generar guiones profesionales de audiodescripción (SRT).
 
-### 5.1 Grabación de pantalla local (Control + V)
+### 6.1 Grabación de pantalla local (Control + V)
 
 Si te encuentras con un vídeo silencioso, una animación o un tutorial en tu pantalla, puedes capturarlo directamente:
 
@@ -220,7 +220,7 @@ Si te encuentras con un vídeo silencioso, una animación o un tutorial en tu pa
 3. Presiona **Control + V** de nuevo para detener la grabación.
 4. La IA analizará el segmento de vídeo grabado y proporcionará una descripción muy detallada.
 
-### 5.2 Análisis de vídeo (Shift + V)
+### 6.2 Análisis de vídeo (Shift + V)
 
 Puedes analizar tanto archivos de vídeo locales como vídeos en línea. Selecciona un archivo de vídeo local en el Explorador de Windows, o copia un enlace en línea al portapapeles. También puedes presionar **Shift + V** en cualquier lugar para abrir un diálogo donde examinar un archivo o pegar una URL.
 
@@ -228,7 +228,7 @@ Puedes analizar tanto archivos de vídeo locales como vídeos en línea. Selecci
 - La IA detectará automáticamente el archivo local o la URL, procesará el vídeo y proporcionará una descripción visual completa y un resumen de audio.
 - **Caché de archivos de vídeo por 48 horas:** ¡Los vídeos cargados a Gemini se almacenan en caché durante 48 horas! Puedes regenerar salidas SRT o MP3 para el mismo vídeo sin volver a cargarlo — incluso después de reiniciar NVDA. La caché reconoce la clave API y se invalida automáticamente cuando esta cambia.
 
-### 5.3 Generación de audiodescripción (SRT)
+### 6.3 Generación de audiodescripción (SRT)
 
 Para una experiencia más estructurada, el complemento puede generar guiones profesionales de audiodescripción en formato estándar SubRip (SRT).
 
@@ -238,7 +238,7 @@ Para una experiencia más estructurada, el complemento puede generar guiones pro
 - **Cómo usar:** Coloca el archivo `.srt` en la misma carpeta que tu vídeo con el mismo nombre. Configura tu reproductor multimedia (VLC, PotPlayer) para enrutar los subtítulos a tu lector de pantalla durante la reproducción.
 - **Experiencia de guardado mejorada:** Al guardar archivos SRT o MP3, el cuadro de diálogo de archivo ahora se abre de forma predeterminada en la carpeta del vídeo de origen, ya sea que hayas abierto el vídeo desde el cuadro de diálogo de archivo o con Shift+V desde el Explorador.
 
-### 5.4 Narración de audio sincronizada (exportación a MP3)
+### 6.4 Narración de audio sincronizada (exportación a MP3)
 
 Más allá de crear archivos SRT basados en texto, el complemento funciona como una herramienta completa de producción de audiodescripción al sintetizar las descripciones en voz y mezclarlas con el vídeo. Ahora puedes elegir **TTS de Gemini en vivo** como motor de voz, que utiliza la API de Gemini en vivo para generar una narración de voz altamente realista y sin límites. Modos de mezcla disponibles para vídeos locales:
 
@@ -266,15 +266,15 @@ El **Lector de documentos** convierte tus documentos en texto legible y limpio. 
 4. La extracción de texto comienza en segundo plano por lotes. Puedes cerrar la ventana en cualquier momento y continuar después.
 5. Una vez que las páginas estén listas, léelas en el visor: muévete entre páginas, salta a cualquier página, hazle preguntas a la IA, guarda el texto o genera una narración de audio.
 
-### 7.1 Procesamiento por lotes y reanudación
+### 8.1 Procesamiento por lotes y reanudación
 
 No necesitas leer un documento enorme de una sola vez. Elige un rango de páginas (por ejemplo, `1-20`) y la IA extrae todas las páginas en segundo plano. Si NVDA se bloquea o interrumpes el escaneo, el complemento recuerda tu progreso y ofrece **Reanudar** exactamente donde lo dejaste. Los documentos completados también se guardan en caché, por lo que volver a abrirlos carga el texto instantáneamente sin volver a ejecutar el OCR.
 
-### 7.2 Acción inteligente sobre archivos
+### 8.2 Acción inteligente sobre archivos
 
 No siempre necesitas abrir primero el documento. En el Explorador de archivos de Windows, resalta un PDF, imagen o archivo de texto/HTML y presiona **D** (Lector de documentos) o **F** (Acción inteligente de archivo) dentro de la Capa de comandos. El complemento omite instantáneamente el diálogo de archivo y comienza a procesar el archivo resaltado. Seleccionar varios archivos a la vez los procesa juntos como un único documento.
 
-### 7.3 Controles y atajos del visor de documentos
+### 8.3 Controles y atajos del visor de documentos
 
 Cuando la ventana del Lector de documentos está abierta, puedes usar lo siguiente:
 
@@ -295,7 +295,7 @@ Cuando la ventana del Lector de documentos está abierta, puedes usar lo siguien
 - **Voz TTS / Motor TTS:** Elige la voz y, en Gemini, selecciona entre **TTS estándar** y **Gemini en vivo** (streaming).
 - **Anterior / Siguiente:** Muévete entre páginas.
 
-### 7.4 Documentos recientes (D)
+### 8.4 Documentos recientes (D)
 
 Presionar **D** en la Capa de comandos lista primero tus documentos leídos recientemente. Elige uno para continuar desde la página donde lo dejaste, o presiona **Abrir archivo...** (`Ctrl + O`) para explorar un archivo como siempre.
 
@@ -303,16 +303,16 @@ Presionar **D** en la Capa de comandos lista primero tus documentos leídos reci
 
 ¿Atascado en una aplicación con "botones sin etiquetar" por todas partes? El motor de Etiquetado semántico con IA resuelve esto de forma permanente.
 
-### 8.1 Etiquetado permanente de objetos (L)
+### 9.1 Etiquetado permanente de objetos (L)
 
 Enfoca tu lector de pantalla en un gráfico o botón sin etiquetar y presiona **L** en la Capa de comandos. La IA observará el botón visualmente, determinará su función y aplicará una etiqueta permanente.
 _A diferencia de las herramientas de etiquetado de lectores de pantalla más antiguas, este complemento usa un sistema híbrido avanzado de "firma de objeto" (AutomationId/ControlID). ¡Tus etiquetas personalizadas sobrevivirán al redimensionamiento de ventanas, el cambio de monitor y las actualizaciones de la aplicación!_
 
-### 8.2 Escaneo completo de la aplicación (Shift + L)
+### 9.2 Escaneo completo de la aplicación (Shift + L)
 
 Presiona **Shift + L** para escanear toda la ventana activa de una vez. La IA encontrará todos los elementos sin etiquetar y los nombrará inteligentemente. Luego puedes administrar, renombrar o eliminar en lote estas etiquetas desde el Administrador de etiquetas incorporado.
 
-### 8.3 Explorador de interfaz (E)
+### 9.3 Explorador de interfaz (E)
 
 ¿Necesitas interactuar con un elemento sin navegar hasta él manualmente? Presiona **E** para activar el Explorador de interfaz. La IA escaneará la pantalla y generará una lista accesible de cada elemento en el que se puede hacer clic (ignorando el ruido del sistema como las barras de tareas). Elige un elemento de la lista y el complemento hará clic en él instantáneamente.
 

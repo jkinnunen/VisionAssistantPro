@@ -146,7 +146,7 @@ Aby uniknąć konfliktów skrótów klawiszowych, dodatek używa **warstwy polec
 
 Okna czatu i okno historii działają we wszystkich funkcjach, więc można przejrzeć rozmowę i wrócić dokładnie tam, gdzie się skończyło.
 
-### 3.1 Skróty okna czatu
+### 4.1 Skróty okna czatu
 
 Gdy okno czatu jest otwarte (czat bezpośredni, czat z dokumentem, dopracowywanie i podobne), możesz przeglądać rozmowę klawiszami:
 
@@ -154,7 +154,7 @@ Gdy okno czatu jest otwarte (czat bezpośredni, czat z dokumentem, dopracowywani
 - **Alt + strzałka w górę:** odczytuje poprzednią wiadomość.
 - **Alt + C:** kopiuje bieżącą wiadomość.
 
-### 3.2 Historia (Control + H)
+### 4.2 Historia (Control + H)
 
 Naciśnij **Control + H** w warstwie poleceń, aby otworzyć okno **Historii** z wcześniejszymi czatami i dokumentami, z możliwością filtrowania według typu (Wszystko / Czaty / Dokumenty). Otwórz czat, aby kontynuować rozmowę razem z załączonymi plikami (dołączą się automatycznie), albo otwórz dokument i czytaj dalej. Naciśnij **Delete** na wybranej pozycji, aby ją usunąć, albo **Wyczyść wszystko**, aby opróżnić listę. Przy dokumentach Delete pyta, czy usunąć tylko wpis w historii, czy także zapamiętany tekst OCR tego dokumentu, żeby przy następnym otwarciu dokument zeskanował się od nowa. Pole **Nie pytaj ponownie** zapamiętuje wybór.
 
@@ -166,7 +166,7 @@ Można też zdecydować, co lista zapamiętuje. **Zapisuj czaty w historii** (za
 
 Największa zaleta? Działa w oprogramowaniu całkowicie niedostępnym. Jeśli firmowa aplikacja, pulpit zdalny albo strona nie dają się obsłużyć, bo czytnik ekranu przy nich milczy, operatorowi to nie przeszkadza. Ponieważ „widzi” obraz ekranu, potrafi znaleźć, odczytać i obsłużyć elementy pozbawione jakichkolwiek etykiet dostępności.
 
-### 4.1 Jak to działa
+### 5.1 Jak to działa
 
 1. Naciśnij **NVDA + Shift + V**, potem **Shift + A** (albo użyj skrótu bezpośredniego), żeby otworzyć okno Operatora AI.
 2. Napisz zwykłym językiem, co ma zrobić (na przykład „Kliknij przycisk Zapisz”, „Co mówi komunikat błędu?”, „Zmień nazwę pliku na final.pdf”).
@@ -193,7 +193,7 @@ Operator rozumie między innymi takie polecenia:
 - **Aplikacje administracyjne**: jeśli NVDA nie działa z uprawnieniami administratora, operator może nie obsłużyć okien wymagających podwyższonych uprawnień. To ograniczenie bezpieczeństwa Windows, nie błąd dodatku.
 - **Dobre praktyki**: najlepiej działają polecenia konkretne. „Kliknij niebieski przycisk Wyślij na dole formularza” zadziała prawie zawsze lepiej niż samo „Kliknij przycisk”.
 
-### 4.4 Operator głosowy (Control+A)
+### 5.4 Operator głosowy (Control+A)
 
 Operator głosowy pozwala asystentowi głosowemu wykonywać na komputerze to, o co prosisz w trakcie rozmowy, także w aplikacjach, których czytnik ekranu nie umie odczytać.
 _(Uwaga: funkcja dostępna wyłącznie w Google Gemini i w niestandardowych dostawcach zgodnych z Gemini)._
@@ -211,7 +211,7 @@ _(Uwaga: funkcja dostępna wyłącznie w Google Gemini i w niestandardowych dost
 
 Vision Assistant Pro przetwarza wideo z myślą o osobach niewidomych. Analizuje zarówno filmy online, jak i lokalne nagrania ekranu. Daje szczegółowe opisy wizualne i gotowe skrypty audiodeskrypcji w formacie SRT.
 
-### 5.1 Nagrywanie ekranu (Control + V)
+### 6.1 Nagrywanie ekranu (Control + V)
 
 Jeśli trafisz na bezgłośne wideo, animację albo poradnik na ekranie, możesz nagrać go bezpośrednio:
 
@@ -220,7 +220,7 @@ Jeśli trafisz na bezgłośne wideo, animację albo poradnik na ekranie, możesz
 3. Ponowne **Control + V** kończy nagrywanie.
 4. AI przeanalizuje nagrany fragment i szczegółowo opisze scenę, postacie i przebieg zdarzeń.
 
-### 5.2 Analiza wideo (Shift + V)
+### 6.2 Analiza wideo (Shift + V)
 
 Analizować można zarówno lokalne pliki, jak i filmy online. Wystarczy zaznaczyć plik wideo w Eksploratorze Windows albo skopiować link do schowka. Można też nacisnąć **Shift + V** w dowolnym miejscu (na przykład w odtwarzaczu), żeby otworzyć okno, w którym wskazuje się plik albo wkleja adres ręcznie.
 
@@ -228,7 +228,7 @@ Analizować można zarówno lokalne pliki, jak i filmy online. Wystarczy zaznacz
 - Dodatek sam rozpozna plik lokalny albo adres, przetworzy wideo i poda pełny opis wizualny oraz podsumowanie dźwięku.
 - **48-godzinna pamięć podręczna plików wideo:** wideo wysłane do Gemini jest pamiętane przez 48 godzin. Można ponownie wygenerować plik SRT albo MP3 dla tego samego wideo bez ponownego wysyłania, nawet po restarcie NVDA. Pamięć podręczna jest powiązana z kluczem API i unieważnia się sama, gdy klucz się zmieni.
 
-### 5.3 Generowanie audiodeskrypcji (SRT)
+### 6.3 Generowanie audiodeskrypcji (SRT)
 
 Dodatek tworzy skrypty audiodeskrypcji w standardowym formacie SubRip (SRT).
 
@@ -238,7 +238,7 @@ Dodatek tworzy skrypty audiodeskrypcji w standardowym formacie SubRip (SRT).
 - **Jak z tego skorzystać:** żeby odsłuchać wygenerowane napisy, umieść plik `.srt` w tym samym folderze co wideo i nadaj mu dokładnie tę samą nazwę. Potem ustaw w odtwarzaczu (na przykład VLC albo PotPlayer) przekazywanie tekstu napisów wprost do czytnika ekranu albo silnika TTS podczas odtwarzania.
 - **Wygodniejszy zapis:** przy zapisie plików SRT lub MP3 okno zapisu otwiera się domyślnie w folderze wideo źródłowego, niezależnie od tego, czy wideo otwarto przez okno wyboru pliku, czy skrótem Shift+V z Eksploratora.
 
-### 5.4 Zsynchronizowana narracja dźwiękowa (eksport MP3)
+### 6.4 Zsynchronizowana narracja dźwiękowa (eksport MP3)
 
 Dodatek nie tylko tworzy tekstowe pliki SRT. Działa jak pełne narzędzie do produkcji audiodeskrypcji: zamienia opisy na mowę i miksuje je z dźwiękiem wideo. Jako silnik głosu można wybrać **Gemini Live TTS**, który przez Gemini Live API tworzy bardzo naturalną narrację bez ograniczeń długości. Przy generowaniu MP3 dla plików lokalnych dostępnych jest kilka trybów miksowania:
 
@@ -266,15 +266,15 @@ Moduł transkrypcji został napisany od nowa i obsługuje zarówno pliki dźwię
 4. Wyodrębnianie tekstu rusza w tle, partiami. Okno możesz zamknąć w dowolnej chwili i wrócić później. Nic nie ginie.
 5. Gdy strony są gotowe, czytaj je w podglądzie: przechodź między stronami, skocz do dowolnej strony, zadawaj pytania AI, zapisz tekst albo wygeneruj narrację dźwiękową.
 
-### 7.1 Przetwarzanie wsadowe i wznawianie
+### 8.1 Przetwarzanie wsadowe i wznawianie
 
 Nie trzeba czytać wielkiego dokumentu za jednym razem. Wybierz zakres stron (np. `1-20`) albo zostaw domyślne ustawienia, żeby przetworzyć wszystko. AI wyodrębni wszystkie strony w tle. Jeśli NVDA przestanie działać albo przerwiesz skanowanie, dodatek zapamięta postęp i zaproponuje **wznowienie** dokładnie w miejscu przerwania. Gotowe dokumenty są też zapamiętywane, więc ponowne otwarcie (z ostatnich dokumentów albo przez **D**) od razu wczytuje tekst bez ponownego OCR, chyba że pliki źródłowe się zmieniły.
 
-### 7.2 Akcja na pliku
+### 8.2 Akcja na pliku
 
 Nie zawsze trzeba najpierw otwierać dokument. W Eksploratorze plików Windows wystarczy zaznaczyć plik PDF albo obraz i w warstwie poleceń nacisnąć **D** (czytnik dokumentów) albo **F** (akcja na pliku). Dodatek od razu pomija okno wyboru pliku i zaczyna przetwarzać zaznaczony plik. Zaznaczenie kilku plików naraz przetwarza je razem jako jeden dokument.
 
-### 7.3 Skróty czytnika dokumentów
+### 8.3 Skróty czytnika dokumentów
 
 Gdy okno czytnika jest otwarte, działają następujące skróty:
 
@@ -295,7 +295,7 @@ Gdy okno czytnika jest otwarte, działają następujące skróty:
 - **Głos syntezy / Silnik syntezy mowy:** wybór głosu, a przy dostawcy Gemini także wybór między **standardową syntezą mowy** a strumieniowym **Gemini Live**.
 - **Poprzednia / Następna:** przechodzenie między stronami (to samo co skróty Ctrl+PageUp i Ctrl+PageDown).
 
-### 7.4 Ostatnie dokumenty (D)
+### 8.4 Ostatnie dokumenty (D)
 
 Naciśnięcie **D** w warstwie poleceń pokazuje najpierw ostatnio czytane dokumenty. Wybierz jeden, aby kontynuować od strony, na której przerwano czytanie (nawet jeśli OCR już się zakończył), albo naciśnij **Otwórz plik...** (`Ctrl + O`), aby wybrać plik jak zwykle.
 
@@ -303,16 +303,16 @@ Naciśnięcie **D** w warstwie poleceń pokazuje najpierw ostatnio czytane dokum
 
 Aplikacja, w której wszędzie słychać „nieoznaczony przycisk”? Silnik etykietowania semantycznego rozwiązuje to na stałe.
 
-### 8.1 Trwałe etykietowanie obiektu (L)
+### 9.1 Trwałe etykietowanie obiektu (L)
 
 Ustaw czytnik na nieoznaczonej grafice albo przycisku i naciśnij **L** w warstwie poleceń. AI obejrzy przycisk, rozpozna jego funkcję i nada mu trwałą etykietę.
 _W odróżnieniu od starszych narzędzi do etykietowania ten dodatek korzysta z hybrydowego systemu „sygnatury obiektu” (AutomationId/ControlID). Własne etykiety przetrwają zmianę rozmiaru okna, przełączenie monitora i aktualizację aplikacji._
 
-### 8.2 Skanowanie całej aplikacji (Shift + L)
+### 9.2 Skanowanie całej aplikacji (Shift + L)
 
 Naciśnij **Shift + L**, żeby przeskanować całe aktywne okno naraz. AI znajdzie wszystkie nieoznaczone elementy i nazwie je za jednym razem. Etykiety można potem przeglądać, zmieniać i usuwać zbiorczo we wbudowanym menedżerze etykiet.
 
-### 8.3 Eksplorator interfejsu (E)
+### 9.3 Eksplorator interfejsu (E)
 
 Chcesz obsłużyć element bez ręcznego docierania do niego? Naciśnij **E**, żeby uruchomić Eksplorator interfejsu. AI przeskanuje ekran i utworzy dostępną listę wszystkich klikalnych elementów (pomijając szum systemowy w rodzaju paska zadań). Wybierz pozycję z listy, a dodatek od razu ją kliknie.
 
